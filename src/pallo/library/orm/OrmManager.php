@@ -180,6 +180,14 @@ class OrmManager {
     }
 
     /**
+     * Gets the model cache
+     * @return pallo\library\cache\pool\CachePool
+     */
+    public function getModelCache() {
+        return $this->modelLoader->getModelCache();
+    }
+
+    /**
      * Sets the query cache
      * @param pallo\library\cache\pool\CachePool $queryCache
      * @return null
