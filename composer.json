@@ -17,5 +17,10 @@
         "pallo/lib-system": ">=0.3.0",
         "pallo/lib-tokenizer": ">=0.1.0",
         "pallo/lib-validation": ">=0.1.0"
+    },
+    "autoload": {
+        "psr-0": {
+            "pallo\\library\\orm\\": ["src/"]
+        }
     }
 }
