@@ -237,6 +237,8 @@ class ModelLoader {
                 $cacheItem->setValue($model);
 
                 $this->cache->set($cacheItem);
+
+                $model->getMeta()->__wakeup();
             }
 
             $model->setOrmManager($this->orm);

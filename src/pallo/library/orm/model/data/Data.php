@@ -7,7 +7,7 @@ use pallo\library\Data as CoreData;
 /**
  * Generic data container
  */
-class Data {
+class Data implements DatedData, VersionedData {
 
     /**
      * Id of the log data
@@ -28,12 +28,6 @@ class Data {
     public $dataLocales;
 
     /**
-     * Version of the data
-     * @var integer
-     */
-    public $version;
-
-    /**
      * Timestamp this data was added to the model
      * @var integer
      */
@@ -46,6 +40,12 @@ class Data {
     public $dateModified;
 
     /**
+     * Version of the data
+     * @var integer
+     */
+    public $version;
+
+    /**
      * Gets a string representation of this data
      * @return string
      */
@@ -55,6 +55,59 @@ class Data {
         } else {
             return 'New Data';
         }
+    }
+
+    /**
+     * Sets the add date
+     * @param integer $timestamp UNIX timestamp of the add date
+     * @return null
+     */
+    public function setDateAdded($timestamp = null) {
+        if (!$this->dateAdded) {
+            $this->dateAdded = $timestamp;
+        }
+    }
+
+    /**
+     * Gets the add date
+     * @return integer UNIX timestamp of the add date
+    */
+    public function getDateAdded() {
+        return $this->dateAdded;
+    }
+
+    /**
+     * Sets the modified date
+     * @param integer $timestamp UNIX timestamp of the modified date
+     * @return null
+    */
+    public function setDateModified($timestamp = null) {
+        $this->dateModified = $timestamp;
+    }
+
+    /**
+     * Gets the modified date
+     * @return integer UNIX timestamp of the modified date
+    */
+    public function getDateModified() {
+        return $this->dateModified;
+    }
+
+    /**
+     * Sets the current version of the data
+     * @param integer $version
+     * @return null
+     */
+    public function setVersion($version) {
+        $this->version = $version;
+    }
+
+    /**
+     * Gets the current version of the data
+     * @return integer
+    */
+    public function getVersion() {
+        return $this->version;
     }
 
 }

@@ -601,7 +601,7 @@ class GenericModel extends AbstractModel {
             }
         }
 
-        if (!$isNew) {
+        if (!$isNew && $oldHasMany) {
             $this->deleteOldHasManyAndBelongsTo($model, $foreignKey, $oldHasMany, $isDependant);
         }
     }

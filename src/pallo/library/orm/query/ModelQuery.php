@@ -152,6 +152,7 @@ class ModelQuery {
         $this->orm = $model->getOrmManager();
         $this->model = $model;
 
+        $this->reflectionHelper = $this->model->getReflectionHelper();
         $this->fieldTokenizer = $this->orm->getFieldTokenizer();
         $this->queryParser = $this->orm->getQueryParser();
         $this->locales = $locales;
@@ -440,11 +441,12 @@ class ModelQuery {
 
         $unlocalizedResult = array();
         foreach ($result as $index => $data) {
-            if ($data->isDataLocalized || !isset($data->id)) {
+            $id = $this->reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY);
+            if ($data->isDataLocalized || !$id) {
                 continue;
             }
 
-            $unlocalizedResult[$data->id] = $data->id;
+            $unlocalizedResult[$id] = $id;
         }
 
         if (!$unlocalizedResult) {
@@ -469,11 +471,13 @@ class ModelQuery {
             $localeResult = $query->query($indexField);
 
             foreach ($localeResult as $index => $localeData) {
+                $id = $this->reflectionHelper->getProperty($localeData, DefinitionModelTable::PRIMARY_KEY);
+
                 $localeData->dataLocale = $locale;
 
                 $result[$index] = $localeData;
 
-                unset($unlocalizedResult[$localeData->id]);
+                unset($unlocalizedResult[$id]);
             }
 
             if (!$unlocalizedResult) {
@@ -511,7 +515,13 @@ class ModelQuery {
             $locale = $this->getLocale();
 
             $belongsToFields = $meta->getBelongsTo();
-            foreach ($belongsToFields as $fieldName => $field) {
+            foreach ($belongsToFields as $field) {
+                if (is_string($field)) {
+                    $fieldName = $field;
+                } else {
+                    $fieldName = $field->getName();
+                }
+
                 $relationModelName = $meta->getRelationModelName($fieldName);
                 $relationModel = $this->orm->getModel($relationModelName);
 
@@ -520,21 +530,34 @@ class ModelQuery {
                 }
 
                 foreach ($result as $index => $data) {
-                    if (!isset($data->$fieldName) || (!isset($data->$fieldName->id) || !$data->$fieldName->id) || (isset($data->$fieldName->dataLocale) && $data->$fieldName->dataLocale == $locale)) {
+                    $fieldValue = $this->reflectionHelper->getProperty($data, $fieldName);
+                    if (!$fieldValue || !is_object($fieldValue)) {
+                        continue;
+                    }
+
+                    $fieldId = $this->reflectionHelper->getProperty($fieldValue, DefinitionModelTable::PRIMARY_KEY);
+                    $fieldLocale = $this->reflectionHelper->getProperty($fieldValue, 'dataLocale');
+                    if (!$fieldId || ($fieldLocale && $fieldLocale == $locale)) {
                         continue;
                     }
 
                     $query = $relationModel->createQuery($locale);
                     $query->setRecursiveDepth($recursiveDepth);
                     $query->setFetchUnlocalizedData(true);
-                    $query->addCondition('{id} = %1%', $data->$fieldName->id);
+                    $query->addCondition('{id} = %1%', $fieldId);
 
-                    $result[$index]->$fieldName = $query->queryFirst();
+                    $this->reflectionHelper->setProperty($result[$index], $fieldName, $query->queryFirst());
                 }
             }
         }
 
-        foreach ($hasFields as $fieldName => $field) {
+        foreach ($hasFields as $field) {
+            if (is_string($field)) {
+                $fieldName = $field;
+            } else {
+                $fieldName = $field->getName();
+            }
+
             if ($field->isLocalized()) {
                 $localizedFields[] = $fieldName;
             } else {
@@ -579,7 +602,7 @@ class ModelQuery {
                     continue;
                 }
 
-                $result[$id]->$fieldName = $localizedData->$fieldName;
+                $this->reflectionHelper->setProperty($result[$id], $fieldName, $reflectionHelper->getProperty($localizedData, $fieldName));
             }
         }
 
@@ -609,9 +632,9 @@ class ModelQuery {
             $query->setRecursiveDepth($recursiveDepth);
             $query->setIncludeUnlocalizedData($this->includeUnlocalizedData);
             $query->setFetchUnlocalizedData($this->fetchUnlocalizedData);
-            $query->addCondition('{id} = %1%', $data->$fieldName);
+            $query->addCondition('{id} = %1%', $this->reflectionHelper->getProperty($data, $fieldName));
 
-            $result[$index]->$fieldName = $query->queryFirst();
+            $this->reflectionHelper->setProperty($result[$index], $fieldName, $query->queryFirst());
         }
 
         return $result;
@@ -670,12 +693,12 @@ class ModelQuery {
             $query->setIncludeUnlocalizedData($this->includeUnlocalizedData);
             $query->setFetchUnlocalizedData($this->fetchUnlocalizedData);
             $query->removeFields('{' . $foreignKey . '}');
-            $query->addCondition('{' . $foreignKey . '} = %1%', $data->id);
+            $query->addCondition('{' . $foreignKey . '} = %1%', $this->reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY));
 
             if ($isHasOne) {
-                $result[$index]->$fieldName = $this->queryHasOneWithoutLinkModel($query, $foreignKey, $data);
+                $this->reflectionHelper->setProperty($result[$index], $fieldName, $this->queryHasOneWithoutLinkModel($query, $foreignKey, $data));
             } else {
-                $result[$index]->$fieldName = $this->queryHasManyWithoutLinkModel($query, $meta, $fieldName, $foreignKey, $data, $indexOn);
+                $this->reflectionHelper->setProperty($result[$index], $fieldName, $this->queryHasManyWithoutLinkModel($query, $meta, $fieldName, $foreignKey, $data, $indexOn));
             }
         }
 
@@ -693,9 +716,9 @@ class ModelQuery {
         $queryResult = $query->queryFirst();
 
         if ($query->getRecursiveDepth() === 0) {
-            $queryResult->$foreignKey = $data->id;
+            $this->reflectionHelper->setProperty($queryResult, $foreignKey, $this->reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY));
         } else {
-            $queryResult->$foreignKey = $data;
+            $this->reflectionHelper->setProperty($queryResult, $foreignKey, $data);
         }
 
         return $queryResult;
@@ -719,9 +742,9 @@ class ModelQuery {
         $queryResult = $query->query($indexOn);
         foreach ($queryResult as $queryIndex => $queryData) {
             if ($recursiveDepth === 0) {
-                $queryData->$foreignKey = $data->id;
+                $this->reflectionHelper->setProperty($queryData, $foreignKey, $this->reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY));
             } else {
-                $queryData->$foreignKey = $data;
+                $this->reflectionHelper->setProperty($queryData, $foreignKey, $data);
             }
         }
 
@@ -777,11 +800,7 @@ class ModelQuery {
     private function queryHasOneWithLinkModel(ModelQuery $query, $foreignKey) {
         $data = $query->queryFirst();
 
-        if (!isset($data->$foreignKey)) {
-            return null;
-        }
-
-        return $data->$foreignKey;
+        return $this->reflectionHelper->getProperty($data, $foreignKey);
     }
 
     /**
@@ -803,14 +822,16 @@ class ModelQuery {
 
         $queryResult = $query->query();
         foreach ($queryResult as $data) {
-            if (!isset($data->$foreignKey)) {
+            $foreignData = $this->reflectionHelper->getProperty($data, $foreignKey);
+            if (!$foreignData) {
                 continue;
             }
 
-            if (isset($data->$foreignKey->id)) {
-                $result[$data->$foreignKey->id] = $data->$foreignKey;
+            $foreignDataId = $this->reflectionHelper->getProperty($foreignData, DefinitionModelTable::PRIMARY_KEY);
+            if ($foreignDataId) {
+                $result[$foreignDataId] = $foreignData;
             } else {
-                $result[] = $data->$foreignKey;
+                $result[] = $foreignData;
             }
         }
 
@@ -832,6 +853,7 @@ class ModelQuery {
 
         $linkModelName = $meta->getRelationLinkModelName($fieldName);
         $linkModel = $this->orm->getModel($linkModelName);
+        $linkModelMeta = $linkModel->getMeta();
 
         $isHasOne = $field instanceof HasOneField;
 
@@ -842,14 +864,18 @@ class ModelQuery {
             $query->setFetchUnlocalizedData($this->fetchUnlocalizedData);
             $query->setOperator(Condition::OPERATOR_OR);
 
-            foreach ($foreignKeys as $foreignKey) {
-                $query->addCondition('{' . $foreignKey->getName() . '} = %1%', $data->id);
+            $id = $this->reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY);
+
+            foreach ($foreignKeys as $foreignKey => $null) {
+                $foreignKey = $linkModelMeta->getField($foreignKey);
+
+                $query->addCondition('{' . $foreignKey->getName() . '} = %1%', $id);
             }
 
             if ($isHasOne) {
-                $result[$index]->$fieldName = $this->queryHasOneWithLinkModelToSelf($query, $foreignKeys, $data->id);
+                $this->reflectionHelper->setProperty($result[$index], $fieldName, $this->queryHasOneWithLinkModelToSelf($query, $foreignKeys, $id));
             } else {
-                $result[$index]->$fieldName = $this->queryHasManyWithLinkModelToSelf($query, $meta, $fieldName, $foreignKeys, $data->id);
+                $this->reflectionHelper->setProperty($result[$index], $fieldName, $this->queryHasManyWithLinkModelToSelf($query, $meta, $fieldName, $foreignKeys, $id));
             }
         }
 
@@ -871,8 +897,9 @@ class ModelQuery {
         }
 
         foreach ($foreignKeys as $foreignKey) {
-            if (isset($data->$foreignKey) && $data->$foreignKey != $id) {
-                return $data->$foreignKey;
+            $foreignData = $this->reflectionHelper->getProperty($data, $foreignKey);
+            if ($foreignData && $foreignData != $id) {
+                return $foreignData;
             }
         }
 
@@ -898,12 +925,13 @@ class ModelQuery {
         $queryResult = $query->query();
         foreach ($queryResult as $data) {
             foreach ($foreignKeys as $foreignKey) {
-                if ($data->$foreignKey->id != $id) {
+                $foreignValueId = $this->reflectionHelper->getProperty($this->reflectionHelper->getProperty($data, $foreignKey), DefinitionModelTable::PRIMARY_KEY);
+                if ($foreignValueId != $id) {
                     break;
                 }
             }
 
-            $result[$data->$foreignKey->id] = $data->$key;
+            $result[$foreignValueId] = $this->reflectionHelper->getProperty($data, $key);
          }
 
          return $result;

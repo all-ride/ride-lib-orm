@@ -143,6 +143,14 @@ class ResultParser {
                 $relationModelName = $this->meta->getRelationModelName($fieldName);
                 $relationModel = $this->orm->getModel($relationModelName);
 
+                $relationMeta = $relationModel->getMeta();
+                $relationProperties = $relationMeta->getProperties();
+                foreach ($relationProperties as $relationPropertyName => $relationProperty) {
+                    if ($relationProperty->getType() == 'serialize' && isset($value[$relationPropertyName])) {
+                        $value[$relationPropertyName] = unserialize($value[$relationPropertyName]);
+                    }
+                }
+
                 $data[$fieldName] = $relationModel->createData($value);
             } else {
                 $data[$fieldName] = null;

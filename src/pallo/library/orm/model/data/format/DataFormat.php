@@ -3,6 +3,7 @@
 namespace pallo\library\orm\model\data\format;
 
 use pallo\library\orm\exception\OrmException;
+use pallo\library\reflection\ReflectionHelper;
 use pallo\library\tokenizer\symbol\NestedSymbol;
 use pallo\library\tokenizer\Tokenizer;
 
@@ -39,25 +40,28 @@ class DataFormat {
 
     /**
      * Constructs a new data format
+     * @param pallo\library\reflection\ReflectionHelper $reflectionHelper
      * @param string $format Format string
      * @return null
-     * @throws pallo\ZiboException when the provided format is empty or not a string
+     * @throws pallo\library\orm\exception\OrmException when the provided
+     * format is empty or not a string
      */
-    public function __construct($format, array $modifiers) {
+    public function __construct(ReflectionHelper $reflectionHelper, $format, array $modifiers) {
         if (!is_string($format) || !$format) {
             throw new OrmException('Provided format is empty');
         }
 
         $this->format = $format;
-        $this->variables = $this->getVariablesFromFormat($format, $modifiers);
+        $this->variables = $this->getVariablesFromFormat($reflectionHelper, $format, $modifiers);
     }
 
     /**
      * Gets the used variables from the provided format
+     * @param pallo\library\reflection\ReflectionHelper $reflectionHelper
      * @param string $format Data format
      * @return array Array with the variable strings
      */
-    protected function getVariablesFromFormat($format, array $modifiers) {
+    protected function getVariablesFromFormat(ReflectionHelper $reflectionHelper, $format, array $modifiers) {
         $symbol = new NestedSymbol(self::SYMBOL_OPEN, self::SYMBOL_CLOSE, null, true);
         $tokenizer = new Tokenizer();
         $tokenizer->addSymbol($symbol);
@@ -79,7 +83,7 @@ class DataFormat {
             }
 
             if ($token == self::SYMBOL_CLOSE) {
-                $variables[$variableFormat] = new DataFormatVariable($variableFormat, $modifiers);
+                $variables[$variableFormat] = new DataFormatVariable($reflectionHelper, $variableFormat, $modifiers);
 
                 $isVariableOpen = false;
                 $variableFormat = null;

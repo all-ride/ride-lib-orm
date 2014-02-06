@@ -9,6 +9,7 @@ use pallo\library\database\manipulation\expression\ScalarExpression;
 use pallo\library\database\manipulation\expression\TableExpression;
 use pallo\library\database\manipulation\statement\UpdateStatement;
 use pallo\library\orm\definition\ModelTable;
+use pallo\library\orm\model\data\VersionedData;
 use pallo\library\orm\model\Model;
 use pallo\library\validation\exception\ValidationException;
 use pallo\library\validation\ValidationError;
@@ -25,7 +26,11 @@ class VersionBehaviour extends AbstractBehaviour {
      * @return null
      */
     public function postCreateData(Model $model, $data) {
-        $data->version = 0;
+        if (!$data instanceof VersionedData) {
+            return;
+        }
+
+        $data->setVersion(0);
     }
 
     /**
@@ -36,13 +41,13 @@ class VersionBehaviour extends AbstractBehaviour {
      * @return null
      */
     public function postValidate(Model $model, $data, ValidationException $exception) {
-        if (empty($data->id)) {
+        if (!$data instanceof VersionedData || empty($data->id)) {
             return;
         }
 
         $currentVersion = $this->findVersionById($model, $data->id);
-        if ($data->version == $currentVersion) {
-            $data->version = $data->version + 1;
+        if ($data->getVersion() == $currentVersion) {
+            $data->setVersion($currentVersion + 1);
 
             return;
         }
@@ -50,7 +55,7 @@ class VersionBehaviour extends AbstractBehaviour {
         $error = new ValidationError(
             self::TRANSLATION_VALIDATION_ERROR,
 			'Your data is outdated. You are trying to save version %yourVersion% over version %currentVersion%. Try updating your data first.',
-            array('yourVersion' => $data->version, 'currentVersion' => $currentVersion)
+            array('yourVersion' => $data->getVersion(), 'currentVersion' => $currentVersion)
         );
 
         $validationException->addErrors('version', array($error));
@@ -63,11 +68,11 @@ class VersionBehaviour extends AbstractBehaviour {
      * @return null
      */
     public function preInsert(Model $model, $data) {
-        if (!empty($data->version)) {
+        if (!$data instanceof VersionedData || $data->getVersion()) {
             return;
         }
 
-        $data->version = 1;
+        $data->setVersion(1);
     }
 
     /**
@@ -114,7 +119,7 @@ class VersionBehaviour extends AbstractBehaviour {
             return 0;
         }
 
-        return $data->version;
+        return $data->getVersion();
     }
 
 }
