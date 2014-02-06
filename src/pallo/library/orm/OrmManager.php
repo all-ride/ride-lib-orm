@@ -21,6 +21,7 @@ use pallo\library\orm\query\parser\QueryParser;
 use pallo\library\orm\query\tokenizer\FieldTokenizer;
 use pallo\library\orm\query\CacheableModelQuery;
 use pallo\library\orm\query\ModelQuery;
+use pallo\library\reflection\ReflectionHelper;
 
 /**
  * Manager of the ORM
@@ -46,7 +47,13 @@ class OrmManager {
     const LOG_SOURCE = 'orm';
 
     /**
-     * The database manager
+     * Instance of the reflection helper
+     * @var pallo\library\reflection\ReflectionHelper
+     */
+    protected $reflectionHelper;
+
+    /**
+     * Instance of the database manager
      * @var pallo\library\database\DatabaseManager
      */
     protected $databaseManager;
@@ -103,7 +110,8 @@ class OrmManager {
      * Constructs a new ORM manager
      * @return null
      */
-    public function __construct(DatabaseManager $databaseManager, ModelLoader $modelLoader) {
+    public function __construct(ReflectionHelper $reflectionHelper, DatabaseManager $databaseManager, ModelLoader $modelLoader) {
+        $this->reflectionHelper = $reflectionHelper;
         $this->databaseManager = $databaseManager;
         $this->log = null;
 
@@ -360,7 +368,7 @@ class OrmManager {
                 'truncate' => new TruncateDataFormatModifier(),
             );
 
-            $this->dataFormatter = new DataFormatter($modifiers);
+            $this->dataFormatter = new DataFormatter($this->reflectionHelper, $modifiers);
         }
 
         return $this->dataFormatter;

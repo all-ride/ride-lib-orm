@@ -13,8 +13,10 @@ use pallo\library\orm\definition\DataFormat;
 use pallo\library\orm\definition\FieldValidator;
 use pallo\library\orm\definition\ModelTable;
 use pallo\library\orm\exception\OrmException;
+use pallo\library\orm\model\behaviour\DatedBehaviour;
 use pallo\library\orm\model\behaviour\LogBehaviour;
 use pallo\library\orm\model\behaviour\UniqueBehaviour;
+use pallo\library\orm\model\behaviour\VersionBehaviour;
 use pallo\library\orm\model\meta\ModelMeta;
 use pallo\library\orm\model\LocalizedModel;
 use pallo\library\orm\model\Model;
@@ -360,9 +362,16 @@ abstract class AbstractXmlModelIO implements ModelIO {
         $this->setOptionsFromElement($modelElement, $modelTable);
 
         $behaviours = array();
-        if ($modelTable->getOption('log')) {
+        if ($modelTable->getOption('behaviour.log')) {
             $behaviours[] = new LogBehaviour();
         }
+        if ($modelTable->getOption('behaviour.version')) {
+            $behaviours[] = new VersionBehaviour();
+        }
+        if ($modelTable->getOption('behaviour.date')) {
+            $behaviours[] = new DatedBehaviour();
+        }
+
         foreach ($fields as $field) {
             if ($field->isUnique()) {
                 $behaviours[] = new UniqueBehaviour($field->getName());

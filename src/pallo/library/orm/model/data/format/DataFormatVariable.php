@@ -4,6 +4,8 @@ namespace pallo\library\orm\model\data\format;
 
 use pallo\library\orm\exception\OrmException;
 use pallo\library\orm\model\data\format\modifier\DataFormatModifierFacade;
+use pallo\library\reflection\exception\ReflectionException;
+use pallo\library\reflection\ReflectionHelper;
 use pallo\library\tokenizer\symbol\NestedSymbol;
 use pallo\library\tokenizer\Tokenizer;
 
@@ -37,6 +39,12 @@ class DataFormatVariable {
     const SEPARATOR_ARGUMENT = ':';
 
     /**
+     * Instance of the reflection helper
+     * @var pallo\library\reflection\ReflectionHelper
+     */
+    protected $reflectionHelper;
+
+    /**
      * The format string of the variable (includes the modifiers)
      * @var string
      */
@@ -68,13 +76,16 @@ class DataFormatVariable {
 
     /**
      * Constructs a new data format variable
+     * @param pallo\library\reflection\ReflectionHelper $reflectionHelper
      * @param string $format Variable format string
      * @param array $modifiers Available modifiers
      * @return null
      * @throws pallo\library\orm\exception\OrmException when the provided format
      * is empty or not a string
      */
-    public function __construct($format, array $modifiers) {
+    public function __construct(ReflectionHelper $reflectionHelper, $format, array $modifiers) {
+        $this->reflectionHelper = $reflectionHelper;
+
         $this->setFormat($format, $modifiers);
     }
 
@@ -92,11 +103,15 @@ class DataFormatVariable {
 
             $value = $data;
             foreach ($tokens as $token) {
-                if (!is_object($value) || !isset($value->$token)) {
+                if (!is_object($value)) {
                     return null;
                 }
 
-                $value = $value->$token;
+                try {
+                    $value = $this->reflectionHelper->getProperty($value, $token);
+                } catch (ReflectionException $exception) {
+                    return null;
+                }
             }
         }
 

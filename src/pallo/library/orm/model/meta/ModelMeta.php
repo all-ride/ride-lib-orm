@@ -669,7 +669,12 @@ class ModelMeta {
                 $relation->setForeignKey($this->getForeignKey($linkModelTable, $relationModelName)->getName());
                 $relation->setForeignKeyToSelf($this->getForeignKey($linkModelTable, $modelName)->getName());
             } else {
-                $relation->setForeignKey($this->getForeignKeys($linkModelTable, $modelName)->getName());
+                 $foreignKeys = $this->getForeignKeys($linkModelTable, $modelName);
+                 foreach ($foreignKeys as $foreignKey => $null) {
+                     $foreignKeys[$foreignKey] = $foreignKey;
+                 }
+
+                 $relation->setForeignKey($foreignKeys);
             }
         } else {
             $relationModelTable = $relationModel->getMeta()->getModelTable();
@@ -682,13 +687,13 @@ class ModelMeta {
 
         if ($field instanceof HasOneField) {
             $this->hasOne[$name] = $field;
-            return;
-        }
+        } else {
+            if ($linkModelName) {
+                $relation->setIsHasManyAndBelongsToMany(true);
+            }
 
-        if ($linkModelName) {
-            $relation->setIsHasManyAndBelongsToMany(true);
+            $this->hasMany[$name] = $field;
         }
-        $this->hasMany[$name] = $field;
     }
 
     /**
