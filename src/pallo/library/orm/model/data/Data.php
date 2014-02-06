@@ -63,9 +63,15 @@ class Data implements DatedData, VersionedData {
      * @return null
      */
     public function setDateAdded($timestamp = null) {
-        if (!$this->dateAdded) {
-            $this->dateAdded = $timestamp;
+        if ($this->dateAdded) {
+            return;
         }
+
+        if ($timestamp === null) {
+            $timestamp = time();
+        }
+
+        $this->dateAdded = $timestamp;
     }
 
     /**
@@ -82,6 +88,10 @@ class Data implements DatedData, VersionedData {
      * @return null
     */
     public function setDateModified($timestamp = null) {
+        if ($timestamp === null) {
+            $timestamp = time();
+        }
+
         $this->dateModified = $timestamp;
     }
 

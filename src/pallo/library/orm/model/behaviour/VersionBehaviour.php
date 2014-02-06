@@ -26,7 +26,7 @@ class VersionBehaviour extends AbstractBehaviour {
      * @return null
      */
     public function postCreateData(Model $model, $data) {
-        if (!$data instanceof VersionedData) {
+        if (!$data instanceof VersionedData || $data->getVersion()) {
             return;
         }
 
@@ -53,12 +53,12 @@ class VersionBehaviour extends AbstractBehaviour {
         }
 
         $error = new ValidationError(
-            self::TRANSLATION_VALIDATION_ERROR,
-			'Your data is outdated. You are trying to save version %yourVersion% over version %currentVersion%. Try updating your data first.',
+            'error.validation.version',
+            'Your data is outdated. You are trying to save version %yourVersion% over version %currentVersion%. Try updating your data first.',
             array('yourVersion' => $data->getVersion(), 'currentVersion' => $currentVersion)
         );
 
-        $validationException->addErrors('version', array($error));
+        $exception->addErrors('version', array($error));
     }
 
     /**

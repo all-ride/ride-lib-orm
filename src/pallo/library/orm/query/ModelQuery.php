@@ -925,13 +925,15 @@ class ModelQuery {
         $queryResult = $query->query();
         foreach ($queryResult as $data) {
             foreach ($foreignKeys as $foreignKey) {
-                $foreignValueId = $this->reflectionHelper->getProperty($this->reflectionHelper->getProperty($data, $foreignKey), DefinitionModelTable::PRIMARY_KEY);
+                $foreignValue = $this->reflectionHelper->getProperty($data, $foreignKey);
+                $foreignValueId = $this->reflectionHelper->getProperty($foreignValue, DefinitionModelTable::PRIMARY_KEY);
                 if ($foreignValueId != $id) {
                     break;
                 }
             }
 
-            $result[$foreignValueId] = $this->reflectionHelper->getProperty($data, $key);
+//             $result[$foreignValueId] = $this->reflectionHelper->getProperty($data, $key);
+            $result[$foreignValueId] = $foreignValue;
          }
 
          return $result;
