@@ -24,7 +24,7 @@ class DatedBehaviour extends AbstractBehaviour {
      * @return null
      */
     public function postCreateData(Model $model, $data) {
-        if (!$data instanceof DatedData) {
+        if (!$data instanceof DatedData || $data->getDateAdded()) {
             return;
         }
 
