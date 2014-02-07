@@ -29,6 +29,7 @@ use pallo\library\validation\constraint\GenericConstraint;
 
 use \DOMDocument;
 use \DOMElement;
+use pallo\library\orm\model\behaviour\FieldSlugBehaviour;
 
 /**
  * Read and write model definitions from and to an xml structure
@@ -362,14 +363,18 @@ abstract class AbstractXmlModelIO implements ModelIO {
         $this->setOptionsFromElement($modelElement, $modelTable);
 
         $behaviours = array();
-        if ($modelTable->getOption('behaviour.log')) {
-            $behaviours[] = new LogBehaviour();
+        if ($modelTable->getOption('behaviour.date')) {
+            $behaviours[] = new DatedBehaviour();
         }
         if ($modelTable->getOption('behaviour.version')) {
             $behaviours[] = new VersionBehaviour();
         }
-        if ($modelTable->getOption('behaviour.date')) {
-            $behaviours[] = new DatedBehaviour();
+        $slugField = $modelTable->getOption('behaviour.slug.field');
+        if ($slugField) {
+            $behaviours[] = new FieldSlugBehaviour(explode(',', $slugField));
+        }
+        if ($modelTable->getOption('behaviour.log')) {
+            $behaviours[] = new LogBehaviour();
         }
 
         foreach ($fields as $field) {
