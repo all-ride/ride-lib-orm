@@ -108,6 +108,10 @@ abstract class AbstractModel implements Model, Serializable {
         $this->behaviours[] = $behaviour;
     }
 
+    public function getBehaviours() {
+        return $this->behaviours;
+    }
+
     /**
      * Serializes this model
      * @return string Serialized model

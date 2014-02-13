@@ -381,27 +381,30 @@ class GenericModel extends AbstractModel {
 
         $localizedModel = $this->getLocalizedModel();
 
-        $localizedData = $localizedModel->createData(false);
-        $localizedData->$localeField = $this->getLocale($data->$localeField);
-        $localizedData->$dataField = $data->id;
+        $localizedData = $localizedModel->createData();
+        $this->reflectionHelper->setProperty($localizedData, $localeField, $this->getLocale($this->reflectionHelper->getProperty($data, $localeField)));
+        $this->reflectionHelper->setProperty($localizedData, $dataField, $this->reflectionHelper->getProperty($data, ModelTable::PRIMARY_KEY));
 
         $hasSetFields = false;
         $fields = $this->meta->getLocalizedFields();
         foreach ($fields as $fieldName => $field) {
-            if (!isset($data->$fieldName)) {
+            $fieldValue = $this->reflectionHelper->getProperty($data, $fieldName);
+            if ($fieldValue === null) {
                 unset($fields[$fieldName]);
+
                 continue;
             }
 
             $hasSetFields = true;
-            $localizedData->$fieldName = $data->$fieldName;
+
+            $this->reflectionHelper->setProperty($localizedData, $fieldName, $fieldValue);
         }
 
         if ($hasSetFields) {
             $localizedModel->save($localizedData);
 
             foreach ($fields as $fieldName => $field) {
-                $data->$fieldName = $localizedData->$fieldName;
+                $this->reflectionHelper->setProperty($data, $fieldName, $this->reflectionHelper->getProperty($localizedData, $fieldName));
             }
         }
     }
