@@ -5,6 +5,7 @@ namespace pallo\library\orm\query\parser;
 use pallo\library\database\result\DatabaseResult;
 use pallo\library\orm\definition\ModelTable;
 use pallo\library\orm\model\data\Data;
+use pallo\library\orm\model\LocalizedModel;
 use pallo\library\orm\model\Model;
 use pallo\library\orm\OrmManager;
 
@@ -86,7 +87,7 @@ class ResultParser {
         foreach ($row as $column => $value) {
             $positionAliasSeparator = strpos($column, QueryParser::ALIAS_SEPARATOR);
             if ($positionAliasSeparator === false) {
-                if ($this->meta->getField($column)->getType() == 'serialize') {
+                if ($column != 'isDataLocalized' && $this->meta->getField($column)->getType() == 'serialize') {
                     if ($value) {
                         $value = unserialize($value);
                     } else {
@@ -102,7 +103,7 @@ class ResultParser {
             $alias = substr($column, 0, $positionAliasSeparator);
             $fieldName = substr($column, $positionAliasSeparator + QueryParser::ALIAS_SEPARATOR_LENGTH);
 
-            if ($alias == QueryParser::ALIAS_SELF) {
+            if ($alias == QueryParser::ALIAS_SELF && $fieldName != LocalizedModel::FIELD_LOCALE) {
                 if ($this->meta->getField($fieldName)->getType() == 'serialize') {
                     if ($value) {
                         $value = unserialize($value);

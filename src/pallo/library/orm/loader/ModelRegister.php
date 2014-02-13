@@ -17,6 +17,7 @@ use pallo\library\orm\model\LocalizedModel;
 use pallo\library\orm\model\Model;
 use pallo\library\orm\model\GenericModel;
 use pallo\library\reflection\ReflectionHelper;
+use pallo\library\orm\model\behaviour\LogBehaviour;
 
 /**
  * Register of the models. This register will handle the localized models and
@@ -202,7 +203,7 @@ class ModelRegister {
         $localizedModelName = $model->getName() . LocalizedModel::MODEL_SUFFIX;
 
         $modelTable = $model->getMeta()->getModelTable();
-        $group = $modelTable->getGroup();
+        $group = $modelTable->getOption('group');
 
         $dataField = new BelongsToField(LocalizedModel::FIELD_DATA, $model->getName());
         $localeField = new PropertyField(LocalizedModel::FIELD_LOCALE, 'string');
@@ -210,14 +211,28 @@ class ModelRegister {
         $localeIndex = new Index(LocalizedModel::FIELD_LOCALE, array($localeField));
         $dataLocaleIndex = new Index(LocalizedModel::FIELD_LOCALE . ucfirst(LocalizedModel::FIELD_DATA), array($localeField, $dataField));
 
-        $localizedModelTable = new ModelTable($localizedModelName, $modelTable->isLogged());
+        $isLogged = false;
+
+        $behaviours = $model->getBehaviours();
+        foreach ($behaviours as $behaviour) {
+            if ($behaviour instanceof LogBehaviour) {
+                $isLogged = true;
+            }
+        }
+
+        $behaviours = array();
+        if ($isLogged) {
+            $behaviours[] = new LogBehaviour();
+        }
+
+        $localizedModelTable = new ModelTable($localizedModelName);
         $localizedModelTable->addField($dataField);
         $localizedModelTable->addField($localeField);
         $localizedModelTable->addIndex($localeIndex);
         $localizedModelTable->addIndex($dataLocaleIndex);
 
         if ($group) {
-            $localizedModelTable->setGroup($group);
+            $localizedModelTable->setOption('group', $group);
         }
 
         $fields = $model->getMeta()->getFields();
@@ -232,7 +247,7 @@ class ModelRegister {
             $localizedModelTable->addField($field);
         }
 
-        $localizedModel = new LocalizedModel(new ModelMeta($localizedModelTable));
+        $localizedModel = new LocalizedModel($model->getReflectionHelper(), new ModelMeta($localizedModelTable), $behaviours);
 
         $this->registerModel($localizedModel, false);
     }
