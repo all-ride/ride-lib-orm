@@ -674,6 +674,20 @@ class ModelTable {
     }
 
     /**
+     * Gets the validators of all the fields
+     * @return array Array with the field name as key and an array with
+     * validator definitions as value
+     */
+    public function getValidators() {
+        $validators = array();
+        foreach ($this->fields as $fieldName => $field) {
+            $validators[$fieldName] = $field->getValidators();
+        }
+
+        return $validators;
+    }
+
+    /**
      * Sets the validation constraint for this model
      * @param pallo\library\validation\constraint\Constraint $constraint
      * @return null

@@ -347,13 +347,11 @@ abstract class AbstractXmlModelIO implements ModelIO {
                     Boolean::getBoolean($modelElement->getAttribute(self::ATTRIBUTE_WILL_BLOCK_DELETE)) :
                     false;
 
-        $validationConstraint = new GenericConstraint();
-
         $modelTable = new ModelTable($modelName);
         $modelTable->setWillBlockDeleteWhenUsed($willBlockDeleteWhenUsed);
-        $modelTable->setValidationConstraint($validationConstraint);
+//         $modelTable->setValidationConstraint($validationConstraint);
 
-        $fields = $this->getFieldsFromElement($modelElement, $validationConstraint, $file, $modelName);
+        $fields = $this->getFieldsFromElement($modelElement, $file, $modelName);
         foreach ($fields as $field) {
             $modelTable->addField($field);
         }
@@ -399,7 +397,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
      * @return array Array with ModelField objects
      * @throws pallo\library\orm\exception\OrmException when the model element has no field elements
      */
-    protected function getFieldsFromElement(DOMElement $modelElement, Constraint $validationConstraint, File $file, $modelName) {
+    protected function getFieldsFromElement(DOMElement $modelElement, File $file, $modelName) {
         $fields = array();
 
         $fieldElements = $modelElement->getElementsByTagName(self::TAG_FIELD);
@@ -408,7 +406,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
         }
 
         foreach ($fieldElements as $fieldElement) {
-            $fields[] = $this->getFieldFromElement($fieldElement, $validationConstraint, $file, $modelName);
+            $fields[] = $this->getFieldFromElement($fieldElement, $file, $modelName);
         }
 
         return $fields;
@@ -422,7 +420,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
      * @return pallo\library\orm\definition\field\ModelField
      * @throws pallo\library\orm\exception\OrmException when the field element has no name attribute or when the field is defined as property and as relation field
      */
-    protected function getFieldFromElement(DOMElement $fieldElement, Constraint $validationConstraint, File $file, $modelName) {
+    protected function getFieldFromElement(DOMElement $fieldElement, File $file, $modelName) {
         $attributeName = self::ATTRIBUTE_NAME;
         $fieldName = $fieldElement->getAttribute($attributeName);
 
@@ -454,8 +452,8 @@ abstract class AbstractXmlModelIO implements ModelIO {
         $field->setIsLocalized($localized);
 
         $validators = $this->getValidatorsFromFieldElement($fieldElement, $file, $modelName, $fieldName);
-        foreach ($validators as $validator) {
-            $validationConstraint->addValidator($validator, $fieldName);
+        foreach ($validators as $validatorName => $validatorOptions) {
+            $field->addValidator($validatorName, $validatorOptions);
         }
 
         $this->setOptionsFromElement($fieldElement, $field);
@@ -571,7 +569,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
 
             $options = $this->getValidationParametersFromValidationElement($validatorElement, $file, $modelName, $fieldName);
 
-            $validators[] = $this->createValidator($name, $options);
+            $validators[$name] = $options;
         }
 
         return $validators;

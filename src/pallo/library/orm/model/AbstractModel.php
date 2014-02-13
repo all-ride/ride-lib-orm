@@ -288,7 +288,7 @@ abstract class AbstractModel implements Model, Serializable {
             return $this->validationConstraint;
         }
 
-        $this->validationConstraint = $this->meta->getValidationConstraint();
+        $this->validationConstraint = $this->meta->getValidationConstraint($this->getOrmManager()->getValidationFactory());
         if ($this->validationConstraint) {
             $this->initializeValidationConstraint($this->validationConstraint);
         }
