@@ -30,6 +30,12 @@ abstract class ModelField extends Field {
     protected $options = array();
 
     /**
+     * Validators for this field
+     * @var array
+     */
+    protected $validators = array();
+
+    /**
      * Returns the fields to serialize
      * @return array Array with field names
      */
@@ -42,6 +48,10 @@ abstract class ModelField extends Field {
 
         if ($this->options) {
             $fields[] = 'options';
+        }
+
+        if ($this->validators) {
+            $fields[] = 'validators';
         }
 
         return $fields;
@@ -62,6 +72,25 @@ abstract class ModelField extends Field {
      */
     public function isLocalized() {
         return $this->isLocalized;
+    }
+
+    /**
+     * Adds a validator definition
+     * @param string $name Name of the validator
+     * @param array $options Options for the validator
+     * @return null
+     */
+    public function addValidator($name, array $options) {
+        $this->validators[$name] = $options;
+    }
+
+    /**
+     * Gets the validator definitions
+     * @return array Array with the name of the validator as key and the
+     * validator options as value
+     */
+    public function getValidators() {
+        return $this->validators;
     }
 
     /**

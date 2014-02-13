@@ -16,6 +16,8 @@ use pallo\library\orm\exception\ModelException;
 use pallo\library\orm\exception\OrmException;
 use pallo\library\orm\model\LocalizedModel;
 use pallo\library\orm\OrmManager;
+use pallo\library\validation\constraint\GenericConstraint;
+use pallo\library\validation\factory\ValidationFactory;
 
 /**
  * Meta of a model table
@@ -88,6 +90,12 @@ class ModelMeta {
      * @var array
      */
     protected $unlinkedModels;
+
+    /**
+     * Instance of the validation constraint
+     * @var pallo\library\validation\constraint\Constraint
+     */
+    protected $validationConstraint;
 
     /**
      * Constructs a new model meta definition
@@ -275,8 +283,23 @@ class ModelMeta {
      * Gets the validation constraint for this model
      * @return pallo\library\validation\constraint\Constraint|null
      */
-    public function getValidationConstraint() {
-        return $this->table->getValidationConstraint();
+    public function getValidationConstraint(ValidationFactory $validationFactory) {
+        if ($this->validationConstraint) {
+            return $this->validationConstraint;
+        }
+
+        $this->validationConstraint = new GenericConstraint();
+
+        $validators = $this->table->getValidators();
+        foreach ($validators as $fieldName => $fieldValidators) {
+            foreach ($fieldValidators as $validatorName => $validatorOptions) {
+                $validator = $validationFactory->createValidator($validatorName, $validatorOptions);
+
+                $this->validationConstraint->addValidator($validator, $fieldName);
+            }
+        }
+
+        return $this->validationConstraint;
     }
 
     /**

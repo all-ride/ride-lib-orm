@@ -22,6 +22,7 @@ use pallo\library\orm\query\tokenizer\FieldTokenizer;
 use pallo\library\orm\query\CacheableModelQuery;
 use pallo\library\orm\query\ModelQuery;
 use pallo\library\reflection\ReflectionHelper;
+use pallo\library\validation\factory\ValidationFactory;
 
 /**
  * Manager of the ORM
@@ -101,6 +102,12 @@ class OrmManager {
     protected $dataFormatter;
 
     /**
+     * Instance of the validation factory
+     * @var pallo\library\validation\factory\ValidationFactory
+     */
+    protected $validationFactory;
+
+    /**
      * The code of the current locale
      * @var string
      */
@@ -110,9 +117,10 @@ class OrmManager {
      * Constructs a new ORM manager
      * @return null
      */
-    public function __construct(ReflectionHelper $reflectionHelper, DatabaseManager $databaseManager, ModelLoader $modelLoader) {
+    public function __construct(ReflectionHelper $reflectionHelper, DatabaseManager $databaseManager, ModelLoader $modelLoader, ValidationFactory $validationFactory) {
         $this->reflectionHelper = $reflectionHelper;
         $this->databaseManager = $databaseManager;
+        $this->validationFactory = $validationFactory;
         $this->log = null;
 
         $this->modelLoader = $modelLoader;
@@ -328,6 +336,10 @@ class OrmManager {
         }
 
         return new CacheableModelQuery($model, $this->getLocales(), $locale);
+    }
+
+    public function getValidationFactory() {
+        return $this->validationFactory;
     }
 
     /**
