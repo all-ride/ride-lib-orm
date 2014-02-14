@@ -594,7 +594,7 @@ class GenericModel extends AbstractModel {
                 continue;
             }
 
-            $record->$foreignKey = $id;
+            $this->reflectionHelper->setProperty($record, $foreignKey, $id);
 
             $model->save($record);
 
