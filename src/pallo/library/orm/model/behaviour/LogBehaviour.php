@@ -131,7 +131,7 @@ class LogBehaviour extends AbstractBehaviour {
 
         $fields = array($fieldName => null);
 
-        $data = $model->createData(false);
+        $data = $model->createData();
         $data->id = $id;
         $data->$fieldName = $value;
 
