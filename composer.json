@@ -1,7 +1,7 @@
 {
     "name": "pallo/lib-orm",
     "description": "ORM library of the Pallo framework.",
-    "version": "0.1.7",
+    "version": "0.1.8",
     "authors": [
         {
             "name": "Joris Vandeweerd",
