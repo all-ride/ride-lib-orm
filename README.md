@@ -1,3 +1,3 @@
-# Pallo: ORM Library
+# Ride: ORM Library
 
-ORM library of the PHP Pallo framework.
+ORM library of the PHP Ride framework.

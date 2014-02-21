@@ -1,6 +1,6 @@
 {
-    "name": "pallo/lib-orm",
-    "description": "ORM library of the Pallo framework.",
+    "name": "ride/lib-orm",
+    "description": "ORM library of the Ride framework.",
     "version": "0.1.9",
     "authors": [
         {
@@ -9,18 +9,18 @@
         }
     ],
     "require": {
-        "pallo/lib-cache": ">=0.1.1",
-        "pallo/lib-common": ">=0.4.0",
-        "pallo/lib-database": ">=0.1.0",
-        "pallo/lib-log": ">=0.2.0",
-        "pallo/lib-reflection": ">=0.4.0",
-        "pallo/lib-system": ">=0.3.0",
-        "pallo/lib-tokenizer": ">=0.1.0",
-        "pallo/lib-validation": ">=0.1.0"
+        "ride/lib-cache": ">=0.1.1",
+        "ride/lib-common": ">=0.4.0",
+        "ride/lib-database": ">=0.1.0",
+        "ride/lib-log": ">=0.2.0",
+        "ride/lib-reflection": ">=0.4.0",
+        "ride/lib-system": ">=0.3.0",
+        "ride/lib-tokenizer": ">=0.1.0",
+        "ride/lib-validation": ">=0.1.0"
     },
     "autoload": {
         "psr-0": {
-            "pallo\\library\\orm\\": ["src/"]
+            "ride\\library\\orm\\": ["src/"]
         }
     }
 }
