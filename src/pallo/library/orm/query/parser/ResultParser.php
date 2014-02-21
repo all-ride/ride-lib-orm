@@ -125,7 +125,7 @@ class ResultParser {
         }
 
         foreach ($aliasses as $fieldName => $value) {
-            if (!isset($value[ModelTable::PRIMARY_KEY])) {
+            if (!array_key_exists(ModelTable::PRIMARY_KEY, $value)) {
                 $data[$fieldName] = $value;
 
                 continue;
