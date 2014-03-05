@@ -86,7 +86,7 @@ class VersionBehaviour extends AbstractBehaviour {
     public function postUpdateField(Model $model, $id, $fieldName, $value) {
         $condition = new SimpleCondition(new FieldExpression(ModelTable::PRIMARY_KEY), new ScalarExpression($id));
 
-        $versionExpression = new FieldExpression(self::NAME);
+        $versionExpression = new FieldExpression('version');
         $mathExpression = new MathematicalExpression();
         $mathExpression->addExpression($versionExpression);
         $mathExpression->addExpression(new ScalarExpression(1));
