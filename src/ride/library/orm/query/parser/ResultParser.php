@@ -103,8 +103,8 @@ class ResultParser {
             $alias = substr($column, 0, $positionAliasSeparator);
             $fieldName = substr($column, $positionAliasSeparator + QueryParser::ALIAS_SEPARATOR_LENGTH);
 
-            if ($alias == QueryParser::ALIAS_SELF && $fieldName != LocalizedModel::FIELD_LOCALE) {
-                if ($this->meta->getField($fieldName)->getType() == 'serialize') {
+            if ($alias == QueryParser::ALIAS_SELF) {
+                if ($fieldName != LocalizedModel::FIELD_LOCALE && $this->meta->getField($fieldName)->getType() == 'serialize') {
                     if ($value) {
                         $value = unserialize($value);
                     } else {
