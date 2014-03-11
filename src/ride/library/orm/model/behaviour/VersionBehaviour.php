@@ -92,7 +92,7 @@ class VersionBehaviour extends AbstractBehaviour {
         $mathExpression->addExpression(new ScalarExpression(1));
 
         $statement = new UpdateStatement();
-        $statement->addTable(new TableExpression($this->model->getName()));
+        $statement->addTable(new TableExpression($model->getName()));
         $statement->addValue($versionExpression, $mathExpression);
         $statement->addCondition($condition);
 
