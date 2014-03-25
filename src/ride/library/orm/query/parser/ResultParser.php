@@ -4,6 +4,7 @@ namespace ride\library\orm\query\parser;
 
 use ride\library\database\result\DatabaseResult;
 use ride\library\orm\definition\ModelTable;
+use ride\library\orm\exception\ModelException;
 use ride\library\orm\model\data\Data;
 use ride\library\orm\model\LocalizedModel;
 use ride\library\orm\model\Model;
@@ -87,12 +88,16 @@ class ResultParser {
         foreach ($row as $column => $value) {
             $positionAliasSeparator = strpos($column, QueryParser::ALIAS_SEPARATOR);
             if ($positionAliasSeparator === false) {
-                if ($column != 'isDataLocalized' && $this->meta->getField($column)->getType() == 'serialize') {
-                    if ($value) {
-                        $value = unserialize($value);
-                    } else {
-                        $value = null;
+                try {
+                    if ($column != 'isDataLocalized' && $this->meta->getField($column)->getType() == 'serialize') {
+                        if ($value) {
+                            $value = unserialize($value);
+                        } else {
+                            $value = null;
+                        }
                     }
+                } catch (ModelException $exception) {
+
                 }
 
                 $data[$column] = $value;
