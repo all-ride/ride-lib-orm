@@ -18,14 +18,11 @@ use ride\library\orm\model\behaviour\LogBehaviour;
 use ride\library\orm\model\behaviour\UniqueBehaviour;
 use ride\library\orm\model\behaviour\VersionBehaviour;
 use ride\library\orm\model\meta\ModelMeta;
-use ride\library\orm\model\LocalizedModel;
 use ride\library\orm\model\Model;
 use ride\library\orm\OrmManager;
 use ride\library\reflection\Boolean;
 use ride\library\reflection\ReflectionHelper;
 use ride\library\system\file\File;
-use ride\library\validation\constraint\Constraint;
-use ride\library\validation\constraint\GenericConstraint;
 
 use \DOMDocument;
 use \DOMElement;
@@ -236,13 +233,13 @@ abstract class AbstractXmlModelIO implements ModelIO {
 
     /**
      * Instance of the reflection helper
-     * @var ride\library\reflection\ReflectionHelper
+     * @var \ride\library\reflection\ReflectionHelper
      */
     protected $reflectionHelper;
 
     /**
      * Constructs a new XML model IO
-     * @param ride\library\reflection\ReflectionHelper $reflectionHelper
+     * @param \ride\library\reflection\ReflectionHelper $reflectionHelper
      * @return null
      */
     public function __construct(ReflectionHelper $reflectionHelper) {
@@ -251,7 +248,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
 
     /**
      * Read models from a xml model definition file
-     * @param ride\library\filesystem\File $file
+     * @param \ride\library\system\file\File $file
      * @return array Array with Model instances
      */
     protected function readModelsFromFile(File $file) {
@@ -266,7 +263,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
 
     /**
      * Write the model definitions of the provided models to the provided model definition file
-     * @param ride\library\filesystem\File $file
+     * @param \ride\library\system\file\File $file
      * @param array $models models to write to file
      * @return null
      */
@@ -299,9 +296,9 @@ abstract class AbstractXmlModelIO implements ModelIO {
     /**
      * Get the models from the root element
      * @param DOMElement $rootElement root element of the xml document
-     * @param ride\library\filesystem\File $file the file which is being read
+     * @param \ride\library\system\file\File $file the file which is being read
      * @return array Array with model instances
-     * @throws ride\library\orm\exception\OrmException when the root tag has a wrong name or when no models are defined in the document
+     * @throws \ride\library\orm\exception\OrmException when the root tag has a wrong name or when no models are defined in the document
      */
     protected function getModelsFromElement(DOMElement $rootElement, File $file) {
         if ($rootElement->tagName != self::TAG_ROOT) {
@@ -325,9 +322,9 @@ abstract class AbstractXmlModelIO implements ModelIO {
     /**
      * Get the model from the model element
      * @param DOMElement $modelElement model element in the xml root element
-     * @param ride\library\filesystem\File $file the file which is being read
-     * @return ride\library\orm\Model Model instance created from the read model definition
-     * @throws ride\library\orm\exception\OrmException when the model element has no name attribute
+     * @param \ride\library\system\file\File $file the file which is being read
+     * @return \ride\library\orm\Model Model instance created from the read model definition
+     * @throws \ride\library\orm\exception\OrmException when the model element has no name attribute
      */
     protected function getModelFromElement(DOMElement $modelElement, File $file) {
         $modelName = $modelElement->getAttribute(self::ATTRIBUTE_NAME);
@@ -393,9 +390,9 @@ abstract class AbstractXmlModelIO implements ModelIO {
     /**
      * Get the model fields from the model element
      * @param DOMElement $modelElement model element in the xml root element
-     * @param ride\library\filesystem\File $file the file which is being read
+     * @param \ride\library\system\file\File $file the file which is being read
      * @return array Array with ModelField objects
-     * @throws ride\library\orm\exception\OrmException when the model element has no field elements
+     * @throws \ride\library\orm\exception\OrmException when the model element has no field elements
      */
     protected function getFieldsFromElement(DOMElement $modelElement, File $file, $modelName) {
         $fields = array();
@@ -415,10 +412,10 @@ abstract class AbstractXmlModelIO implements ModelIO {
     /**
      * Get the ModelField from a field element
      * @param DOMElement $fieldElement field element in the model element
-     * @param ride\library\filesystem\File $file the file which is being read
+     * @param \ride\library\system\file\File $file the file which is being read
      * @param string $modelName the model which is currently being processed
-     * @return ride\library\orm\definition\field\ModelField
-     * @throws ride\library\orm\exception\OrmException when the field element has no name attribute or when the field is defined as property and as relation field
+     * @return \ride\library\orm\definition\field\ModelField
+     * @throws \ride\library\orm\exception\OrmException when the field element has no name attribute or when the field is defined as property and as relation field
      */
     protected function getFieldFromElement(DOMElement $fieldElement, File $file, $modelName) {
         $attributeName = self::ATTRIBUTE_NAME;
@@ -464,11 +461,11 @@ abstract class AbstractXmlModelIO implements ModelIO {
     /**
      * Get the ModelField from a property field element
      * @param DOMElement $fieldElement field element in the model element
-     * @param ride\library\filesystem\File $file the file which is being read
+     * @param \ride\library\system\file\File $file the file which is being read
      * @param string $modelName the model which is currently being processed
      * @param string $fieldName the field which is currently being processed
      * @param string $fieldType the type of the field which is currently being processed
-     * @return ride\library\orm\definition\field\ModelField
+     * @return \ride\library\orm\definition\field\ModelField
      */
     protected function getPropertyFieldFromElement(DOMElement $fieldElement, File $file, $modelName, $fieldName, $fieldType) {
         $field = new PropertyField($fieldName, $fieldType);
@@ -489,12 +486,12 @@ abstract class AbstractXmlModelIO implements ModelIO {
     /**
      * Get the ModelField from a relation field element
      * @param DOMElement $fieldElement field element in the model element
-     * @param ride\library\filesystem\File $file the file which is being read
+     * @param \ride\library\system\file\File $file the file which is being read
      * @param string $modelName the model which is currently being processed
      * @param string $fieldName the field which is currently being processed
      * @param string $relationModelName the name of the model for which this field is a relation
-     * @return ride\library\orm\definition\field\ModelField
-     * @throws ride\library\orm\exception\OrmException when an invalid relation type has been defined
+     * @return \ride\library\orm\definition\field\ModelField
+     * @throws \ride\library\orm\exception\OrmException when an invalid relation type has been defined
      */
     protected function getRelationFieldFromElement(DOMElement $fieldElement, File $file, $modelName, $fieldName, $relationModelName) {
         $relationType = $fieldElement->hasAttribute(self::ATTRIBUTE_RELATION) ?
@@ -549,11 +546,11 @@ abstract class AbstractXmlModelIO implements ModelIO {
     /**
      * Get the validators for a field
      * @param DOMElement $fieldElement field element in the model element
-     * @param ride\library\filesystem\File $file the file which is being read
+     * @param \ride\library\system\file\File $file the file which is being read
      * @param string $modelName the model which is currently being processed
      * @param string $fieldName the field which is currently being processed
      * @return array Array with validator definitions
-     * @throws ride\library\orm\exception\OrmException when no name attribute is found in a validation tag
+     * @throws \ride\library\orm\exception\OrmException when no name attribute is found in a validation tag
      */
     protected function getValidatorsFromFieldElement(DOMElement $fieldElement, File $file, $modelName, $fieldName) {
         $tagValidation = self::TAG_VALIDATION;
@@ -579,18 +576,18 @@ abstract class AbstractXmlModelIO implements ModelIO {
      * Creates an instance of a validator
      * @param string $name Name of the validator
      * @param array $options Options for the validator
-     * @return ride\library\validation\validator\Validator
+     * @return \ride\library\validation\validator\Validator
      */
     abstract protected function createValidator($name, $options);
 
     /**
      * Get the parameters from a validator tag
      * @param DOMElement $element validator element in the field element
-     * @param ride\library\filesystem\File $file the file which is being read
+     * @param \ride\library\system\file\File $file the file which is being read
      * @param string $modelName the model which is currently being processed
      * @param string $fieldName the field which is currently being processed
      * @return array Array with validator parameters
-     * @throws ride\library\orm\exception\OrmException when no name or value attribute is found in a parameter tag
+     * @throws \ride\library\orm\exception\OrmException when no name or value attribute is found in a parameter tag
      */
     protected function getValidationParametersFromValidationElement(DOMElement $element, File $file, $modelName, $fieldName) {
         $parameterElements = $element->getElementsByTagName(self::TAG_PARAMETER);
@@ -616,7 +613,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
     /**
      * Sets the the indexes to the model table
      * @param DOMElement $modelElement Element of the model
-     * @param ride\library\orm\definition\ModelTable $modelTable Model table which is being read
+     * @param \ride\library\orm\definition\ModelTable $modelTable Model table which is being read
      * @return null
      */
     protected function setIndexesFromElement(DOMElement $modelElement, ModelTable $modelTable) {
@@ -642,7 +639,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
     /**
      * Sets the the title and teaser format to the model table
      * @param DOMElement $modelElement Element of the model
-     * @param ride\library\orm\definition\ModelTable $modelTable Model table which is being read
+     * @param \ride\library\orm\definition\ModelTable $modelTable Model table which is being read
      * @return null
      */
     protected function setFormatsFromElement(DOMElement $modelElement, ModelTable $modelTable) {
@@ -659,7 +656,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
     /**
      * Sets the the extra properties to the model table
      * @param DOMElement $modelElement Element of the model
-     * @param ride\library\orm\definition\ModelTable $modelTable Model table which is being read
+     * @param \ride\library\orm\definition\ModelTable $modelTable Model table which is being read
      * @return null
      */
     protected function setOptionsFromElement(DOMElement $element, $data) {
@@ -682,8 +679,8 @@ abstract class AbstractXmlModelIO implements ModelIO {
 
     /**
      * Create a xml element with the definition of a model
-     * @param ride\library\xml\dom\Document $dom
-     * @param ride\library\orm\Model $model
+     * @param \DOMDocument $dom
+     * @param \ride\library\orm\Model $model
      * @return DOMElement an xml element which defines the model
      */
     protected function getElementFromModel(Document $dom, Model $model) {
@@ -737,11 +734,11 @@ abstract class AbstractXmlModelIO implements ModelIO {
 
     /**
      * Create a xml element with the definition of a model field
-     * @param ride\library\xml\dom\Document $dom
-     * @param ride\library\orm\definition\field\ModelField $field
+     * @param \DOMDocument $dom
+     * @param \ride\library\orm\definition\field\ModelField $field
      * @return DOMElement an xml element which defines the model field
      */
-    protected function getElementFromField(Document $dom, ModelField $field) {
+    protected function getElementFromField(DOMDocument $dom, ModelField $field) {
         $element = $dom->createElement(self::TAG_FIELD);
         $element->setAttribute(self::ATTRIBUTE_NAME, $field->getName());
 
@@ -818,11 +815,11 @@ abstract class AbstractXmlModelIO implements ModelIO {
 
     /**
      * Gets the index element for the provided index
-     * @param ride\library\xml\dom\Document $dom
-     * @param ride\library\database\definition\Index $index Index to get the element from
+     * @param \DOMDocument $dom
+     * @param \ride\library\database\definition\Index $index Index to get the element from
      * @return DOMElement
      */
-    protected function getElementFromIndex(Document $dom, Index $index) {
+    protected function getElementFromIndex(DOMDocument $dom, Index $index) {
         $indexName = $index->getName();
 
         $indexElement = $dom->createElement(self::TAG_INDEX);

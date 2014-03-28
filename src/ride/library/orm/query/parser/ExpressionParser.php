@@ -73,19 +73,19 @@ class ExpressionParser {
 
     /**
      * Tokenizer for fields, needed for function arguments
-     * @var ride\library\orm\query\tokenizer\FieldTokenizer
+     * @var \ride\library\orm\query\tokenizer\FieldTokenizer
      */
     private $fieldTokenizer;
 
     /**
      * Tokenizer for mathematical expressions
-     * @var ride\library\orm\query\tokenizer\MathematicTokenizer
+     * @var \ride\library\orm\query\tokenizer\MathematicTokenizer
      */
     private $mathematicTokenizer;
 
     /**
      * Tokenizer for conditions
-     * @var ride\library\orm\query\tokenizer\ConditionTokenizer
+     * @var \ride\library\orm\query\tokenizer\ConditionTokenizer
      */
     private $conditionTokenizer;
 
@@ -97,9 +97,9 @@ class ExpressionParser {
 
     /**
      * Construct a new field parser
-     * @param ride\library\orm\query\tokenizer\FieldTokenizer $fieldTokenizer
-     * @param ride\library\orm\query\tokenizer\MathematicTokenizer $mathematicTokenizer
-     * @param ride\library\orm\query\tokenizer\ConditionTokenizer $conditionTokenizer
+     * @param \ride\library\orm\query\tokenizer\FieldTokenizer $fieldTokenizer
+     * @param \ride\library\orm\query\tokenizer\MathematicTokenizer $mathematicTokenizer
+     * @param \ride\library\orm\query\tokenizer\ConditionTokenizer $conditionTokenizer
      * @return null
      */
     public function __construct(FieldTokenizer $fieldTokenizer = null, MathematicTokenizer $mathematicTokenizer = null, ConditionTokenizer $conditionTokenizer = null) {
@@ -130,8 +130,8 @@ class ExpressionParser {
 
     /**
      * Parses the model condition into a database condition
-     * @param ride\library\orm\query\ModelExpression $condition Condition to parse
-     * @return ride\library\database\manipulation\condition\Condition
+     * @param \ride\library\orm\query\ModelExpression $condition Condition to parse
+     * @return \ride\library\database\manipulation\condition\Condition
      */
     public function parseCondition(ModelExpression $condition) {
         $tokens = $this->conditionTokenizer->tokenize($condition->getExpression());
@@ -154,7 +154,7 @@ class ExpressionParser {
     /**
      * Parses condition tokens into a nested database condition
      * @param array $conditionTokens Array with the tokens from the condition tokenizer
-     * @return ride\library\database\manipulation\condition\NestedCondition
+     * @return \ride\library\database\manipulation\condition\NestedCondition
      */
     private function parseNestedCondition(array $conditionTokens) {
         $nestedCondition = new NestedCondition($operator);
@@ -181,8 +181,8 @@ class ExpressionParser {
     /**
      * Parses a simple condition token into a simple database condition
      * @param string $condition String of a simple condition
-     * @return ride\library\database\manipulation\condition\SimpleCondition
-     * @throws ride\library\orm\exception\OrmParseException when the provided condition is empty or invalid
+     * @return \ride\library\database\manipulation\condition\SimpleCondition
+     * @throws \ride\library\orm\exception\OrmParseException when the provided condition is empty or invalid
      */
     private function parseSimpleCondition($condition) {
         if (!is_scalar($condition) && $condition == '') {
@@ -211,7 +211,7 @@ class ExpressionParser {
     /**
      * Parses the provided value into a database expression
      * @param string $value Value to parse
-     * @return ride\library\database\manipulation\expression\Expression
+     * @return \ride\library\database\manipulation\expression\Expression
      */
     public function parseExpression($value) {
         $value = trim($value);
@@ -252,7 +252,7 @@ class ExpressionParser {
     /**
      * Parses the provided field name into a database field expression
      * @param string $fieldName String of the field expression
-     * @return boolean|ride\library\database\manipulation\expression\FieldExpression false if the
+     * @return boolean| \ride\library\database\manipulation\expression\FieldExpression false if the
      *         provided field expression could not be parsed, the field expression object otherwise.
      */
     private function parseModelField($fieldName) {
@@ -281,7 +281,7 @@ class ExpressionParser {
     /**
      * Parses the provided variable
      * @param string $variable String of a variable
-     * @return boolean|ride\library\database\manipulation\expression\ScalarExpression false if the
+     * @return boolean| \ride\library\database\manipulation\expression\ScalarExpression false if the
      *         provided field expression could not be parsed, the scalar expression object otherwise.
      */
     private function parseVariable($variable) {
@@ -297,7 +297,7 @@ class ExpressionParser {
     /**
      * Parses the provided function call into a database function expression
      * @param string $function String of the function expression
-     * @return boolean|ride\library\database\manipulation\expression\FunctionExpression false if the
+     * @return boolean| \ride\library\database\manipulation\expression\FunctionExpression false if the
      *         provided function expression could not be parsed, the function expression object otherwise.
      */
     private function parseFunction($function) {
@@ -336,7 +336,7 @@ class ExpressionParser {
     /**
      * Parses the provided value into a database scalar expression
      * @param string $scalar String of a scalar expression
-     * @return boolean|ride\library\database\manipulation\expression\ScalarExpression false if the
+     * @return boolean| \ride\library\database\manipulation\expression\ScalarExpression false if the
      *         provided scalar expression could not be parsed, the scalar expression object otherwise.
      */
     private function parseScalar($scalar) {
@@ -362,7 +362,7 @@ class ExpressionParser {
     /**
      * Parses the provided case into a database case expression
      * @param string $case String of a case expression
-     * @return boolean|ride\library\database\manipulation\expression\CaseExpression false if the
+     * @return boolean| \ride\library\database\manipulation\expression\CaseExpression false if the
      *         provided case expression could not be parsed, the case expression otherwise
      */
     private function parseCase($case) {
@@ -470,7 +470,7 @@ class ExpressionParser {
     /**
      * Parses the provided sql into a database sql expression
      * @param string $sql String of a SQL expression
-     * @return ride\library\database\manipulation\expression\SqlExpresison
+     * @return \ride\library\database\manipulation\expression\SqlExpresison
      */
     private function parseSql($sql) {
         $sql = $this->parseVariables($sql);

@@ -84,8 +84,8 @@ abstract class RelationField extends ModelField {
      * Set the name of the model for which this field defines a relation
      * @param string $name name of the model
      * @return null
-     * @throws ride\ZiboException when the provided name is not a string
-     * @throws ride\library\orm\exception\ModelException when the provided name is empty
+     * @throws \ride\library\orm\exception\ModelException when the provided name is not a string
+     * @throws \ride\library\orm\exception\ModelException when the provided name is empty
      */
     private function setRelationModelName($name) {
         if (!is_string($name) || !$name) {

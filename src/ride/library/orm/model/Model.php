@@ -13,7 +13,7 @@ interface Model {
 
     /**
      * Constructs a new data model
-     * @param ride\library\reflection\ReflectionHelper $reflectionHelper
+     * @param \ride\library\reflection\ReflectionHelper $reflectionHelper
      * @param ModelMeta $modelMeta Meta data of the model
      * @param array $behaviours
      * @return null
@@ -22,14 +22,14 @@ interface Model {
 
     /**
      * Sets the model manager to this model
-     * @param ride\library\orm\OrmManager $orm
+     * @param \ride\library\orm\OrmManager $orm
      * @return null
      */
     public function setOrmManager(OrmManager $orm);
 
     /**
      * Gets the model manager from this model
-     * @return ride\library\orm\OrmManager
+     * @return \ride\library\orm\OrmManager
      */
     public function getOrmManager();
 
@@ -47,7 +47,7 @@ interface Model {
 
     /**
      * Gets the database result parser of this model
-     * @return ride\library\orm\query\parser\ResultParser
+     * @return \ride\library\orm\query\parser\ResultParser
      */
     public function getResultParser();
 
@@ -61,7 +61,7 @@ interface Model {
     /**
      * Creates a model query for this model
      * @param string $locale Locale code of the data
-     * @return ride\library\orm\query\ModelQuery
+     * @return \ride\library\orm\query\ModelQuery
      */
     public function createQuery($locale = null);
 
@@ -69,7 +69,7 @@ interface Model {
      * Validates a data object of this model
      * @param mixed $data Data object of the model
      * @return null
-     * @throws ride\library\validation\exception\ValidationException when one of the fields is not validated
+     * @throws \ride\library\validation\exception\ValidationException when one of the fields is not validated
      */
     public function validate($data);
 

@@ -3,7 +3,6 @@
 namespace ride\library\orm\query;
 
 use ride\library\orm\exception\OrmException;
-use ride\library\orm\OrmManager;
 
 /**
  * Definition of a table for a ModelQuery
@@ -32,7 +31,7 @@ class ModelTable {
      * Constructs a new model table
      * @param string $modelName Name of the model
      * @param string $alias Alias for this table
-     * @param ride\library\orm\model\ModelMeta $meta Meta of the model of the query, to check if the alias is not a field name
+     * @param \ride\library\orm\model\ModelMeta $meta Meta of the model of the query, to check if the alias is not a field name
      * @return null
      */
     public function __construct($modelName, $alias, ModelMeta $meta = null) {
@@ -46,7 +45,7 @@ class ModelTable {
      * Sets the name of the model for this table
      * @param string $modelName
      * @return null
-     * @throws ride\library\orm\exception\OrmException when the name is invalid
+     * @throws \ride\library\orm\exception\OrmException when the name is invalid
      */
     private function setModelName($modelName) {
         if (!is_string($modelName) || $modelName == '') {
@@ -67,7 +66,7 @@ class ModelTable {
     /**
      * Sets the alias for this table
      * @param string $alias Alias for this table
-     * @param ride\library\orm\model\ModelMeta $meta Meta of the model of the query, to check if the alias is not a field name
+     * @param \ride\library\orm\model\ModelMeta $meta Meta of the model of the query, to check if the alias is not a field name
      * @return null
      */
     private function setAlias($alias, ModelMeta $meta = null) {

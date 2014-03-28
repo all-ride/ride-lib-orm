@@ -20,12 +20,9 @@ use ride\library\orm\definition\field\BelongsToField;
 use ride\library\orm\definition\field\HasField;
 use ride\library\orm\definition\field\RelationField;
 use ride\library\orm\definition\ModelTable;
-use ride\library\orm\exception\ModelException;
 use ride\library\orm\exception\OrmException;
 use ride\library\orm\exception\OrmParseException;
 use ride\library\orm\model\LocalizedModel;
-use ride\library\orm\query\tokenizer\FieldTokenizer;
-use ride\library\orm\query\tokenizer\MathematicTokenizer;
 use ride\library\orm\query\ModelExpression;
 use ride\library\orm\query\ModelJoin;
 use ride\library\orm\query\ModelQuery;
@@ -74,7 +71,7 @@ class QueryParser {
 
     /**
      * Object to tokenize field strings
-     * @var ride\library\orm\query\tokenizer\FieldTokenizer
+     * @var \ride\library\orm\query\tokenizer\FieldTokenizer
      */
     private $fieldTokenizer;
 
@@ -86,13 +83,13 @@ class QueryParser {
 
     /**
      * Instance of the model manager
-     * @var ride\library\orm\OrmManager
+     * @var \ride\library\orm\OrmManager
      */
     private $orm;
 
     /**
      * The meta definition of the model which we are querying
-     * @var ride\library\orm\model\ModelMeta
+     * @var \ride\library\orm\model\ModelMeta
      */
     private $meta;
 
@@ -122,7 +119,7 @@ class QueryParser {
 
     /**
      * The statement we are building
-     * @var ride\library\database\manipulation\statement\SelectStatement
+     * @var \ride\library\database\manipulation\statement\SelectStatement
      */
     private $statement;
 
@@ -164,7 +161,7 @@ class QueryParser {
 
     /**
      * Constructs a new model query parser
-     * @param ride\library\orm\OrmManager $orm
+     * @param \ride\library\orm\OrmManager $orm
      * @return null
      */
     public function __construct(OrmManager $orm) {
@@ -175,7 +172,7 @@ class QueryParser {
 
     /**
      * Sets the model query to this parser and initializes the parser for this model query.
-     * @param ride\library\orm\query\ModelQuery $modelQuery
+     * @param \ride\library\orm\query\ModelQuery $modelQuery
      * @return null
      */
     private function setModelQuery(ModelQuery $modelQuery) {
@@ -226,8 +223,8 @@ class QueryParser {
 
     /**
      * Parses a model query into a database select statement to count the result
-     * @param ride\library\orm\query\ModelQuery $modelQuery
-     * @return ride\library\database\manipulation\statement\SelectStatement
+     * @param \ride\library\orm\query\ModelQuery $modelQuery
+     * @return \ride\library\database\manipulation\statement\SelectStatement
      */
     public function parseQueryForCount(ModelQuery $modelQuery) {
         $this->setModelQuery($modelQuery);
@@ -269,8 +266,8 @@ class QueryParser {
 
     /**
      * Parses a model query into a database select statement
-     * @param ride\library\orm\query\ModelQuery $modelQuery
-     * @return ride\library\database\manipulation\statement\SelectStatement
+     * @param \ride\library\orm\query\ModelQuery $modelQuery
+     * @return \ride\library\database\manipulation\statement\SelectStatement
      */
     public function parseQuery(ModelQuery $modelQuery) {
         $this->setModelQuery($modelQuery);
@@ -357,7 +354,7 @@ class QueryParser {
 
     /**
      * Adds a belongs to field to the statement
-     * @param ride\library\orm\definition\field\BelongsToField $field
+     * @param \ride\library\orm\definition\field\BelongsToField $field
      * @return null;
      */
     private function addBelongsTo(BelongsToField $field) {
@@ -494,8 +491,8 @@ class QueryParser {
 
     /**
      * Adds a join for a belongs to relation to the statement
-     * @param ride\library\database\manipulation\expression\TableExpression $table
-     * @param ride\library\database\manipulation\expression\TableExpression $relationTable
+     * @param \ride\library\database\manipulation\expression\TableExpression $table
+     * @param \ride\library\database\manipulation\expression\TableExpression $relationTable
      * @param string $fieldName
      * @return null
      */
@@ -529,8 +526,8 @@ class QueryParser {
 
     /**
      * Adds a join for a has one relation to the statement
-     * @param ride\library\database\manipulation\expression\TableExpression $table
-     * @param ride\library\database\manipulation\expression\TableExpression $relationTable
+     * @param \ride\library\database\manipulation\expression\TableExpression $table
+     * @param \ride\library\database\manipulation\expression\TableExpression $relationTable
      * @param string $fieldName
      * @return null
      */
@@ -548,9 +545,9 @@ class QueryParser {
 
     /**
      * Adds a join for a has many relation to the statement
-     * @param ride\library\database\manipulation\expression\TableExpression $table
-     * @param ride\library\database\manipulation\expression\TableExpression $relationTable
-     * @param ride\library\database\manipulation\expression\TableExpression $linkTable
+     * @param \ride\library\database\manipulation\expression\TableExpression $table
+     * @param \ride\library\database\manipulation\expression\TableExpression $relationTable
+     * @param \ride\library\database\manipulation\expression\TableExpression $linkTable
      * @param string $fieldName
      * @return null
      */
@@ -655,7 +652,7 @@ class QueryParser {
 
     /**
      * Processes the relations and localization of a model field and add the expression to the statement.
-     * @param ride\library\database\manipulation\expression\FieldExpression $fieldExpression
+     * @param \ride\library\database\manipulation\expression\FieldExpression $fieldExpression
      * @return null
      */
     private function processAndAddFieldExpression(FieldExpression $fieldExpression) {
@@ -694,9 +691,9 @@ class QueryParser {
 
     /**
      * Processes the relations and localization of model fields used in the provided expression.
-     * @param ride\library\database\manipulation\expression\Expression $expression Expression to process
+     * @param \ride\library\database\manipulation\expression\Expression $expression Expression to process
      * @param boolean $inCondition Flag to see whether the provided expression is used in a condition or not
-     * @return ride\library\database\manipulation\expression\Expression Processed expression
+     * @return \ride\library\database\manipulation\expression\Expression Processed expression
      */
     private function processExpression(Expression $expression, $inCondition = false) {
         if ($expression instanceof FieldExpression) {
@@ -712,9 +709,9 @@ class QueryParser {
 
     /**
      * Processes the relations and localization of a field expression
-     * @param ride\library\database\manipulation\expression\FieldExpression $expression Field expression to process
+     * @param \ride\library\database\manipulation\expression\FieldExpression $expression Field expression to process
      * @param boolean $inCondition Flag to see whether the provided expression is used in a condition or not
-     * @return ride\library\database\manipulation\expression\FieldExpression Processed expression
+     * @return \ride\library\database\manipulation\expression\FieldExpression Processed expression
      */
     private function processFieldExpression(FieldExpression $expression, $inCondition = false) {
         $name = $expression->getName();
@@ -736,7 +733,7 @@ class QueryParser {
      * @param string $name Name of the field
      * @param TableExpression $table Table of the field
      * @param boolean $inCondition Flag to see whether the provided expression is used in a condition or not
-     * @return ride\library\database\manipulation\expression\FieldExpression
+     * @return \ride\library\database\manipulation\expression\FieldExpression
      */
     private function processModelFieldExpression($name, TableExpression $table = null, $inCondition = false) {
         $field = $this->meta->getField($name);
@@ -759,9 +756,9 @@ class QueryParser {
     /**
      * Processes a field of a relation model
      * @param string $name Name of the field
-     * @param ride\library\database\manipulation\expression\TableExpression $table Table expression for the field
+     * @param \ride\library\database\manipulation\expression\TableExpression $table Table expression for the field
      * @param boolean $inCondition Flag to see whether the provided expression is used in a condition or not
-     * @return ride\library\database\manipulation\expression\FieldExpression
+     * @return \ride\library\database\manipulation\expression\FieldExpression
      */
     private function processRelationFieldExpression($name, TableExpression $table, $inCondition) {
         $tableName = $table->getName();
@@ -804,9 +801,9 @@ class QueryParser {
 
     /**
      * Processes the relations and the localization of the arguments used in a function expression
-     * @param ride\library\database\manipulation\expression\FunctionExpression $expression Function expression to process
+     * @param \ride\library\database\manipulation\expression\FunctionExpression $expression Function expression to process
      * @param boolean $inCondition Flag to see whether this expression is used in a condition or else where
-     * @return ride\library\database\manipulation\expression\FunctionExpression Processed function expression
+     * @return \ride\library\database\manipulation\expression\FunctionExpression Processed function expression
      */
     private function processFunctionExpression(FunctionExpression $expression, $inCondition) {
         $function = new FunctionExpression($expression->getName(), $expression->getAlias());
@@ -823,8 +820,8 @@ class QueryParser {
 
     /**
      * Processes the relations and the localization in the expressions used by the provided condition
-     * @param ride\library\database\manipulation\condition\Condition $condition Condition to process
-     * @return ride\library\database\manipulation\condition\Condition Processed condition
+     * @param \ride\library\database\manipulation\condition\Condition $condition Condition to process
+     * @return \ride\library\database\manipulation\condition\Condition Processed condition
      */
     private function processCondition(Condition $condition) {
         if ($condition instanceof NestedCondition) {
@@ -840,8 +837,8 @@ class QueryParser {
 
     /**
      * Processes the relations and the localization in the expressions used by the provided nested condition
-     * @param ride\library\database\manipulation\condition\NestedCondition $condition Condition to process
-     * @return ride\library\database\manipulation\condition\NestedCondition $condition Processed condition
+     * @param \ride\library\database\manipulation\condition\NestedCondition $condition Condition to process
+     * @return \ride\library\database\manipulation\condition\NestedCondition $condition Processed condition
      */
     private function processNestedCondition(NestedCondition $condition) {
         $nestedCondition = new NestedCondition();
@@ -857,8 +854,8 @@ class QueryParser {
 
     /**
      * Processes the relations and the localization in the expressions used by the provided simple condition
-     * @param ride\library\database\manipulation\condition\SimpleCondition $condition Condition to process
-     * @return ride\library\database\manipulation\condition\SimpleCondition $condition Processed condition
+     * @param \ride\library\database\manipulation\condition\SimpleCondition $condition Condition to process
+     * @return \ride\library\database\manipulation\condition\SimpleCondition $condition Processed condition
      */
     private function processSimpleCondition(SimpleCondition $condition) {
         $expressionLeft = $condition->getLeftExpression();
@@ -887,7 +884,7 @@ class QueryParser {
 
     /**
      * Parse and process a model condition into a database expression
-     * @param ride\library\orm\query\ModelExpression $condition
+     * @param \ride\library\orm\query\ModelExpression $condition
      */
     private function parseCondition(ModelExpression $condition) {
         $expression = $this->expressionParser->parseCondition($condition);
@@ -912,8 +909,8 @@ class QueryParser {
 
     /**
      * Parses and processes a model join into a database join expression
-     * @param ride\library\orm\query\ModelJoin $join
-     * @return ride\library\database\manipulation\expression\JoinExpression
+     * @param \ride\library\orm\query\ModelJoin $join
+     * @return \ride\library\database\manipulation\expression\JoinExpression
      */
     private function parseJoin(ModelJoin $join) {
         $condition = $join->getCondition();
@@ -950,7 +947,7 @@ class QueryParser {
     /**
      * Parses and processes a order string into a database order expression
      * @param string $order String of an order expression
-     * @return ride\library\database\manipulation\expression\OrderExpression
+     * @return \ride\library\database\manipulation\expression\OrderExpression
      */
     private function parseOrder($order) {
         $positionDirection = strrpos($order, ' ');
@@ -978,7 +975,7 @@ class QueryParser {
      * Adds a table which is used by the query
      * @param string $modelName Name of the model
      * @param string $alias Alias for the table
-     * @return ride\library\database\manipulation\expression\TableExpression
+     * @return \ride\library\database\manipulation\expression\TableExpression
      */
     private function addTable($modelName, $alias) {
         return $this->tables[$alias] = new TableExpression($modelName, $alias);
@@ -986,7 +983,7 @@ class QueryParser {
 
     /**
      * Adds a field to generate a join for when parsing the joins
-     * @param ride\library\orm\definition\field\RelationField $field
+     * @param \ride\library\orm\definition\field\RelationField $field
      * @return null
      */
     private function addFieldJoin(RelationField $field) {
@@ -999,7 +996,7 @@ class QueryParser {
 
     /**
      * Adds a join which came out of processing the conditions
-     * @param ride\library\database\manipulation\expression\JoinExpression $join
+     * @param \ride\library\database\manipulation\expression\JoinExpression $join
      * @return null
      */
     private function addConditionJoin(JoinExpression $join) {
@@ -1008,9 +1005,9 @@ class QueryParser {
 
     /**
      * Create a condition to localize a model
-     * @param ride\library\database\manipulation\expression\TableExpression $table Table expression of the table with the shared data
-     * @param ride\library\database\manipulation\expression\TableExpression $localizedTable Table expression of the table with the localized data
-     * @return ride\library\database\manipulation\condition\NestedCondition Condition to localize the provided table
+     * @param \ride\library\database\manipulation\expression\TableExpression $table Table expression of the table with the shared data
+     * @param \ride\library\database\manipulation\expression\TableExpression $localizedTable Table expression of the table with the localized data
+     * @return \ride\library\database\manipulation\condition\NestedCondition Condition to localize the provided table
      */
     private function createLocalizeCondition(TableExpression $table, TableExpression $localizedTable) {
         $expressionPrimaryKey = new FieldExpression(ModelTable::PRIMARY_KEY, $table, $table->getAlias() . self::ALIAS_SEPARATOR . ModelTable::PRIMARY_KEY);

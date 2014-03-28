@@ -40,10 +40,10 @@ class DataFormat {
 
     /**
      * Constructs a new data format
-     * @param ride\library\reflection\ReflectionHelper $reflectionHelper
+     * @param \ride\library\reflection\ReflectionHelper $reflectionHelper
      * @param string $format Format string
      * @return null
-     * @throws ride\library\orm\exception\OrmException when the provided
+     * @throws \ride\library\orm\exception\OrmException when the provided
      * format is empty or not a string
      */
     public function __construct(ReflectionHelper $reflectionHelper, $format, array $modifiers) {
@@ -57,7 +57,7 @@ class DataFormat {
 
     /**
      * Gets the used variables from the provided format
-     * @param ride\library\reflection\ReflectionHelper $reflectionHelper
+     * @param \ride\library\reflection\ReflectionHelper $reflectionHelper
      * @param string $format Data format
      * @return array Array with the variable strings
      */

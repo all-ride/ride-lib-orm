@@ -2,8 +2,6 @@
 
 namespace ride\library\orm\model\meta;
 
-use ride\library\database\manipulation\expression\TableExpression;
-use ride\library\database\DatabaseManager;
 use ride\library\orm\definition\field\extended\VersionField;
 use ride\library\orm\definition\field\BelongsToField;
 use ride\library\orm\definition\field\HasField;
@@ -32,7 +30,7 @@ class ModelMeta {
 
     /**
      * Table definition of the model
-     * @var ride\library\orm\definition\ModelTable
+     * @var \ride\library\orm\definition\ModelTable
      */
     protected $table;
 
@@ -93,16 +91,15 @@ class ModelMeta {
 
     /**
      * Instance of the validation constraint
-     * @var ride\library\validation\constraint\Constraint
+     * @var \ride\library\validation\constraint\Constraint
      */
     protected $validationConstraint;
 
     /**
      * Constructs a new model meta definition
-     * @param ride\library\orm\definition\ModelTable $table Table definition of the model
+     * @param \ride\library\orm\definition\ModelTable $table Table definition of the model
      * @param string $dataClassName Class name for data objects for this model
      * @return null
-     * @throws ride\ZiboException when the data class name is empty or invalid
      */
     public function __construct(ModelTable $table, $dataClassName = null) {
         $this->setDataClassName($dataClassName);
@@ -234,7 +231,7 @@ class ModelMeta {
      * Sets the class name for data objects of this model
      * @param string $dataClassName
      * @return null
-     * @throws ride\ZiboException when the data class name is empty or invalid
+     * @throws \ride\library\orm\exception\OrmException when the data class name is empty or invalid
      */
     private function setDataClassName($dataClassName) {
         if ($dataClassName === null) {
@@ -261,7 +258,7 @@ class ModelMeta {
      * @param mixed $data Data object to check
      * @param boolean $throwException True to throw the exception, false otherwise
      * @return boolean True if the data is valid, false otherwise
-     * @throws ride\library\orm\exception\ModelException when the $throwException flag is false and the data object is not valid
+     * @throws \ride\library\orm\exception\ModelException when the $throwException flag is false and the data object is not valid
      */
     public function isValidData($data, $throwException = true) {
         $result = $data instanceof $this->dataClassName;
@@ -281,7 +278,7 @@ class ModelMeta {
 
     /**
      * Gets the validation constraint for this model
-     * @return ride\library\validation\constraint\Constraint|null
+     * @return \ride\library\validation\constraint\Constraint |null
      */
     public function getValidationConstraint(ValidationFactory $validationFactory) {
         if ($this->validationConstraint) {
@@ -354,7 +351,7 @@ class ModelMeta {
 
     /**
      * Gets the table definition of this model
-     * @return ride\library\orm\definition\ModelTable
+     * @return \ride\library\orm\definition\ModelTable
      */
     public function getModelTable() {
         return $this->table;
@@ -399,7 +396,7 @@ class ModelMeta {
     /**
      * Gets a field from this model
      * @param string $fieldName Name of the field
-     * @return ride\library\orm\definition\field\ModelField
+     * @return \ride\library\orm\definition\field\ModelField
      */
     public function getField($fieldName) {
         return $this->table->getField($fieldName);
@@ -512,7 +509,7 @@ class ModelMeta {
      * Gets whether the relation of the provided field is a relation with the model itself
      * @param string $fieldName Name of the relation field
      * @return boolean True when the relation of the provided field is with the model itself, false otherwise
-     * @throws ride\library\orm\exception\ModelException when no relation meta could be found for the provided field
+     * @throws \ride\library\orm\exception\ModelException when no relation meta could be found for the provided field
      */
     public function isRelationWithSelf($fieldName) {
         $relationMeta = $this->getRelationMeta($fieldName);
@@ -537,8 +534,8 @@ class ModelMeta {
     /**
      * Gets the link model for the provided relation field
      * @param string $fieldName Name of the relation field
-     * @return null|ride\library\orm\model\Model The link model if set, null otherwise
-     * @throws ride\library\orm\exception\ModelException when no relation meta could be found for the provided field
+     * @return null| \ride\library\orm\model\Model The link model if set, null otherwise
+     * @throws \ride\library\orm\exception\ModelException when no relation meta could be found for the provided field
      */
     public function getRelationLinkModelName($fieldName) {
         $relationMeta = $this->getRelationMeta($fieldName);
@@ -548,8 +545,8 @@ class ModelMeta {
     /**
      * Gets the foreign key for the provided relation field
      * @param string $fieldName Name of the relation field
-     * @return null|ride\library\orm\definition\field\ModelField
-     * @throws ride\library\orm\exception\ModelException when no relation meta could be found for the provided field
+     * @return null| \ride\library\orm\definition\field\ModelField
+     * @throws \ride\library\orm\exception\ModelException when no relation meta could be found for the provided field
      */
     public function getRelationForeignKey($fieldName) {
         $relationMeta = $this->getRelationMeta($fieldName);
@@ -559,8 +556,8 @@ class ModelMeta {
     /**
      * Gets the foreign key with the link model for the provided relation field
      * @param string $fieldName Name of the relation field
-     * @return null|ride\library\orm\definition\field\ModelField
-     * @throws ride\library\orm\exception\ModelException when no relation meta could be found for the provided field
+     * @return null| \ride\library\orm\definition\field\ModelField
+     * @throws \ride\library\orm\exception\ModelException when no relation meta could be found for the provided field
      */
     public function getRelationForeignKeyToSelf($fieldName) {
         $relationMeta = $this->getRelationMeta($fieldName);
@@ -571,7 +568,7 @@ class ModelMeta {
      * Gets whether the relation of the provided field is a many to many relation
      * @param string $fieldName Name of the relation field
      * @return boolean True if the relation is a many to many relation, false otherwise
-     * @throws ride\library\orm\exception\ModelException when no relation meta could be found for the provided field
+     * @throws \ride\library\orm\exception\ModelException when no relation meta could be found for the provided field
      */
     public function isHasManyAndBelongsToMany($fieldName) {
         $relation = $this->getRelationMeta($fieldName);
@@ -597,7 +594,7 @@ class ModelMeta {
      * Gets the relation meta for the provided relation field
      * @param string $fieldName Name of the relation field
      * @return RelationMeta
-     * @throws ride\library\orm\exception\ModelException when no relation meta could be found for the provided field
+     * @throws \ride\library\orm\exception\ModelException when no relation meta could be found for the provided field
      */
     private function getRelationMeta($fieldName) {
         if (!$this->isParsed) {
@@ -655,8 +652,8 @@ class ModelMeta {
 
     /**
      * Parses a has field into the meta
-     * @param ride\library\orm\definition\field\HasField $field
-     * @param ride\library\orm\OrmManager $orm Instance of the model manager
+     * @param \ride\library\orm\definition\field\HasField $field
+     * @param \ride\library\orm\OrmManager $orm Instance of the model manager
      * @return null
      */
     private function parseHasField(HasField $field, OrmManager $orm) {
@@ -721,9 +718,9 @@ class ModelMeta {
 
     /**
      * Parses a belongs to field in the meta
-     * @param ride\library\orm\definition\field\BelongsToField $field
+     * @param \ride\library\orm\definition\field\BelongsToField $field
      * @return null
-     * @param ride\library\orm\OrmManager $orm Instance of the model manager
+     * @param \ride\library\orm\OrmManager $orm Instance of the model manager
      */
     private function parseBelongsToField(BelongsToField $field, OrmManager $orm) {
         $name = $field->getName();
@@ -769,7 +766,7 @@ class ModelMeta {
 
     /**
      * Parses a property field in the meta
-     * @param ride\library\orm\definition\field\ModelField $field
+     * @param \ride\library\orm\definition\field\ModelField $field
      * @return null
      */
     private function parsePropertyField(ModelField $field) {
@@ -779,14 +776,14 @@ class ModelMeta {
     /**
      * Gets the foreign key from the provided model table for the provided
      * relation model
-     * @param ride\library\orm\definition\ModelTable $modelTable Table
+     * @param \ride\library\orm\definition\ModelTable $modelTable Table
      * definition of the model
      * @param string $relationModelName Model name to get the foreign keys of
      * @param string $foreignKey Name of the foreign key
      * @return array Array with ModelField objects
-     * @throws ride\library\orm\exception\ModelException when the provided
+     * @throws \ride\library\orm\exception\ModelException when the provided
      * foreign key is not found in the model table
-     * @throws ride\library\orm\exception\ModelException when there are
+     * @throws \ride\library\orm\exception\ModelException when there are
      * multiple foreign keys
      */
     private function getForeignKey(ModelTable $modelTable, $relationModelName, $foreignKey = null) {
@@ -812,11 +809,11 @@ class ModelMeta {
      * relation model. When no foreign keys are found and the relation model
      * is a localized model, the unlocalized model will be queried for the
      * foreign keys.
-     * @param ride\library\orm\definition\ModelTable $modelTable Table
+     * @param \ride\library\orm\definition\ModelTable $modelTable Table
      * definition of the model
      * @param string $relationModelName Model name to get the foreign keys of
      * @return array Array with ModelField objects
-     * @throws ride\library\orm\exception\ModelException when there are no
+     * @throws \ride\library\orm\exception\ModelException when there are no
      * foreign keys found the provided model
      */
     private function getForeignKeys(ModelTable $modelTable, $relationModelName) {

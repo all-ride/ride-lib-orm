@@ -5,12 +5,10 @@ namespace ride\library\orm\query\parser;
 use ride\library\database\result\DatabaseResult;
 use ride\library\orm\definition\ModelTable;
 use ride\library\orm\exception\ModelException;
-use ride\library\orm\model\data\Data;
 use ride\library\orm\model\LocalizedModel;
 use ride\library\orm\model\Model;
 use ride\library\orm\OrmManager;
 
-use \Exception;
 
 /**
  * Parser to parse database results into orm results
@@ -19,7 +17,7 @@ class ResultParser {
 
     /**
      * Meta definition of the model of the result
-     * @var ride\library\orm\model\ModelMeta
+     * @var \ride\library\orm\model\ModelMeta
      */
     private $meta;
 
@@ -37,7 +35,7 @@ class ResultParser {
 
     /**
      * Constructs a new result parser
-     * @param ride\library\orm\model\Model $model Model of this result
+     * @param \ride\library\orm\model\Model $model Model of this result
      * @return null
      */
     public function __construct(Model $model) {
@@ -46,7 +44,7 @@ class ResultParser {
 
     /**
      * Parses a database result into a orm result
-     * @param ride\library\database\result\DatabaseResult $databaseResult
+     * @param \ride\library\database\result\DatabaseResult $databaseResult
      * @param string $indexFieldName Name of the field to index the result on
      * @return array Array with data objects
      */

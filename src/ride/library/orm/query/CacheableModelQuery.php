@@ -43,7 +43,7 @@ class CacheableModelQuery extends ModelQuery {
 
     /**
      * Constructs a new model query
-     * @param ride\library\orm\model\Model $model Instance of the model for
+     * @param \ride\library\orm\model\Model $model Instance of the model for
      * this query
      * @param array $locales Array with the available locales, locale code as
      * key
@@ -331,7 +331,7 @@ class CacheableModelQuery extends ModelQuery {
 
     /**
      * Gets the names of the models used by this query
-     * @param ride\library\database\manipulation\statement\SelectStatement $statement
+     * @param \ride\library\database\manipulation\statement\SelectStatement $statement
      * @return array Array with the names of the models as key
      */
     private function getUsedModels(SelectStatement $statement) {

@@ -10,7 +10,6 @@ use ride\library\database\manipulation\statement\UpdateStatement;
 use ride\library\orm\definition\ModelTable;
 use ride\library\orm\model\data\DatedData;
 use ride\library\orm\model\Model;
-use ride\library\validation\exception\ValidationException;
 
 /**
  * Interface to add extra behaviour to a model
@@ -19,7 +18,7 @@ class DatedBehaviour extends AbstractBehaviour {
 
     /**
      * Hook after creating a data container
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */
@@ -34,7 +33,7 @@ class DatedBehaviour extends AbstractBehaviour {
 
     /**
      * Hook before inserting data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */
@@ -49,7 +48,7 @@ class DatedBehaviour extends AbstractBehaviour {
 
     /**
      * Hook before updating data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */
@@ -63,7 +62,7 @@ class DatedBehaviour extends AbstractBehaviour {
 
     /**
      * Hook after updating a field
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param integer $id
      * @param string $fieldName
      * @param mixed $value

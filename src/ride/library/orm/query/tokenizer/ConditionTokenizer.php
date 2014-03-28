@@ -30,7 +30,7 @@ class ConditionTokenizer extends Tokenizer {
      * will be removed. Nested tokens are untouched.
      * @param boolean $willTrimTokens True to trim the tokens, false otherwise
      * @return null
-     * @throws ride\library\orm\exception\OrmException when this method is called, this tokenizer always trims resulting tokens.
+     * @throws \ride\library\orm\exception\OrmException when this method is called, this tokenizer always trims resulting tokens.
      */
     public function setWillTrimTokens($willTrimTokens) {
         throw new OrmException('Not allowed to set the trim tokens property for this tokenizer');

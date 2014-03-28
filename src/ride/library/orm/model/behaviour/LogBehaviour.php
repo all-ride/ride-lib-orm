@@ -20,7 +20,7 @@ class LogBehaviour extends AbstractBehaviour {
 
     /**
      * Hook after inserting data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */
@@ -33,7 +33,7 @@ class LogBehaviour extends AbstractBehaviour {
 
     /**
      * Hook before updating data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */
@@ -64,7 +64,7 @@ class LogBehaviour extends AbstractBehaviour {
 
     /**
      * Hook after updating data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */
@@ -93,7 +93,7 @@ class LogBehaviour extends AbstractBehaviour {
 
     /**
      * Hook before updating a field
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param integer $id
      * @param string $fieldName
      * @param mixed $value
@@ -119,7 +119,7 @@ class LogBehaviour extends AbstractBehaviour {
 
     /**
     * Hook after updating a field
-    * @param ride\library\orm\model\Model $model
+    * @param \ride\library\orm\model\Model $model
     * @param integer $id
     * @param string $fieldName
     * @param mixed $value
@@ -154,7 +154,7 @@ class LogBehaviour extends AbstractBehaviour {
 
     /**
      * Hook before deleting data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */
@@ -165,7 +165,7 @@ class LogBehaviour extends AbstractBehaviour {
 
     /**
      * Gets the fields which need to be logged
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */

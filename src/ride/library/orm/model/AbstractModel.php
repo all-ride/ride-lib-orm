@@ -7,13 +7,11 @@ use ride\library\orm\definition\field\BelongsToField;
 use ride\library\orm\definition\field\HasManyField;
 use ride\library\orm\definition\field\HasOneField;
 use ride\library\orm\exception\ModelException;
-use ride\library\orm\model\behaviour\LogBehaviour;
 use ride\library\orm\model\behaviour\Behaviour;
 use ride\library\orm\model\data\validator\GenericDataValidator;
 use ride\library\orm\model\meta\ModelMeta;
 use ride\library\orm\query\parser\ResultParser;
 use ride\library\orm\query\CachedModelQuery;
-use ride\library\orm\query\ModelQuery;
 use ride\library\orm\OrmManager;
 use ride\library\reflection\ReflectionHelper;
 use ride\library\validation\constraint\Constraint;
@@ -29,13 +27,13 @@ abstract class AbstractModel implements Model, Serializable {
 
     /**
      * Instance of the model manager
-     * @var ride\library\orm\OrmManager
+     * @var \ride\library\orm\OrmManager
      */
     protected $orm;
 
     /**
      * Factory for data objects
-     * @var ride\library\reflection\ReflectionHelper
+     * @var \ride\library\reflection\ReflectionHelper
      */
     protected $reflectionHelper;
 
@@ -53,19 +51,19 @@ abstract class AbstractModel implements Model, Serializable {
 
     /**
      * Validation constraint
-     * @var ride\library\validation\constraint\Constraint
+     * @var \ride\library\validation\constraint\Constraint
      */
     protected $validationConstraint;
 
     /**
      * Parser for database results
-     * @var ride\library\orm\query\parser\ResultParser
+     * @var \ride\library\orm\query\parser\ResultParser
      */
     protected $resultParser;
 
     /**
      * Constructs a new data model
-     * @param ride\library\reflection\ReflectionHelper $reflectionHelper
+     * @param \ride\library\reflection\ReflectionHelper $reflectionHelper
      * @param ModelMeta $modelMeta Meta data of the model
      * @param array $behaviours
      * @return null
@@ -85,7 +83,7 @@ abstract class AbstractModel implements Model, Serializable {
 
     /**
      * Gets the instance of the reflection helper
-     * @return ride\library\reflection\ReflectionHelper
+     * @return \ride\library\reflection\ReflectionHelper
      */
     public function getReflectionHelper() {
         return $this->reflectionHelper;
@@ -101,7 +99,7 @@ abstract class AbstractModel implements Model, Serializable {
 
     /**
      * Adds a behaviour to the model
-     * @param ride\library\orm\model\behaviour\Behaviour $behaviour
+     * @param \ride\library\orm\model\behaviour\Behaviour $behaviour
      * @return null
      */
     protected function addBehaviour(Behaviour $behaviour) {
@@ -151,7 +149,7 @@ abstract class AbstractModel implements Model, Serializable {
 
     /**
      * Sets the model manager to this model
-     * @param ride\library\orm\OrmManager $orm
+     * @param \\ride\library\orm\OrmManager $orm
      * @return null
      */
     public function setOrmManager(OrmManager $orm) {
@@ -160,7 +158,7 @@ abstract class AbstractModel implements Model, Serializable {
 
     /**
      * Gets the model manager from this model
-     * @return ride\library\orm\OrmManager
+     * @return \ride\library\orm\OrmManager
      */
     public function getOrmManager() {
         return $this->orm;
@@ -184,7 +182,7 @@ abstract class AbstractModel implements Model, Serializable {
 
     /**
      * Gets the database result parser of this model
-     * @return ride\library\orm\query\parser\ResultParser
+     * @return \ride\library\orm\query\parser\ResultParser
      */
     public function getResultParser() {
         return $this->resultParser;
@@ -231,7 +229,7 @@ abstract class AbstractModel implements Model, Serializable {
     /**
      * Creates a model query for this model
      * @param string $locale Locale code of the data
-     * @return ride\library\orm\query\ModelQuery
+     * @return \ride\library\orm\query\ModelQuery
      */
     public function createQuery($locale = null) {
         return $this->orm->createQuery($this, $locale);
@@ -241,8 +239,8 @@ abstract class AbstractModel implements Model, Serializable {
      * Validates a data object of this model
      * @param mixed $data Data object of the model
      * @return null
-     * @throws ride\library\orm\exception\OrmException when the validation factory is not set
-     * @throws ride\library\validation\exception\ValidationException when one of the fields is not valid
+     * @throws \ride\library\orm\exception\OrmException when the validation factory is not set
+     * @throws \ride\library\validation\exception\ValidationException when one of the fields is not valid
      */
     public function validate($data) {
         $exception = new ValidationException('Validation errors occured in ' . $this->getName());
@@ -270,7 +268,7 @@ abstract class AbstractModel implements Model, Serializable {
      * @param string $fieldName Name of the field
      * @param mixed $value Value to validate
      * @return null
-     * @throws ride\library\validation\exception\ValidationException when the field is not valid
+     * @throws \ride\library\validation\exception\ValidationException when the field is not valid
      */
     protected function validateField($fieldName, $value) {
         $exception = new ValidationException('Validation errors occured in ' . $this->getName());
@@ -285,7 +283,7 @@ abstract class AbstractModel implements Model, Serializable {
 
     /**
      * Gets the data validator
-     * @return ride\library\model\data\validator\DataValidator
+     * @return \ride\library\validation\constraint\Constraint
      */
     public function getValidationConstraint() {
         if ($this->validationConstraint) {
@@ -303,7 +301,7 @@ abstract class AbstractModel implements Model, Serializable {
     /**
      * Hook to process the validation constraint before it's assigned to this
      * model
-     * @param ride\library\validation\constraint\Constraint $constraint
+     * @param \ride\library\validation\constraint\Constraint $constraint
      * @return null
      */
     protected function initializeValidationConstraint(Constraint $constraint) {
@@ -426,7 +424,7 @@ abstract class AbstractModel implements Model, Serializable {
      * Gets the primary key of data
      * @param mixed $data Primary key or a data object
      * @return integer The primary key of the data
-     * @throws ride\library\orm\exception\ModelException when no primary key could be retrieved from the data
+     * @throws \ride\library\orm\exception\ModelException when no primary key could be retrieved from the data
      */
     protected function getPrimaryKey($data) {
         if (is_numeric($data)) {
@@ -446,7 +444,7 @@ abstract class AbstractModel implements Model, Serializable {
      * Gets the locale for the data
      * @param string $locale when no locale passed, the current locale will be used
      * @return string Code of the locale
-     * @throws ride\library\orm\exception\OrmException when the provided locale is invalid
+     * @throws \ride\library\orm\exception\OrmException when the provided locale is invalid
      */
     protected function getLocale($locale) {
     	if ($locale === null) {
@@ -461,7 +459,7 @@ abstract class AbstractModel implements Model, Serializable {
     /**
      * Gets the model table definition of the relation model of the provided field
      * @param string $fieldName Name of the relation field
-     * @return ride\library\orm\model\LocalizedModel
+     * @return \ride\library\orm\model\LocalizedModel
      */
     public function getLocalizedModel() {
         $localizedModelName = $this->meta->getLocalizedModelName();
@@ -472,7 +470,7 @@ abstract class AbstractModel implements Model, Serializable {
     /**
      * Gets the link model of the provided relation field
      * @param string $fieldName Name of the relation field
-     * @return ride\library\orm\model\Model
+     * @return \ride\library\orm\model\Model
      */
     protected function getRelationLinkModel($fieldName) {
         $relationLinkModelName = $this->meta->getRelationLinkModelName($fieldName);
@@ -487,7 +485,7 @@ abstract class AbstractModel implements Model, Serializable {
     /**
      * Gets the table definition of the relation link model of the provided field
      * @param string $fieldName Name of the relation field
-     * @return ride\library\definition\ModelTable
+     * @return \ride\library\orm\definition\ModelTable
      */
     protected function getRelationLinkModelTable($fieldName) {
         $linkModelName = $this->meta->getRelationLinkModelName($fieldName);
@@ -499,7 +497,7 @@ abstract class AbstractModel implements Model, Serializable {
     /**
      * Gets the relation model of the provided field
      * @param string $fieldName Name of the relation field
-     * @return ride\library\orm\model\Model
+     * @return \ride\library\orm\model\Model
      */
     public function getRelationModel($fieldName) {
         $relationModelName = $this->meta->getRelationModelName($fieldName);
@@ -510,7 +508,7 @@ abstract class AbstractModel implements Model, Serializable {
     /**
      * Gets the model table definition of the relation model of the provided field
      * @param string $fieldName Name of the relation field
-     * @return ride\library\definition\ModelTable
+     * @return \ride\library\orm\definition\ModelTable
      */
     protected function getRelationModelTable($fieldName) {
         $relationModelName = $this->meta->getRelationModelName($fieldName);
@@ -523,7 +521,7 @@ abstract class AbstractModel implements Model, Serializable {
      * Gets another model
      * @param string $modelName Name of the model
      * @return Model
-     * @throws ride\library\orm\exception\OrmException when the provided model could not be retrieved
+     * @throws \ride\library\orm\exception\OrmException when the provided model could not be retrieved
      */
     protected function getModel($modelName) {
         return $this->orm->getModel($modelName);
@@ -532,7 +530,7 @@ abstract class AbstractModel implements Model, Serializable {
     /**
      * Executes a statement on the database connection of this model
      * @param ride\library\database\manipulation\statement\Statement
-     * @return ride\library\database\DatabaseResult
+     * @return \ride\library\database\DatabaseResult
      */
     protected function executeStatement(Statement $statement) {
         $connection = $this->orm->getConnection();

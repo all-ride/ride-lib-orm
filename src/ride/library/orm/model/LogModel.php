@@ -8,7 +8,7 @@ use ride\library\orm\definition\ModelTable;
 use ride\library\orm\exception\OrmException;
 use ride\library\orm\model\behaviour\DatedBehaviour;
 use ride\library\orm\query\ModelQuery;
-use ride\library\orm\OrmManager;
+
 
 /**
  * Model for logging model actions
@@ -92,7 +92,7 @@ class LogModel extends GenericModel {
      * Gets the data object for the logs in the provided query
      * @param string $modelName Name of the data model
      * @param int $id Primary key of the data
-     * @param ride\library\orm\query\ModelQuery $query of the data logs
+     * @param \ride\library\orm\query\ModelQuery $query of the data logs
      * @return mixed Data
      * @todo finish
      */
