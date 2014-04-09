@@ -5,6 +5,7 @@ namespace ride\library\orm\query;
 use ride\library\database\manipulation\condition\Condition;
 use ride\library\orm\definition\field\BelongsToField;
 use ride\library\orm\definition\field\HasField;
+use ride\library\orm\definition\field\HasOneField;
 use ride\library\orm\definition\ModelTable as DefinitionModelTable;
 use ride\library\orm\exception\OrmException;
 use ride\library\orm\model\meta\ModelMeta;
@@ -714,6 +715,9 @@ class ModelQuery {
      */
     private function queryHasOneWithoutLinkModel(ModelQuery $query, $foreignKey, $data) {
         $queryResult = $query->queryFirst();
+        if (!$queryResult) {
+            return null;
+        }
 
         if ($query->getRecursiveDepth() === 0) {
             $this->reflectionHelper->setProperty($queryResult, $foreignKey, $this->reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY));
