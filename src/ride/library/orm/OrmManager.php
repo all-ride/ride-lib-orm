@@ -20,7 +20,6 @@ use ride\library\orm\model\Model;
 use ride\library\orm\query\parser\QueryParser;
 use ride\library\orm\query\tokenizer\FieldTokenizer;
 use ride\library\orm\query\CacheableModelQuery;
-use ride\library\orm\query\ModelQuery;
 use ride\library\reflection\ReflectionHelper;
 use ride\library\validation\factory\ValidationFactory;
 
@@ -49,61 +48,61 @@ class OrmManager {
 
     /**
      * Instance of the reflection helper
-     * @var ride\library\reflection\ReflectionHelper
+     * @var \ride\library\reflection\ReflectionHelper
      */
     protected $reflectionHelper;
 
     /**
      * Instance of the database manager
-     * @var ride\library\database\DatabaseManager
+     * @var \ride\library\database\DatabaseManager
      */
     protected $databaseManager;
 
     /**
      * Instance of the log
-     * @var ride\library\log\Log
+     * @var \ride\library\log\Log
      */
     protected $log;
 
     /**
      * Loader of the models
-     * @var ride\library\orm\model\loader\ModelLoader
+     * @var \ride\library\orm\loader\ModelLoader
      */
     protected $modelLoader;
 
     /**
      * Cache for the queries
-     * @var ride\library\cache\pool\CachePool
+     * @var \ride\library\cache\pool\CachePool
      */
     protected $queryCache;
 
     /**
      * Cache for the query results
-     * @var ride\library\cache\pool\CachePool
+     * @var \ride\library\cache\pool\CachePool
      */
     protected $resultCache;
 
     /**
      * Tokenizer for fields
-     * @var ride\library\orm\query\tokenizer\FieldTokenizer
+     * @var \ride\library\orm\query\tokenizer\FieldTokenizer
      */
     protected $fieldTokenizer;
 
     /**
      * Parser for the queries
-     * @var ride\library\orm\query\parser\QueryParser
+     * @var \ride\library\orm\query\parser\QueryParser
      */
     protected $queryParser;
 
     /**
      * Instance of the data formatter
-     * @var ride\library\orm\model\data\format\DataFormatter
+     * @var \ride\library\orm\model\data\format\DataFormatter
      */
     protected $dataFormatter;
 
     /**
      * Instance of the validation factory
-     * @var ride\library\validation\factory\ValidationFactory
+     * @var \ride\library\validation\factory\ValidationFactory
      */
     protected $validationFactory;
 
@@ -137,8 +136,8 @@ class OrmManager {
      * Hook to implement get[ModelName]Model()
      * @param string $name Name of the invoked method
      * @param array $arguments Arguments for the method
-     * @return ride\library\orm\model\Model
-     * @throws ride\library\orm\exception\OrmException when the method is not
+     * @return \ride\library\orm\model\Model
+     * @throws \ride\library\orm\exception\OrmException when the method is not
      * a get[ModelName]Model call
      */
     public function __call($name, $arguments) {
@@ -151,7 +150,7 @@ class OrmManager {
 
     /**
      * Gets the database manager
-     * @return ride\library\database\DatabaseManager
+     * @return \ride\library\database\DatabaseManager
      */
     public function getDatabaseManager() {
         return $this->databaseManager;
@@ -161,7 +160,7 @@ class OrmManager {
      * Gets the database connection
      * @param string $name Name of the connection, null for the default
      * connection
-     * @return ride\library\database\driver\Driver
+     * @return \ride\library\database\driver\Driver
      */
     public function getConnection($name = null) {
         return $this->databaseManager->getConnection($name);
@@ -169,7 +168,7 @@ class OrmManager {
 
     /**
      * Sets the log
-     * @param ride\library\log\Log $log
+     * @param \ride\library\log\Log $log
      * @return null
      */
     public function setLog(Log $log) {
@@ -178,7 +177,7 @@ class OrmManager {
 
     /**
      * Gets the log
-     * @return ride\library\log\Log
+     * @return \ride\library\log\Log
      */
     public function getLog() {
         return $this->log;
@@ -186,7 +185,7 @@ class OrmManager {
 
     /**
      * Gets the model definer
-     * @return ride\library\orm\ModelDefiner
+     * @return \ride\library\orm\ModelDefiner
      */
     public function getDefiner() {
         $connection = $this->databaseManager->getConnection();
@@ -197,7 +196,7 @@ class OrmManager {
 
     /**
      * Gets the model cache
-     * @return ride\library\cache\pool\CachePool
+     * @return \ride\library\cache\pool\CachePool
      */
     public function getModelCache() {
         return $this->modelLoader->getModelCache();
@@ -205,7 +204,7 @@ class OrmManager {
 
     /**
      * Sets the query cache
-     * @param ride\library\cache\pool\CachePool $queryCache
+     * @param \ride\library\cache\pool\CachePool $queryCache
      * @return null
      */
     public function setQueryCache(CachePool $queryCache) {
@@ -214,7 +213,7 @@ class OrmManager {
 
     /**
      * Gets the query cache
-     * @return ride\library\cache\pool\CachePool
+     * @return \ride\library\cache\pool\CachePool
      */
     public function getQueryCache() {
         return $this->queryCache;
@@ -222,7 +221,7 @@ class OrmManager {
 
     /**
      * Sets the query result cache
-     * @param ride\library\cache\pool\CachePool $resultCache
+     * @param \ride\library\cache\pool\CachePool $resultCache
      * @return null
      */
     public function setResultCache(CachePool $resultCache) {
@@ -231,7 +230,7 @@ class OrmManager {
 
     /**
      * Gets the query result cache
-     * @return ride\library\cache\pool\CachePool
+     * @return \ride\library\cache\pool\CachePool
      */
     public function getResultCache() {
         return $this->resultCache;
@@ -284,7 +283,7 @@ class OrmManager {
 
     /**
      * Gets the model loader
-     * @return ride\library\orm\loader\ModelLoader
+     * @return \ride\library\orm\loader\ModelLoader
      */
     public function getModelLoader() {
         return $this->modelLoader;
@@ -303,8 +302,8 @@ class OrmManager {
      * Gets a model
      * @param string $modelName
      * @return Model
-     * @throws ride\ZiboException when $modelName is not a string
-     * @throws ride\library\orm\exception\OrmException when $modelName is empty
+     * @throws \ride\library\orm\exception\OrmException when $modelName is not a string
+     * @throws \ride\library\orm\exception\OrmException when $modelName is empty
      * or when the model does not exists
      */
     public function getModel($modelName) {
@@ -322,9 +321,9 @@ class OrmManager {
 
     /**
      * Creates a query for the provided model
-     * @param string|ride\library\orm\model\Model $model Model name or instance
+     * @param string| \ride\library\orm\model\Model $model Model name or instance
      * @param string $locale Locale code of the data
-     * @return ride\library\orm\query\ModelQuery
+     * @return \ride\library\orm\query\ModelQuery
      */
     public function createQuery($model, $locale = null) {
         if ($locale === null) {
@@ -344,7 +343,7 @@ class OrmManager {
 
     /**
      * Gets the field tokenizer
-     * @return ride\library\orm\query\tokenizer\FieldTokenizer
+     * @return \ride\library\orm\query\tokenizer\FieldTokenizer
      */
     public function getFieldTokenizer() {
         if (!$this->fieldTokenizer) {
@@ -356,7 +355,7 @@ class OrmManager {
 
     /**
      * Gets the query parser
-     * @return ride\library\orm\query\parser\QueryParser
+     * @return \ride\library\orm\query\parser\QueryParser
      */
     public function getQueryParser() {
         if (!$this->queryParser) {

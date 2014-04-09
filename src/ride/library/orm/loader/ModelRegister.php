@@ -6,7 +6,6 @@ use ride\library\database\definition\Index;
 use ride\library\orm\definition\field\BelongsToField;
 use ride\library\orm\definition\field\HasField;
 use ride\library\orm\definition\field\HasManyField;
-use ride\library\orm\definition\field\HasOneField;
 use ride\library\orm\definition\field\PropertyField;
 use ride\library\orm\definition\field\RelationField;
 use ride\library\orm\definition\ModelTable;
@@ -27,7 +26,7 @@ class ModelRegister {
 
     /**
      * Instance of the reflection helper
-     * @var ride\library\reflection\ReflectionHelper
+     * @var \ride\library\reflection\ReflectionHelper
      */
     private $reflectionHelper;
 
@@ -51,7 +50,7 @@ class ModelRegister {
      * @param string $modelName Name of the model
      * @return boolean True if the register has the provided model registered,
      * false otherwise
-     * @throws ride\library\orm\exception\OrmException when the provided model
+     * @throws \ride\library\orm\exception\OrmException when the provided model
      * name is empty
      */
     public function hasModel($modelName) {
@@ -65,8 +64,8 @@ class ModelRegister {
     /**
      * Gets a model from the register
      * @param string $modelName Name of the model
-     * @return ride\library\orm\model\Model The requested model
-     * @throws ride\library\orm\exception\OrmException when the requested model
+     * @return \ride\library\orm\model\Model The requested model
+     * @throws \ride\library\orm\exception\OrmException when the requested model
      * is not registered
      */
     public function getModel($modelName) {
@@ -102,7 +101,7 @@ class ModelRegister {
 
     /**
      * Registers a model
-     * @param ride\library\orm\model\Model $model Model to register
+     * @param \ride\library\orm\model\Model $model Model to register
      * @param boolean $updateUnlinkedModels Flag to set whether to update the
      * meta of the unlinked models
      * @return null
@@ -124,7 +123,7 @@ class ModelRegister {
      * Unregisters a model
      * @param string $modelName Name of the model to unregister
      * @return null
-     * @throws ride\library\orm\exception\OrmException when the requested model
+     * @throws \ride\library\orm\exception\OrmException when the requested model
      * is not registered
      */
     public function unregisterModel($modelName) {
@@ -192,7 +191,7 @@ class ModelRegister {
 
     /**
      * Registers the localized model of the provided model if needed
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @return null
      */
     private function registerLocalizedModel(Model $model) {
@@ -264,7 +263,7 @@ class ModelRegister {
 
     /**
      * Registers the link models needed for the provided model
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @return null
      */
     private function registerLinkModels(Model $model) {
@@ -384,7 +383,7 @@ class ModelRegister {
 
     /**
      * Unregisters the link models used by the provided model
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @return null
      */
     private function unregisterLinkModels(Model $model) {
@@ -416,9 +415,9 @@ class ModelRegister {
 
     /**
      * Registeres a link model for the provided relation field
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param string $fieldName
-     * @return ride\library\orm\model\Model The registered model
+     * @return \ride\library\orm\model\Model The registered model
      */
     private function registerLinkModel(Model $model, $fieldName) {
         $modelName = $model->getName();
@@ -445,9 +444,9 @@ class ModelRegister {
 
     /**
      * Registeres a link model for a many to many relation
-     * @param ride\library\orm\definition\field\HasField $field1
-     * @param ride\library\orm\definition\field\HasField $field2
-     * @return ride\library\orm\model\Model The registered model
+     * @param \ride\library\orm\definition\field\HasField $field1
+     * @param \ride\library\orm\definition\field\HasField $field2
+     * @return \ride\library\orm\model\Model The registered model
      */
     private function registerManyToManyLinkModel(Model $model, $fieldName, HasField $field2) {
         $modelName = $model->getName();
@@ -475,7 +474,7 @@ class ModelRegister {
      * @param string $linkModelName Name of the new link model
      * @param string $modelName1 Name of the first model
      * @param string $modelName2 Name of the second model
-     * @return ride\library\orm\model\Model The registered model
+     * @return \ride\library\orm\model\Model The registered model
      */
     private function createAndRegisterLinkModel($linkModelName, $modelName1, $modelName2) {
         $table = new ModelTable($linkModelName);
@@ -508,13 +507,13 @@ class ModelRegister {
 
     /**
      * Gets the link model name for a many to many relation
-     * @param ride\library\orm\definition\field\HasManyField $field1
-     * @param ride\library\orm\definition\field\HasManyField $field2
-     * @param ride\library\orm\model\meta\ModelMeta $modelMeta Meta of the
+     * @param \ride\library\orm\definition\field\HasManyField $field1
+     * @param \ride\library\orm\definition\field\HasManyField $field2
+     * @param \ride\library\orm\model\meta\ModelMeta $modelMeta Meta of the
      * model of the field
      * @param string $fieldName Field for the link model
      * @return string Name of the link model
-     * @throws ride\library\orm\exception\ModelException when field1 and
+     * @throws \ride\library\orm\exception\ModelException when field1 and
      * field2 have the link model set but they are not the same
      */
     private function getManyToManyLinkModelName(HasManyField $field1, HasManyField $field2, ModelMeta $modelMeta, $fieldName) {
@@ -546,7 +545,7 @@ class ModelRegister {
 
     /**
      * Gets a unique link model name for the link model of the provided field
-     * @param ride\library\orm\model\meta\ModelMeta $modelMeta Meta of the
+     * @param \ride\library\orm\model\meta\ModelMeta $modelMeta Meta of the
      * model of the field
      * @param string $fieldName Name of the field for the link model
      * @param string $linkModelName Name of the link model
@@ -602,10 +601,10 @@ class ModelRegister {
     /**
      * Updates the group of the link model according to the groups of the
      * references models
-     * @param ride\library\orm\model\Model $model Model of the link field
-     * @param ride\library\orm\model\Model $relationModel Model referenced by
+     * @param \ride\library\orm\model\Model $model Model of the link field
+     * @param \ride\library\orm\model\Model $relationModel Model referenced by
      * the link field
-     * @param ride\library\orm\model\Model $linkModel Model used to link the
+     * @param \ride\library\orm\model\Model $linkModel Model used to link the
      * model and the relation model
      * @return null
      */

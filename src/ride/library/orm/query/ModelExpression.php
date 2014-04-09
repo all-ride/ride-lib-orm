@@ -36,7 +36,7 @@ class ModelExpression {
      * Sets the expression string
      * @param string $expression
      * @return null
-     * @throws ride\library\orm\exception\OrmException when the expression is
+     * @throws \ride\library\orm\exception\OrmException when the expression is
      * invalid
      */
     private function setExpression($expression) {

@@ -4,7 +4,6 @@ namespace ride\library\orm\definition\field;
 
 use ride\library\database\definition\Field;
 use ride\library\orm\definition\FieldValidator;
-use ride\library\orm\exception\OrmException;
 
 /**
  * Base field definition for a model table

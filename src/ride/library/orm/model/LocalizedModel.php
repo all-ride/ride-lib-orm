@@ -2,7 +2,6 @@
 
 namespace ride\library\orm\model;
 
-use ride\library\orm\definition\ModelTable;
 use ride\library\orm\exception\OrmException;
 
 /**
@@ -104,7 +103,7 @@ class LocalizedModel extends GenericModel {
      * Deletes the localized data
      * @param integer $id Primary key of the unlocalized data
      * @return null
-     * @throws ride\ZiboException when the provided id is empty or invalid
+     * @throws \ride\library\orm\exception\OrmException when the provided id is empty or invalid
      */
     public function deleteLocalizedData($id) {
         if (empty($id)) {
@@ -126,9 +125,9 @@ class LocalizedModel extends GenericModel {
      * @param integer $id Primary key of the data
      * @param string $locale Locale code for the localized data
      * @param integer $recursiveDepth Depth for the recursive relations
-     * @return ride\library\orm\query\ModelQuery
-     * @throws ride\ZiboException when the id is empty or invalid
-     * @throws ride\ZiboException when the locale is empty or invalid
+     * @return \ride\library\orm\query\ModelQuery
+     * @throws \ride\library\orm\exception\OrmException when the id is empty or invalid
+     * @throws \ride\library\orm\exception\OrmException when the locale is empty or invalid
      */
     protected function createLocalizedQuery($id, $locale, $recursiveDepth = 1) {
         if (empty($id)) {

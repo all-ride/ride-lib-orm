@@ -71,8 +71,8 @@ class UniqueBehaviour extends AbstractBehaviour {
 
     /**
      * Hook before validation of the data
-     * @param ride\library\orm\model\Model $model
-     * @param ride\library\validation\exception\ValidationException $exception
+     * @param \ride\library\orm\model\Model $model
+     * @param \ride\library\validation\exception\ValidationException $exception
      * @param mixed $data
      * @return null
      */
@@ -99,9 +99,9 @@ class UniqueBehaviour extends AbstractBehaviour {
 
     /**
      * Creates the query to check for uniqueness
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
-     * @return ride\library\orm\query\ModelQuery
+     * @return \ride\library\orm\query\ModelQuery
      */
     protected function createQuery(Model $model, $data) {
         $reflectionHelper = $model->getReflectionHelper();

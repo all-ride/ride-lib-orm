@@ -6,8 +6,6 @@ use ride\library\orm\exception\OrmException;
 use ride\library\orm\model\data\format\modifier\DataFormatModifierFacade;
 use ride\library\reflection\exception\ReflectionException;
 use ride\library\reflection\ReflectionHelper;
-use ride\library\tokenizer\symbol\NestedSymbol;
-use ride\library\tokenizer\Tokenizer;
 
 /**
  * Variable of a data format
@@ -40,7 +38,7 @@ class DataFormatVariable {
 
     /**
      * Instance of the reflection helper
-     * @var ride\library\reflection\ReflectionHelper
+     * @var \ride\library\reflection\ReflectionHelper
      */
     protected $reflectionHelper;
 
@@ -76,11 +74,11 @@ class DataFormatVariable {
 
     /**
      * Constructs a new data format variable
-     * @param ride\library\reflection\ReflectionHelper $reflectionHelper
+     * @param \ride\library\reflection\ReflectionHelper $reflectionHelper
      * @param string $format Variable format string
      * @param array $modifiers Available modifiers
      * @return null
-     * @throws ride\library\orm\exception\OrmException when the provided format
+     * @throws \ride\library\orm\exception\OrmException when the provided format
      * is empty or not a string
      */
     public function __construct(ReflectionHelper $reflectionHelper, $format, array $modifiers) {
@@ -140,7 +138,7 @@ class DataFormatVariable {
      * @param string $format The variable format string
      * @param array $modifiers Available modifiers
      * @return null
-     * @throws ride\library\orm\exception\OrmException when the provided format
+     * @throws \ride\library\orm\exception\OrmException when the provided format
      * is empty or not a string
      */
     private function setFormat($format, array $modifiers) {

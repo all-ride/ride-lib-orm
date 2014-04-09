@@ -35,7 +35,7 @@ class DataFormatter {
 
     /**
      * Instance of the reflection helper
-     * @var ride\library\reflection\ReflectionHelper
+     * @var \ride\library\reflection\ReflectionHelper
      */
     protected $reflectionHelper;
 
@@ -47,7 +47,7 @@ class DataFormatter {
 
     /**
      * Construct a new data formatter
-     * @param ride\library\reflection\ReflectionHelper $reflectionHelper
+     * @param \ride\library\reflection\ReflectionHelper $reflectionHelper
      * @param array $modifiers Available modifiers
      * @return null;
      */

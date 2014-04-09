@@ -13,20 +13,14 @@ use ride\library\database\manipulation\statement\InsertStatement;
 use ride\library\database\manipulation\statement\UpdateStatement;
 use ride\library\database\manipulation\statement\SelectStatement;
 use ride\library\orm\definition\field\BelongsToField;
-use ride\library\orm\definition\field\HasField;
 use ride\library\orm\definition\field\HasOneField;
 use ride\library\orm\definition\field\HasManyField;
-use ride\library\orm\definition\field\ModelField;
 use ride\library\orm\definition\field\RelationField;
 use ride\library\orm\definition\ModelTable;
 use ride\library\orm\exception\ModelException;
 use ride\library\orm\model\data\format\DataFormatter;
 use ride\library\orm\model\data\DataFactory;
 use ride\library\orm\model\data\DataValidator;
-use ride\library\orm\model\meta\ModelMeta;
-use ride\library\orm\query\parser\ResultParser;
-use ride\library\orm\query\ModelQuery;
-use ride\library\orm\OrmManager;
 use ride\library\validation\exception\ValidationException;
 use ride\library\validation\ValidationError;
 
@@ -101,7 +95,7 @@ class GenericModel extends AbstractModel {
     /**
      * Gets the query for the data list
      * @param string $locale Code of the current locale
-     * @return ride\library\orm\query\ModelQuery
+     * @return \ride\library\orm\query\ModelQuery
      */
     public function getDataListQuery($locale = null) {
         $query = $this->createQuery($locale);
@@ -550,7 +544,7 @@ class GenericModel extends AbstractModel {
      * Deletes the links for the provided many to many field
      * @param integer $id Primary key of the data which is being saved
      * @param string $fieldName Name of the has many field
-     * @param ride\library\orm\definition\field\ModelField $foreignKey Definition of the foreign key field in the link model
+     * @param \ride\library\orm\definition\field\ModelField $foreignKey Definition of the foreign key field in the link model
      * @return null
      */
     private function deleteOldHasManyAndBelongsToMany($id, $fieldName, $foreignKey) {
@@ -738,7 +732,7 @@ class GenericModel extends AbstractModel {
      * Deletes the value of the provided relation field in the provided data. This will only be done if the
      * field is dependant.
      * @param string $fieldName Name of the relation field
-     * @param ride\library\orm\definition\field\RelationField $field Definition of the relation field
+     * @param \ride\library\orm\definition\field\RelationField $field Definition of the relation field
      * @param mixed $data Data obiect
      * @return null
      */
@@ -752,7 +746,7 @@ class GenericModel extends AbstractModel {
     /**
      * Deletes or clears the values of the provided has many field in the provided data.
      * @param string $fieldName Name of the has many field
-     * @param ride\library\orm\definition\field\HasManyField $field Definition of the has many field
+     * @param \ride\library\orm\definition\field\HasManyField $field Definition of the has many field
      * @param mixed $data Data obiect
      * @return null
      */
@@ -791,7 +785,7 @@ class GenericModel extends AbstractModel {
     /**
      * Deletes or clears, depending on the keepRecord argument, the values of the provided table
      * which have a relation with the provided data
-     * @param ride\library\orm\definition\ModelTable $modelTable Table definition of the model of the has many relation
+     * @param \ride\library\orm\definition\ModelTable $modelTable Table definition of the model of the has many relation
      * @param integer $id Primary key of the data
      * @param boolean $keepRecord True to clear the link, false to delete the link
      * @return null
@@ -827,7 +821,7 @@ class GenericModel extends AbstractModel {
      * Checks if the provided data is referenced in another model
      * @param mixed $data Data to check for references
      * @return null
-     * @throws ride\library\validation\exception\ValidationException when the data is referenced in another model
+     * @throws \ride\library\validation\exception\ValidationException when the data is referenced in another model
      */
     protected function isDataReferencedInUnlinkedModels($data) {
         $foundReference = false;

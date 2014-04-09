@@ -13,9 +13,9 @@ abstract class AbstractSlugBehaviour extends AbstractBehaviour {
 
     /**
      * Hook before validation of the data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
-     * @param ride\library\validation\exception\ValidationException $exception
+     * @param \ride\library\validation\exception\ValidationException $exception
      * @return null
      */
     public function preValidate(Model $model, $data, ValidationException $exception) {
