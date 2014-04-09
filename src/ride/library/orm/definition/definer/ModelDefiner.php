@@ -3,7 +3,6 @@
 namespace ride\library\orm\definition\definer;
 
 use ride\library\database\definition\definer\Definer;
-use ride\library\database\driver\Driver;
 use ride\library\orm\model\Model;
 
 use \Exception;
@@ -15,19 +14,19 @@ class ModelDefiner {
 
     /**
      * The database definer
-     * @var ride\library\database\definition\definer\Definer
+     * @var \ride\library\database\definition\definer\Definer
      */
     private $definer;
 
     /**
      * The database connection
-     * @var ride\library\database\driver\Driver
+     * @var \ride\library\database\driver\Driver
      */
     private $connection;
 
     /**
      * Constructs & new model definer
-     * @param ride\library\database\driver\Driver $connection
+     * @param \ride\library\database\driver\Driver $connection
      * @return null
      */
     public function __construct(Definer $definer) {
@@ -89,8 +88,8 @@ class ModelDefiner {
 
     /**
      * Gets the database table definition of the provided model
-     * @param ride\library\orm\model\Model $model
-     * @return ride\library\database\definition\Table
+     * @param \ride\library\orm\model\Model $model
+     * @return \ride\library\database\definition\Table
      */
     private function getDatabaseTable(Model $model) {
         $meta = $model->getMeta();

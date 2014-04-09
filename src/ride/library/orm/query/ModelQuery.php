@@ -9,13 +9,8 @@ use ride\library\orm\definition\field\HasOneField;
 use ride\library\orm\definition\ModelTable as DefinitionModelTable;
 use ride\library\orm\exception\OrmException;
 use ride\library\orm\model\meta\ModelMeta;
-use ride\library\orm\model\LocalizedModel;
 use ride\library\orm\model\Model;
 use ride\library\orm\query\parser\QueryParser;
-use ride\library\orm\query\tokenizer\FieldTokenizer;
-use ride\library\orm\OrmManager;
-
-use \Exception;
 
 /**
  * ORM model query
@@ -24,13 +19,13 @@ class ModelQuery {
 
     /**
      * Instance of the model manager
-     * @var ride\library\orm\OrmManager
+     * @var \ride\library\orm\OrmManager
      */
     protected $orm;
 
     /**
      * The model of this query
-     * @var ride\library\orm\model\Model
+     * @var \ride\library\orm\model\Model
      */
     protected $model;
 
@@ -126,21 +121,21 @@ class ModelQuery {
 
     /**
      * Tokenizer to extract the field expressions from a statement
-     * @var ride\library\orm\query\tokenizer\FieldTokenizer
+     * @var \ride\library\orm\query\tokenizer\FieldTokenizer
      * @static
      */
     protected $fieldTokenizer;
 
     /**
      * Parser to parse ModelQuery objects into SelectStatement objects
-     * @var ride\library\orm\query\parser\QueryParser
+     * @var \ride\library\orm\query\parser\QueryParser
      * @static
      */
     protected $queryParser;
 
     /**
      * Constructs a new model query
-     * @param ride\library\orm\model\Model $model Instance of the model for
+     * @param \ride\library\orm\model\Model $model Instance of the model for
      * this query
      * @param array $locales Array with the available locales, locale code as
      * key
@@ -176,7 +171,7 @@ class ModelQuery {
 
     /**
      * Gets the model of this query
-     * @return ride\library\orm\model\Model
+     * @return \ride\library\orm\model\Model
      */
     public function getModel() {
         return $this->model;
@@ -186,7 +181,7 @@ class ModelQuery {
      * Sets the logical operator used between the conditions
      * @param string $operator Logical operator AND or OR
      * @return null
-     * @throws ride\library\orm\exception\OrmException when an invalid operator is provided
+     * @throws \ride\library\orm\exception\OrmException when an invalid operator is provided
      */
     public function setOperator($operator = null) {
         if (is_null($operator)) {
@@ -615,7 +610,7 @@ class ModelQuery {
      * @param array $result Model query result
      * @param integer $recursiveDepth Recursive depth for the queries
      * @param string $fieldName Name of the has field
-     * @param ride\library\orm\definition\field\BelongsToField $field Definition of the field
+     * @param \ride\library\orm\definition\field\BelongsToField $field Definition of the field
      * @return array Model query result with the belongs to fields
      */
     private function queryBelongsTo(array $result, ModelMeta $meta, $recursiveDepth, $fieldName, BelongsToField $field) {
@@ -646,7 +641,7 @@ class ModelQuery {
      * @param array $result Model query result
      * @param integer $recursiveDepth Recursive depth for the queries
      * @param string $fieldName Name of the has field
-     * @param ride\library\orm\definition\field\HasField $field Definition of the field
+     * @param \ride\library\orm\definition\field\HasField $field Definition of the field
      * @return array Model query result with the has fields
      */
     private function queryHas(array $result, ModelMeta $meta, $recursiveDepth, $fieldName, HasField $field) {
@@ -671,7 +666,7 @@ class ModelQuery {
      * @param array $result Model query result
      * @param integer $recursiveDepth Recursive depth for the queries
      * @param string $fieldName Name of the has field
-     * @param ride\library\orm\definition\field\HasField $field Definition of the field
+     * @param \ride\library\orm\definition\field\HasField $field Definition of the field
      * @return array Model query result with the has fields
      */
     private function queryHasWithoutLinkModel(array $result, ModelMeta $meta, $recursiveDepth, $fieldName, HasField $field) {
@@ -760,7 +755,7 @@ class ModelQuery {
      * @param array $result Model query result
      * @param integer $recursiveDepth Recursive depth for the queries
      * @param string $fieldName Name of the has field which will contain the result
-     * @param ride\library\orm\definition\field\HasField $field Definition of the field
+     * @param \ride\library\orm\definition\field\HasField $field Definition of the field
      * @return array Model query result with the has fields
      */
     private function queryHasWithLinkModel(array $result, ModelMeta $meta, $recursiveDepth, $fieldName, HasField $field) {
@@ -847,7 +842,7 @@ class ModelQuery {
      * @param array $result Model query result
      * @param integer $recursiveDepth Recursive depth for the queries
      * @param string $fieldName Name of the has field
-     * @param ride\library\orm\definition\field\HasField $field Definition of the field
+     * @param \ride\library\orm\definition\field\HasField $field Definition of the field
      * @return array Model query result with the has fields
      */
     private function queryHasWithLinkModelToSelf(array $result, ModelMeta $meta, $recursiveDepth, $fieldName, HasField $field) {
@@ -1234,7 +1229,7 @@ class ModelQuery {
      * @param integer $count Number of rows to retrieve
      * @param integer $offset Offset of the result
      * @return null
-     * @throws ride\library\orm\exception\OrmException when the provided count
+     * @throws \ride\library\orm\exception\OrmException when the provided count
      * or offset is invalid
      */
     public function setLimit($count, $offset = 0) {

@@ -12,7 +12,7 @@ interface Behaviour {
 
     /**
      * Hook after creating a data container
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */
@@ -20,25 +20,25 @@ interface Behaviour {
 
     /**
      * Hook before validation of the data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
-     * @param ride\library\validation\exception\ValidationException $exception
+     * @param \ride\library\validation\exception\ValidationException $exception
      * @return null
      */
     public function preValidate(Model $model, $data, ValidationException $exception);
 
     /**
      * Hook after validation of the data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
-     * @param ride\library\validation\exception\ValidationException $exception
+     * @param \ride\library\validation\exception\ValidationException $exception
      * @return null
      */
     public function postValidate(Model $model, $data, ValidationException $exception);
 
     /**
      * Hook before inserting data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */
@@ -46,7 +46,7 @@ interface Behaviour {
 
     /**
      * Hook after inserting data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */
@@ -54,7 +54,7 @@ interface Behaviour {
 
     /**
      * Hook before updating data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */
@@ -62,7 +62,7 @@ interface Behaviour {
 
     /**
      * Hook after updating data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */
@@ -70,7 +70,7 @@ interface Behaviour {
 
     /**
      * Hook before updating a field
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param integer $id
      * @param string $fieldName
      * @param mixed $value
@@ -80,7 +80,7 @@ interface Behaviour {
 
     /**
      * Hook after updating a field
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param integer $id
      * @param string $fieldName
      * @param mixed $value
@@ -90,7 +90,7 @@ interface Behaviour {
 
     /**
      * Hook before deleting data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */
@@ -98,7 +98,7 @@ interface Behaviour {
 
     /**
      * Hook after deleting data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */

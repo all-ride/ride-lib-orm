@@ -15,7 +15,7 @@ class ModelLoader {
 
     /**
      * Model IO to read the models
-     * @var ride\library\orm\loader\io\ModelIO
+     * @var \ride\library\orm\loader\io\ModelIO
      */
     protected $io;
 
@@ -27,25 +27,25 @@ class ModelLoader {
 
     /**
      * The register of the models
-     * @var ride\library\orm\loader\ModelRegister
+     * @var \ride\library\orm\loader\ModelRegister
      */
     protected $modelRegister;
 
     /**
      * Instance of the model manager
-     * @var ride\library\orm\OrmManager
+     * @var \ride\library\orm\OrmManager
      */
     protected $orm;
 
     /**
      * Instance of the cache pool for the models
-     * @var ride\library\cache\pool\CachePool
+     * @var \ride\library\cache\pool\CachePool
      */
     protected $cache;
 
     /**
      * Constructs a new model loader
-     * @param ride\library\orm\loader\io\ModelIO $io I/O to read the models
+     * @param \ride\library\orm\loader\io\ModelIO $io I/O to read the models
      * @return null
      */
     public function __construct(ModelIO $io, ReflectionHelper $reflectionHelper) {
@@ -59,7 +59,7 @@ class ModelLoader {
 
     /**
      * Sets the instance of the model manager to this
-     * @param ride\library\orm\OrmManager $orm Instance of the model
+     * @param \ride\library\orm\OrmManager $orm Instance of the model
      * manager
      * @return null
      */
@@ -69,7 +69,7 @@ class ModelLoader {
 
     /**
      * Sets the cache to this loader
-     * @param ride\library\cache\pool\CachePool $modelCache
+     * @param \ride\library\cache\pool\CachePool $modelCache
      * @return null
      */
     public function setModelCache(CachePool $modelCache) {
@@ -78,7 +78,7 @@ class ModelLoader {
 
     /**
      * Gets the cache of this loader
-     * @return ride\library\cache\pool\CachePool|null
+     * @return \ride\library\cache\pool\CachePool|null
      */
     public function getModelCache() {
         return $this->cache;
@@ -86,7 +86,7 @@ class ModelLoader {
 
     /**
      * Gets the model register
-     * @return ride\library\orm\loader\ModelRegister
+     * @return \ride\library\orm\loader\ModelRegister
      */
     public function getModelRegister() {
         if (!$this->modelRegister) {
@@ -99,7 +99,7 @@ class ModelLoader {
     /**
      * Sets the model register, the models registered will be saved to the
      * data source
-     * @param ride\library\orm\loader\ModelRegister $modelRegister
+     * @param \ride\library\orm\loader\ModelRegister $modelRegister
      * @return null
      */
     public function setModelRegister(ModelRegister $modelRegister) {
@@ -116,7 +116,7 @@ class ModelLoader {
      * Checks if a model is loaded, if not an attempt to load is made
      * @param string $modelName Name of the model
      * @return boolean True if the model exists and is loaded, false otherwise
-     * @throws ride\library\orm\exception\OrmException when name is invalid
+     * @throws \ride\library\orm\exception\OrmException when name is invalid
      */
     public function hasModel($modelName) {
         if (!is_string($modelName) || $modelName == '') {
@@ -163,8 +163,8 @@ class ModelLoader {
     /**
      * Gets a model by its name
      * @param string $modelName The name of the model
-     * @return ride\library\orm\model\Model
-     * @throws ride\library\orm\exception\OrmException when the model does not
+     * @return \ride\library\orm\model\Model
+     * @throws \ride\library\orm\exception\OrmException when the model does not
      * exist
      */
     public function getModel($modelName) {

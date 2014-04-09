@@ -86,7 +86,7 @@ class ModelTable {
 
     /**
      * Validation constraint for the data
-     * @var ride\library\validation\constraint\Constraint
+     * @var \ride\library\validation\constraint\Constraint
      */
     private $constraint;
 
@@ -187,7 +187,7 @@ class ModelTable {
      * Sets the name of this model
      * @param string $name
      * @return null
-     * @throws ride\ZiboException when the name is empty or invalid
+     * @throws \ride\library\orm\exception\ModelException when the name is empty or invalid
      */
     private function setName($name) {
         if (!is_string($name) || !$name) {
@@ -273,7 +273,7 @@ class ModelTable {
 
     /**
      * Get the database table definition of this model
-     * @return ride\library\database\definition\Table
+     * @return \ride\library\database\definition\Table
      */
     public function getDatabaseTable() {
         $table = new Table($this->name);
@@ -313,10 +313,10 @@ class ModelTable {
 
     /**
      * Adds a field to this model
-     * @param ride\library\orm\definition\field\ModelField $field
+     * @param \ride\library\orm\definition\field\ModelField $field
      * @return null
-     * @throws ride\library\orm\exception\ModelException when the name of the field is already set in this model
-     * @throws ride\library\orm\exception\ModelException when the field has the same link as another field in this model
+     * @throws \ride\library\orm\exception\ModelException when the name of the field is already set in this model
+     * @throws \ride\library\orm\exception\ModelException when the field has the same link as another field in this model
      */
     public function addField(ModelField $field) {
         if (isset($this->fields[$field->getName()])) {
@@ -328,9 +328,9 @@ class ModelTable {
 
     /**
      * Sets a field to this model
-     * @param ride\library\orm\definition\field\ModelField $field
+     * @param \ride\library\orm\definition\field\ModelField $field
      * @return null
-     * @throws ride\library\orm\exception\ModelException when the field has the same link as another field in this model
+     * @throws \ride\library\orm\exception\ModelException when the field has the same link as another field in this model
      */
     public function setField(ModelField $field) {
         if ($field->isLocalized() && !$this->isLocalized) {
@@ -382,8 +382,8 @@ class ModelTable {
      * Removes a field from this model
      * @param string $name Name of the field
      * @return null
-     * @throws ride\ZiboException when the provided name is empty or invalid
-     * @throws ride\library\orm\exception\ModelException when the field is not in this model
+     * @throws \ride\library\orm\exception\ModelException when the provided name is empty or invalid
+     * @throws \ride\library\orm\exception\ModelException when the field is not in this model
      */
     public function removeField($name) {
         $field = $this->getField($name);
@@ -427,7 +427,7 @@ class ModelTable {
      * Checks whether this model has a field
      * @param string $name Name of the field
      * @return boolean True if this model has the provided field, false otherwise
-     * @throws ride\ZiboException when the provided name is empty or invalid
+     * @throws \ride\library\orm\exception\ModelException when the provided name is empty or invalid
      */
     public function hasField($name) {
         if (!is_string($name) || !$name) {
@@ -440,8 +440,8 @@ class ModelTable {
     /**
      * Gets a field by name
      * @param string $name Name of the field
-     * @return ride\library\orm\definition\field\ModelField
-     * @throws ride\library\orm\exception\ModelException when the field is not in this model
+     * @return \ride\library\orm\definition\field\ModelField
+     * @throws \ride\library\orm\exception\ModelException when the field is not in this model
      */
     public function getField($name) {
         if (!$this->hasField($name)) {
@@ -558,10 +558,10 @@ class ModelTable {
 
     /**
      * Adds an index to the table
-     * @param ride\library\database\definition\Index $index index to add to the table
+     * @param \ride\library\database\definition\Index $index index to add to the table
      * @return null
-     * @throws ride\library\orm\exception\ModelException when a field of the index is not in this table
-     * @throws ride\library\orm\exception\ModelException when a field of the index is not a property or a belongs to field
+     * @throws \ride\library\orm\exception\ModelException when a field of the index is not in this table
+     * @throws \ride\library\orm\exception\ModelException when a field of the index is not a property or a belongs to field
      */
     public function addIndex(Index $index) {
         if ($this->hasIndex($index->getName())) {
@@ -573,11 +573,11 @@ class ModelTable {
 
     /**
      * Sets an index to the table
-     * @param ride\library\database\definition\Index $index index to add to the table
+     * @param \ride\library\database\definition\Index $index index to add to the table
      * @return null
-     * @throws ride\library\orm\exception\ModelException when a field of the index is not in this table
-     * @throws ride\library\orm\exception\ModelException when a field of the index is not a property or a belongs to field
-     * @throws ride\library\orm\exception\ModelException when the index contains out of localized and unlocalized fields
+     * @throws \ride\library\orm\exception\ModelException when a field of the index is not in this table
+     * @throws \ride\library\orm\exception\ModelException when a field of the index is not a property or a belongs to field
+     * @throws \ride\library\orm\exception\ModelException when the index contains out of localized and unlocalized fields
      */
     public function setIndex(Index $index) {
         $isLocalized = null;
@@ -605,9 +605,9 @@ class ModelTable {
     /**
      * Gets the index definition of an index
      * @param string $name of the index
-     * @return ride\library\database\definition\Index index definition of the index
-     * @throws ride\ZiboException when no valid string provided as name
-     * @throws ride\library\orm\exception\ModelException when the name is empty or the index does not exist
+     * @return \ride\library\database\definition\Index index definition of the index
+     * @throws \ride\library\orm\exception\ModelException when no valid string provided as name
+     * @throws \ride\library\orm\exception\ModelException when the name is empty or the index does not exist
      */
     public function getIndex($name) {
         if (!$this->hasIndex($name)) {
@@ -628,9 +628,9 @@ class ModelTable {
     /**
      * Checks whether this table has a certain index
      * @param string $name name of the index
-     * @throws ride\ZiboException when no valid string provided as name
-     * @throws ride\library\orm\exception\ModelException when the name is empty
-     * @throws ride\ZiboException when the name is invalid
+     * @throws \ride\library\orm\exception\ModelException when no valid string provided as name
+     * @throws \ride\library\orm\exception\ModelException when the name is empty
+     * @throws \ride\library\orm\exception\ModelException when the name is invalid
      */
     public function hasIndex($name) {
         if (!is_string($name) || $name == '') {
@@ -644,8 +644,8 @@ class ModelTable {
      * Removes a index from this model
      * @param string $name Name of the index
      * @return null
-     * @throws ride\ZiboException when the provided name is empty or invalid
-     * @throws ride\library\orm\exception\ModelException when the index is not in this model
+     * @throws \ride\library\orm\exception\ModelException when the provided name is empty or invalid
+     * @throws \ride\library\orm\exception\ModelException when the index is not in this model
      */
     public function removeIndex($name) {
         $index = $this->getIndex($name);
@@ -689,7 +689,7 @@ class ModelTable {
 
     /**
      * Sets the validation constraint for this model
-     * @param ride\library\validation\constraint\Constraint $constraint
+     * @param \ride\library\validation\constraint\Constraint $constraint
      * @return null
      */
     public function setValidationConstraint(Constraint $constraint) {
@@ -698,7 +698,7 @@ class ModelTable {
 
     /**
      * Gets the validation constraint for this model
-     * @return ride\library\validation\constraint\Constraint|null
+     * @return \ride\library\validation\constraint\Constraint|null
      */
     public function getValidationConstraint() {
         return $this->constraint;
@@ -729,7 +729,7 @@ class ModelTable {
      * the data format does not exist
      * @return string|null Data format for the provided name or null when it's
      * not set
-     * @throws ride\library\orm\exception\ModelException when there is no data
+     * @throws \ride\library\orm\exception\ModelException when there is no data
      * format set with the provided name and $throwException is true
      */
     public function getDataFormat($name, $throwException = true) {
@@ -752,7 +752,7 @@ class ModelTable {
      * Checks if this model has a certain data format
      * @param string $name Name of the data format
      * @return boolean True if this table has a data format by the provided name, false otherwise
-     * @throws ride\ZiboException when the provided name is empty or not a string
+     * @throws \ride\library\orm\exception\ModelException when the provided name is empty or not a string
      */
     public function hasDataFormat($name) {
         if (!is_string($name) || !$name) {
@@ -766,7 +766,7 @@ class ModelTable {
      * Removes a data format
      * @param string $name Name of the data format
      * @return null
-     * @throws ride\library\orm\exception\ModelException
+     * @throws \ride\library\orm\exception\ModelException
      */
     public function removeDataFormat($name) {
         if (!$this->hasDataFormat($name)) {

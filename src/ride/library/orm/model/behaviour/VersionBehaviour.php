@@ -21,7 +21,7 @@ class VersionBehaviour extends AbstractBehaviour {
 
     /**
      * Hook after creating a data container
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */
@@ -35,8 +35,8 @@ class VersionBehaviour extends AbstractBehaviour {
 
     /**
      * Hook before validation of the data
-     * @param ride\library\orm\model\Model $model
-     * @param ride\library\validation\exception\ValidationException $exception
+     * @param \ride\library\orm\model\Model $model
+     * @param \ride\library\validation\exception\ValidationException $exception
      * @param mixed $data
      * @return null
      */
@@ -63,7 +63,7 @@ class VersionBehaviour extends AbstractBehaviour {
 
     /**
      * Hook before inserting data
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param mixed $data
      * @return null
      */
@@ -77,7 +77,7 @@ class VersionBehaviour extends AbstractBehaviour {
 
     /**
      * Hook after updating a field
-     * @param ride\library\orm\model\Model $model
+     * @param \ride\library\orm\model\Model $model
      * @param integer $id
      * @param string $fieldName
      * @param mixed $value
