@@ -231,7 +231,9 @@ class ModelLoader {
             $meta->parseMeta($this->orm);
 
             if ($this->cache) {
-                $log->logDebug('Caching model ' . $modelName, '', OrmManager::LOG_SOURCE);
+                if ($log) {
+                    $log->logDebug('Caching model ' . $modelName, '', OrmManager::LOG_SOURCE);
+                }
 
                 $cacheItem = $this->cache->create($modelName);
                 $cacheItem->setValue($model);
