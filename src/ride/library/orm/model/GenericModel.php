@@ -52,13 +52,20 @@ class GenericModel extends AbstractModel {
     protected $dataListOrderField;
 
     /**
+     * Order direction of the data list
+     * @var string
+     */
+    protected $dataListOrderDirection;
+
+    /**
      * Initializes the save stack
      * @return null
      */
     protected function initialize() {
         $this->saveStack = array();
-        $this->dataListDepth = 1;
-        $this->dataListOrderField = null;
+        $this->dataListDepth = $this->meta->getOption('data.list.recursive.depth', 1);
+        $this->dataListOrderField = $this->meta->getOption('data.list.order.field');
+        $this->dataListOrderDirection = $this->meta->getOption('data.list.order.direction', 'ASC');
     }
 
     /**
@@ -70,6 +77,7 @@ class GenericModel extends AbstractModel {
             'parent' => parent::serialize(),
             'depth' => $this->dataListDepth,
             'orderField' => $this->dataListOrderField,
+            'orderDirection' => $this->dataListOrderDirection,
         );
 
         return serialize($serialize);
@@ -115,14 +123,15 @@ class GenericModel extends AbstractModel {
         $fetchUnlocalized = isset($options['unlocalized']) ? $options['unlocalized'] : true;
         $filter = isset($options['filter']) ? $options['filter'] : array();
         $orderField = isset($options['order']['field']) ? $options['order']['field'] : $this->dataListOrderField;
-        $orderDirection = isset($options['order']['direction']) ? $options['order']['direction'] : 'ASC';
+        $orderDirection = isset($options['order']['direction']) ? $options['order']['direction'] : $this->dataListOrderDirection;
 
         $query = $this->createQuery($locale);
         $query->setRecursiveDepth($this->dataListDepth);
         $query->setFetchUnlocalizedData($fetchUnlocalized);
 
         foreach ($filter as $fieldName => $filterValue) {
-            $field = $this->meta->getField($fieldName);
+            $fieldTokens = explode('.', $fieldName);
+            $field = $this->meta->getField($fieldTokens[0]);
 
             if (!$field instanceof HasField) {
                 if (!is_array($filterValue)) {
@@ -146,6 +155,9 @@ class GenericModel extends AbstractModel {
         }
 
         if ($orderField) {
+            $fieldTokens = explode('.', $orderField);
+            $field = $this->meta->getField($fieldTokens[0]);
+
             $query->addOrderBy('{' . $orderField . '} ' . $orderDirection);
         }
 
@@ -179,12 +191,25 @@ class GenericModel extends AbstractModel {
      * @return mixed Instance of the data if found, null otherwise
      */
     public function getById($id, $recursiveDepth = 1, $locale = null, $fetchUnlocalizedData = false) {
+        return $this->getBy(ModelTable::PRIMARY_KEY, $id, $recursiveDepth, $locale, $fetchUnlocalizedData);
+    }
+
+    /**
+     * Gets a data record by a specific field name
+     * @param string $field Name of the field
+     * @param mixed $value Value for the field
+     * @param integer $recursiveDepth Recursive depth of the query
+     * @param string $locale Locale code
+     * @param boolean $fetchUnlocalizedData Flag to see if unlocalized data should be fetched
+     * @return mixed Instance of the data if found, null otherwise
+     */
+    public function getBy($field, $value, $recursiveDepth = 1, $locale = null, $fetchUnlocalizedData = false) {
         $query = $this->createQuery($locale);
         $query->setRecursiveDepth($recursiveDepth);
         $query->setIncludeUnlocalizedData(true);
         $query->setFetchUnlocalizedData($fetchUnlocalizedData);
 
-        $query->addCondition('{id} = %1%', $id);
+        $query->addCondition('{' . $field . '} = %1%', $value);
 
         return $query->queryFirst();
     }
