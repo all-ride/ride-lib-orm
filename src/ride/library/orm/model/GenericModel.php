@@ -13,8 +13,10 @@ use ride\library\database\manipulation\statement\InsertStatement;
 use ride\library\database\manipulation\statement\UpdateStatement;
 use ride\library\database\manipulation\statement\SelectStatement;
 use ride\library\orm\definition\field\BelongsToField;
+use ride\library\orm\definition\field\HasField;
 use ride\library\orm\definition\field\HasOneField;
 use ride\library\orm\definition\field\HasManyField;
+use ride\library\orm\definition\field\PropertyField;
 use ride\library\orm\definition\field\RelationField;
 use ride\library\orm\definition\ModelTable;
 use ride\library\orm\exception\ModelException;
@@ -44,12 +46,19 @@ class GenericModel extends AbstractModel {
     protected $dataListDepth;
 
     /**
+     * Fieldname to order the data list
+     * @var string
+     */
+    protected $dataListOrderField;
+
+    /**
      * Initializes the save stack
      * @return null
      */
     protected function initialize() {
         $this->saveStack = array();
         $this->dataListDepth = 1;
+        $this->dataListOrderField = null;
     }
 
     /**
@@ -60,6 +69,7 @@ class GenericModel extends AbstractModel {
         $serialize = array(
             'parent' => parent::serialize(),
             'depth' => $this->dataListDepth,
+            'orderField' => $this->dataListOrderField,
         );
 
         return serialize($serialize);
@@ -76,16 +86,19 @@ class GenericModel extends AbstractModel {
         parent::unserialize($unserialized['parent']);
 
         $this->dataListDepth = $unserialized['depth'];
+        $this->dataListOrderField = $unserialized['orderField'];
         $this->saveStack = array();
     }
 
     /**
      * Gets a list of the data in this model, useful for eg. select fields
-     * @param string $locale Code of the locale to fetch the data in (null for the current locale)
-     * @return array Array with the id of the data as key and the data formatted with the title format as value
+     * @param array $options Options for the query
+     * @return array Array with the id of the data as key and a string
+     * representation as value
+     * @see getDataListQuery
      */
-    public function getDataList($locale = null) {
-        $query = $this->getDataListQuery();
+    public function getDataList(array $options = null) {
+        $query = $this->getDataListQuery($options);
 
         $result = $query->query();
 
@@ -94,13 +107,47 @@ class GenericModel extends AbstractModel {
 
     /**
      * Gets the query for the data list
-     * @param string $locale Code of the current locale
+     * @param array $options Options for the query
      * @return \ride\library\orm\query\ModelQuery
      */
-    public function getDataListQuery($locale = null) {
+    public function getDataListQuery(array $options = null) {
+        $locale = isset($options['locale']) ? $options['locale'] : null;
+        $fetchUnlocalized = isset($options['unlocalized']) ? $options['unlocalized'] : true;
+        $filter = isset($options['filter']) ? $options['filter'] : array();
+        $orderField = isset($options['order']['field']) ? $options['order']['field'] : $this->dataListOrderField;
+        $orderDirection = isset($options['order']['direction']) ? $options['order']['direction'] : 'ASC';
+
         $query = $this->createQuery($locale);
         $query->setRecursiveDepth($this->dataListDepth);
-        $query->setFetchUnlocalizedData(true);
+        $query->setFetchUnlocalizedData($fetchUnlocalized);
+
+        foreach ($filter as $fieldName => $filterValue) {
+            $field = $this->meta->getField($fieldName);
+
+            if (!$field instanceof HasField) {
+                if (!is_array($filterValue)) {
+                    $filterValue = array($filterValue);
+                }
+
+                $condition = '';
+
+                foreach ($filterValue as $index => $value) {
+                    if ($field instanceof PropertyField) {
+                        $operator = 'LIKE';
+                        $filterValue[$index] = '%' . $value . '%';
+                    } else {
+                        $operator = '=';
+                    }
+                    $condition .= ($condition ? ' OR ' : '') . '{' . $fieldName . '} ' . $operator . ' %' . $index . '%';
+                }
+
+                $query->addConditionWithVariables($condition, $filterValue);
+            }
+        }
+
+        if ($orderField) {
+            $query->addOrderBy('{' . $orderField . '} ' . $orderDirection);
+        }
 
         return $query;
     }
