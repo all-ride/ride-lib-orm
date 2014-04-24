@@ -78,7 +78,6 @@ class UniqueBehaviour extends AbstractBehaviour {
      */
     public function postValidate(Model $model, $data, ValidationException $exception) {
         $value = $model->getReflectionHelper()->getProperty($data, $this->field);
-
         if (!$value) {
             return;
         }
