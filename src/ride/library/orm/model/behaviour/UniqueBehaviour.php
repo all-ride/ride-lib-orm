@@ -94,7 +94,7 @@ class UniqueBehaviour extends AbstractBehaviour {
             array('value' => $value)
         );
 
-        $exception->addErrors($field, array($error));
+        $exception->addErrors($this->field, array($error));
     }
 
     /**
