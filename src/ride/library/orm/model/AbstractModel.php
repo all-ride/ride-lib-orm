@@ -6,6 +6,7 @@ use ride\library\database\manipulation\statement\Statement;
 use ride\library\orm\definition\field\BelongsToField;
 use ride\library\orm\definition\field\HasManyField;
 use ride\library\orm\definition\field\HasOneField;
+use ride\library\orm\definition\field\PropertyField;
 use ride\library\orm\exception\ModelException;
 use ride\library\orm\model\behaviour\Behaviour;
 use ride\library\orm\model\data\validator\GenericDataValidator;
@@ -233,6 +234,51 @@ abstract class AbstractModel implements Model, Serializable {
      */
     public function createQuery($locale = null) {
         return $this->orm->createQuery($this, $locale);
+    }
+
+    /**
+     * Converts a data instance to an array
+     * @param mixed $data Primary key or a data instance
+     * @return array|integer|null
+     */
+    public function convertDataToArray($data) {
+        if ($data === null || is_numeric($data)) {
+            return $data;
+        }
+
+        $this->meta->isValidData($data);
+
+        $array = array();
+
+        $fields = $this->meta->getFields();
+        foreach ($fields as $field) {
+            $name = $field->getName();
+            $value = $this->reflectionHelper->getProperty($data, $name);
+
+            if (!$value || $field instanceof PropertyField) {
+                $array[$name] = $value;
+            } elseif ($field instanceof HasManyField) {
+                $relationModel = $this->getModel($field->getRelationModel());
+
+                foreach ($value as $index => $hasValue) {
+                    $array[$name][$index] = $relationModel->convertDataToArray($hasValue);
+                }
+            } else {
+                $relationModel = $this->getModel($field->getRelationModel());
+
+                $array[$name] = $relationModel->convertDataToArray($value);
+            }
+        }
+
+        if ($this->meta->isLocalized()) {
+            $locale = $this->reflectionHelper->getProperty($data, LocalizedModel::FIELD_LOCALE);
+
+            if ($locale && !isset($array['locale'])) {
+                $array['locale'] = $locale;
+            }
+        }
+
+        return $array;
     }
 
     /**
