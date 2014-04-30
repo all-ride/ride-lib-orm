@@ -498,12 +498,20 @@ abstract class AbstractXmlModelIO implements ModelIO {
                         $fieldElement->getAttribute(self::ATTRIBUTE_RELATION) :
                         self::DEFAULT_FIELD_RELATION;
 
+        $default = $fieldElement->hasAttribute(self::ATTRIBUTE_DEFAULT) ?
+                   $fieldElement->getAttribute(self::ATTRIBUTE_DEFAULT) :
+                   null;
+
         switch ($relationType) {
             case self::RELATION_BELONGS_TO:
                 $field = new BelongsToField($fieldName, $relationModelName);
+                $field->setDefaultValue($default);
+
                 break;
             case self::RELATION_HAS_ONE:
                 $field = new HasOneField($fieldName, $relationModelName);
+                $field->setDefaultValue($default);
+
                 break;
             case self::RELATION_HAS_MANY:
                 $field = new HasManyField($fieldName, $relationModelName);
@@ -525,7 +533,6 @@ abstract class AbstractXmlModelIO implements ModelIO {
                 break;
             default:
                 throw new OrmException("{$fieldName} of {$modelName} has an invalid relation ({$relationType}) in {$file->getPath()}");
-                break;
         }
 
         $dependant = $fieldElement->hasAttribute(self::ATTRIBUTE_DEPENDANT) ?

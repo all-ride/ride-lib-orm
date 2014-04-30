@@ -203,12 +203,6 @@ abstract class AbstractModel implements Model, Serializable {
                 continue;
             }
 
-            if ($field instanceof BelongsToField || $field instanceof HasOneField) {
-                $properties[$name] = null;
-
-                continue;
-            }
-
             if ($field instanceof HasManyField) {
                 $properties[$name] = array();
 
