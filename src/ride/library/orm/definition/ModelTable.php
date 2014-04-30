@@ -342,7 +342,10 @@ class ModelTable {
         $addIndex = false;
 
         if ($field instanceof BelongsToField) {
-            $field->setDefaultValue(0);
+            if ($field->getDefaultValue() === null) {
+                $field->setDefaultValue(0);
+            }
+
             $addIndex = true;
         } elseif ($field instanceof HasField) {
             if ($field instanceof HasOneField) {

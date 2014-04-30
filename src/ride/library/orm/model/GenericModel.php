@@ -43,7 +43,7 @@ class GenericModel extends AbstractModel {
      * Depth of the data list
      * @var integer
      */
-    protected $dataListDepth;
+    protected $dataListDepth = 1;
 
     /**
      * Fieldname to order the data list
@@ -63,7 +63,7 @@ class GenericModel extends AbstractModel {
      */
     protected function initialize() {
         $this->saveStack = array();
-        $this->dataListDepth = $this->meta->getOption('data.list.recursive.depth', 1);
+        $this->dataListDepth = $this->meta->getOption('data.list.recursive.depth', $this->dataListDepth);
         $this->dataListOrderField = $this->meta->getOption('data.list.order.field');
         $this->dataListOrderDirection = $this->meta->getOption('data.list.order.direction', 'ASC');
     }
