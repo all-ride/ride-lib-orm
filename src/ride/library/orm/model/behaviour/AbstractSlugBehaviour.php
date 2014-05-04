@@ -24,7 +24,7 @@ abstract class AbstractSlugBehaviour extends AbstractBehaviour {
             return;
         }
 
-        $slug = $baseSlug = StringHelper::safeString($slugString));
+        $slug = $baseSlug = StringHelper::safeString($slugString);
         $index = 1;
 
         do {
