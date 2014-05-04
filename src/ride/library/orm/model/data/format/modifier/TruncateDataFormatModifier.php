@@ -3,7 +3,7 @@
 namespace ride\library\orm\model\data\format\modifier;
 
 use ride\library\reflection\Boolean;
-use ride\library\String;
+use ride\library\StringHelper;
 
 /**
  * Modifier to truncate a value
@@ -38,9 +38,7 @@ class TruncateDataFormatModifier implements DataFormatModifier {
             $breakWords = Boolean::getBoolean($arguments[2]);
         }
 
-        $value = new String($value);
-
-        return $value->truncate($length, $etc, $breakWords);
+        return StringHelper::truncate($value, $length, $etc, $breakWords);
     }
 
 }
