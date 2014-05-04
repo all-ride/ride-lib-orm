@@ -4,7 +4,7 @@ namespace ride\library\orm\model\behaviour;
 
 use ride\library\orm\model\Model;
 use ride\library\validation\exception\ValidationException;
-use ride\library\String;
+use ride\library\StringHelper;
 
 /**
  * Interface to add extra behaviour to a model
@@ -24,8 +24,7 @@ abstract class AbstractSlugBehaviour extends AbstractBehaviour {
             return;
         }
 
-        $slugString = new String($slugString);
-        $slug = $baseSlug = strtolower($slugString->safeString());
+        $slug = $baseSlug = StringHelper::safeString($slugString));
         $index = 1;
 
         do {
