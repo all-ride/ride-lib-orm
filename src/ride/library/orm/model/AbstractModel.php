@@ -252,13 +252,13 @@ abstract class AbstractModel implements Model, Serializable {
             if (!$value || $field instanceof PropertyField) {
                 $array[$name] = $value;
             } elseif ($field instanceof HasManyField) {
-                $relationModel = $this->getModel($field->getRelationModel());
+                $relationModel = $this->getModel($field->getRelationModelName());
 
                 foreach ($value as $index => $hasValue) {
                     $array[$name][$index] = $relationModel->convertDataToArray($hasValue);
                 }
             } else {
-                $relationModel = $this->getModel($field->getRelationModel());
+                $relationModel = $this->getModel($field->getRelationModelName());
 
                 $array[$name] = $relationModel->convertDataToArray($value);
             }
