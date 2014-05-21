@@ -100,7 +100,7 @@ class LogModel extends GenericModel {
         $dataModel = $this->getModel($modelName);
         $dataMeta = $dataModel->getMeta();
 
-        if (!$dataMeta->getOption('log')) {
+        if (!$dataMeta->getOption('behaviour.log')) {
             $query = $dataModel->createQuery();
             $query->addCondition('{id} = %1%', $id);
 
@@ -108,12 +108,12 @@ class LogModel extends GenericModel {
         }
 
         $logs = $query->query();
-
         if (!$logs) {
             throw new OrmException('No logs for ' . $modelName . ' ' . $id);
         }
 
         $dataDate = 0;
+        $models = array();
         $properties = array(
             ModelTable::PRIMARY_KEY => $id
         );
@@ -132,48 +132,46 @@ class LogModel extends GenericModel {
 
                 continue;
             }
-
-            $field = $dataMeta->getField($fieldName);
-            if (!($field instanceof RelationField)) {
-                continue;
-            }
-
         }
 
         $data = $dataModel->createData($properties);
 
-        foreach ($dataFields as $fieldName => $value) {
-            if ($field instanceof HasManyField) {
-                if (!$data->$fieldName) {
+        foreach ($properties as $fieldName => $value) {
+            $field = $dataMeta->getField($fieldName);
+
+            if ($field instanceof BelongsToField) {
+                if ($value && is_numeric($value)) {
+                    if ($recursiveDepth) {
+                        $fieldModel = $field->getRelationModelName();
+
+                        $data->$fieldName = $this->getDataByDate($fieldModel, $value, $dataDate, $recursiveDepth - 1);
+                    }
+                } else {
+                    $data->$fieldName = null;
+                }
+            } elseif ($field instanceof HasManyField) {
+                $fieldModel = $field->getRelationModelName();
+
+                if (!$value) {
                     $data->$fieldName = array();
                 } else {
-                    $ids = explode(self::VALUE_SEPARATOR, $data->$fieldName);
+                    $ids = explode(self::VALUE_SEPARATOR, $value);
 
                     $values = array();
                     foreach ($ids as $id) {
                         $id = trim($id);
-
-                        if (!$id) {
+                        if (!$id || !is_numeric($id)) {
                             continue;
                         }
 
                         if ($recursiveDepth) {
-                            $values[$id] = $this->getDataByDate($fieldModelName, $id, $dataDate, $recursiveDepth - 1);
+                            $values[$id] = $this->getDataByDate($fieldModel, $id, $dataDate, $recursiveDepth - 1);
                         } else {
                             $values[$id] = $id;
                         }
                     }
 
                     $data->$fieldName = $values;
-                }
-                continue;
-            }
-
-            if (!$data->$fieldName) {
-                $data->$fieldName = null;
-            } else {
-                if ($recursiveDepth) {
-                    $data->$fieldName = $this->getDataByDate($fieldModelName, $data->$fieldName, $dataDate, $recursiveDepth - 1);
                 }
             }
         }

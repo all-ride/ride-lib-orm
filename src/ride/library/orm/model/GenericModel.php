@@ -346,6 +346,10 @@ class GenericModel extends AbstractModel {
 
             $value = $this->reflectionHelper->getProperty($data, $fieldName);
 
+            if (isset($data->_state) && array_key_exists($fieldName, $data->_state) && $data->_state[$fieldName] === $value) {
+                continue;
+            }
+
             if ($field->getType() == 'serialize') {
                 $value = serialize($value);
             }
@@ -360,6 +364,10 @@ class GenericModel extends AbstractModel {
             }
 
             $value = $this->reflectionHelper->getProperty($data, $fieldName);
+
+            if (isset($data->_state) && array_key_exists($fieldName, $data->_state) && $data->_state[$fieldName] === $value) {
+                continue;
+            }
 
             $foreignKey = $this->saveBelongsTo($value, $fieldName);
 
@@ -403,6 +411,10 @@ class GenericModel extends AbstractModel {
 
             $value = $this->reflectionHelper->getProperty($data, $fieldName);
 
+            if (isset($data->_state) && array_key_exists($fieldName, $data->_state) && $data->_state[$fieldName] === $value) {
+                continue;
+            }
+
             $this->saveHasOne($value, $fieldName, $id);
         }
 
@@ -413,6 +425,10 @@ class GenericModel extends AbstractModel {
             }
 
             $value = $this->reflectionHelper->getProperty($data, $fieldName);
+
+            if (isset($data->_state) && array_key_exists($fieldName, $data->_state) && $data->_state[$fieldName] === $value) {
+                continue;
+            }
 
             $this->saveHasMany($value, $fieldName, $id, $isNew, $field->isDependant());
         }
@@ -451,27 +467,20 @@ class GenericModel extends AbstractModel {
         $this->reflectionHelper->setProperty($localizedData, $localeField, $this->getLocale($this->reflectionHelper->getProperty($data, $localeField)));
         $this->reflectionHelper->setProperty($localizedData, $dataField, $this->reflectionHelper->getProperty($data, ModelTable::PRIMARY_KEY));
 
+        if (isset($data->_state)) {
+            $localizedData->_state = $data->_state;
+        }
+
         $hasSetFields = false;
         $fields = $this->meta->getLocalizedFields();
         foreach ($fields as $fieldName => $field) {
-            $fieldValue = $this->reflectionHelper->getProperty($data, $fieldName);
-            if ($fieldValue === null) {
-                unset($fields[$fieldName]);
-
-                continue;
-            }
-
-            $hasSetFields = true;
-
-            $this->reflectionHelper->setProperty($localizedData, $fieldName, $fieldValue);
+            $this->reflectionHelper->setProperty($localizedData, $fieldName, $this->reflectionHelper->getProperty($data, $fieldName));
         }
 
-        if ($hasSetFields) {
-            $localizedModel->save($localizedData);
+        $localizedModel->save($localizedData);
 
-            foreach ($fields as $fieldName => $field) {
-                $this->reflectionHelper->setProperty($data, $fieldName, $this->reflectionHelper->getProperty($localizedData, $fieldName));
-            }
+        foreach ($fields as $fieldName => $field) {
+            $this->reflectionHelper->setProperty($data, $fieldName, $this->reflectionHelper->getProperty($localizedData, $fieldName));
         }
     }
 

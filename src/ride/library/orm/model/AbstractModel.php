@@ -218,6 +218,8 @@ abstract class AbstractModel implements Model, Serializable {
             $behaviour->postCreateData($this, $data);
         }
 
+        $data->_state = array();
+
         return $data;
     }
 

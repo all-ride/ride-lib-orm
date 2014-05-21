@@ -541,8 +541,10 @@ class ModelQuery {
                     $query->setRecursiveDepth($recursiveDepth);
                     $query->setFetchUnlocalizedData(true);
                     $query->addCondition('{id} = %1%', $fieldId);
+                    $value = $query->queryFirst();
 
-                    $this->reflectionHelper->setProperty($result[$index], $fieldName, $query->queryFirst());
+                    $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
+                    $result[$index]->_state[$fieldName] = $value;
                 }
             }
         }
@@ -598,7 +600,10 @@ class ModelQuery {
                     continue;
                 }
 
-                $this->reflectionHelper->setProperty($result[$id], $fieldName, $reflectionHelper->getProperty($localizedData, $fieldName));
+                $value = $reflectionHelper->getProperty($localizedData, $fieldName);
+
+                $this->reflectionHelper->setProperty($result[$id], $fieldName, $value);
+                $result[$id]->_state[$fieldName] = $value;
             }
         }
 
@@ -620,7 +625,8 @@ class ModelQuery {
         $relationModel = $this->orm->getModel($relationModelName);
 
         foreach ($result as $index => $data) {
-            if (!$data->$fieldName) {
+            $value = $this->reflectionHelper->getProperty($data, $fieldName);
+            if (!$value) {
                 continue;
             }
 
@@ -628,9 +634,11 @@ class ModelQuery {
             $query->setRecursiveDepth($recursiveDepth);
             $query->setIncludeUnlocalizedData($this->includeUnlocalizedData);
             $query->setFetchUnlocalizedData($this->fetchUnlocalizedData);
-            $query->addCondition('{id} = %1%', $this->reflectionHelper->getProperty($data, $fieldName));
+            $query->addCondition('{id} = %1%', $value);
+            $value = $query->queryFirst();
 
-            $this->reflectionHelper->setProperty($result[$index], $fieldName, $query->queryFirst());
+            $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
+            $result[$index]->_state[$fieldName] = $value;
         }
 
         return $result;
@@ -692,10 +700,13 @@ class ModelQuery {
             $query->addCondition('{' . $foreignKey . '} = %1%', $this->reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY));
 
             if ($isHasOne) {
-                $this->reflectionHelper->setProperty($result[$index], $fieldName, $this->queryHasOneWithoutLinkModel($query, $foreignKey, $data));
+                $value = $this->queryHasOneWithoutLinkModel($query, $foreignKey, $data);
             } else {
-                $this->reflectionHelper->setProperty($result[$index], $fieldName, $this->queryHasManyWithoutLinkModel($query, $meta, $fieldName, $foreignKey, $data, $indexOn));
+                $value = $this->queryHasManyWithoutLinkModel($query, $meta, $fieldName, $foreignKey, $data, $indexOn);
             }
+
+            $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
+            $result[$index]->_state[$fieldName] = $value;
         }
 
         return $result;
@@ -781,10 +792,13 @@ class ModelQuery {
             $query->addCondition('{' . $foreignKeyToSelf . '} = %1%', $reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY));
 
             if ($isHasOne) {
-                $reflectionHelper->setProperty($result[$index], $fieldName, $this->queryHasOneWithLinkModel($query, $foreignKey));
+                $value = $this->queryHasOneWithLinkModel($query, $foreignKey);
             } else {
-                $reflectionHelper->setProperty($result[$index], $fieldName, $this->queryHasManyWithLinkModel($query, $meta, $fieldName, $foreignKey));
+                $value = $this->queryHasManyWithLinkModel($query, $meta, $fieldName, $foreignKey);
             }
+
+            $reflectionHelper->setProperty($result[$index], $fieldName, $value);
+            $result[$index]->_state[$fieldName] = $value;
         }
 
         return $result;
@@ -872,10 +886,13 @@ class ModelQuery {
             }
 
             if ($isHasOne) {
-                $this->reflectionHelper->setProperty($result[$index], $fieldName, $this->queryHasOneWithLinkModelToSelf($query, $foreignKeys, $id));
+                $value = $this->queryHasOneWithLinkModelToSelf($query, $foreignKeys, $id);
             } else {
-                $this->reflectionHelper->setProperty($result[$index], $fieldName, $this->queryHasManyWithLinkModelToSelf($query, $meta, $fieldName, $foreignKeys, $id));
+                $value = $this->queryHasManyWithLinkModelToSelf($query, $meta, $fieldName, $foreignKeys, $id);
             }
+
+            $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
+            $result[$index]->_state[$fieldName] = $value;
         }
 
         return $result;
