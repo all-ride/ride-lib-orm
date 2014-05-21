@@ -80,25 +80,25 @@ class ResultParser {
      */
     private function getDataObjectFromRow($row) {
         $aliasses = array();
-
-        $data = array();
+        $properties = array();
 
         foreach ($row as $column => $value) {
             $positionAliasSeparator = strpos($column, QueryParser::ALIAS_SEPARATOR);
             if ($positionAliasSeparator === false) {
                 try {
-                    if ($column != 'isDataLocalized' && $this->meta->getField($column)->getType() == 'serialize') {
-                        if ($value) {
+                    if ($column != 'isDataLocalized' && $value !== null) {
+                        $type = $this->meta->getField($column)->getType();
+                        if ($type == 'serialize') {
                             $value = unserialize($value);
-                        } else {
-                            $value = null;
+                        } elseif ($type == 'boolean') {
+                            $value = (boolean) $value;
                         }
                     }
                 } catch (ModelException $exception) {
 
                 }
 
-                $data[$column] = $value;
+                $properties[$column] = $value;
 
                 continue;
             }
@@ -107,15 +107,16 @@ class ResultParser {
             $fieldName = substr($column, $positionAliasSeparator + QueryParser::ALIAS_SEPARATOR_LENGTH);
 
             if ($alias == QueryParser::ALIAS_SELF) {
-                if ($fieldName != LocalizedModel::FIELD_LOCALE && $this->meta->getField($fieldName)->getType() == 'serialize') {
-                    if ($value) {
+                if ($fieldName !== LocalizedModel::FIELD_LOCALE && $value !== null) {
+                    $type = $this->meta->getField($fieldName)->getType();
+                    if ($type == 'serialize') {
                         $value = unserialize($value);
-                    } else {
-                        $value = null;
+                    } elseif ($type == 'boolean') {
+                        $value = (boolean) $value;
                     }
                 }
 
-                $data[$fieldName] = $value;
+                $properties[$fieldName] = $value;
 
                 continue;
             }
@@ -129,7 +130,7 @@ class ResultParser {
 
         foreach ($aliasses as $fieldName => $value) {
             if (!array_key_exists(ModelTable::PRIMARY_KEY, $value)) {
-                $data[$fieldName] = $value;
+                $properties[$fieldName] = $value;
 
                 continue;
             }
@@ -150,18 +151,26 @@ class ResultParser {
                 $relationMeta = $relationModel->getMeta();
                 $relationProperties = $relationMeta->getProperties();
                 foreach ($relationProperties as $relationPropertyName => $relationProperty) {
-                    if ($relationProperty->getType() == 'serialize' && isset($value[$relationPropertyName])) {
+                    $type = $relationProperty->getType();
+                    if ($type == 'serialize' && isset($value[$relationPropertyName])) {
                         $value[$relationPropertyName] = unserialize($value[$relationPropertyName]);
+                    }
+                    if ($type == 'boolean' && $value[$relationPropertyName] !== null) {
+                        $value[$relationPropertyName] = (boolean) $value[$relationPropertyName];
                     }
                 }
 
-                $data[$fieldName] = $relationModel->createData($value);
+                $properties[$fieldName] = $relationModel->createData($value);
+                $properties[$fieldName]->_state = $value;
             } else {
-                $data[$fieldName] = null;
+                $properties[$fieldName] = null;
             }
         }
 
-        return $this->model->createData($data);
+        $data = $this->model->createData($properties);
+        $data->_state = $properties;
+
+        return $data;
     }
 
 }

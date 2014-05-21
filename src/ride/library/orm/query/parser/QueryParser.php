@@ -774,7 +774,6 @@ class QueryParser {
         }
 
         $isRelationField = $field instanceof RelationField;
-
         if ($isRelationField) {
             $this->addFieldJoin($field);
         }
@@ -784,10 +783,12 @@ class QueryParser {
         $relationField = $relationModel->getMeta()->getField($name);
 
         if ($relationField->isLocalized()) {
-            $table = $this->meta->getRelationLocalizedTable($tableName);
+            $table = new TableExpression($relationModelName . LocalizedModel::MODEL_SUFFIX, $tableName . LocalizedModel::MODEL_SUFFIX);
 
             if ($inCondition && $isRelationField) {
-                $joinCondition = $this->createLocalizeCondition($this->meta->getRelationTable($tableName), $table);
+                $relationTable = new TableExpression($relationModelName, $tableName);
+
+                $joinCondition = $this->createLocalizeCondition($relationTable, $table);
                 $join = new JoinExpression(JoinExpression::TYPE_LEFT, $table, $joinCondition);
 
                 $this->addConditionJoin($join);
