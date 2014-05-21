@@ -30,6 +30,7 @@ abstract class AbstractSlugBehaviour extends AbstractBehaviour {
         do {
             $query = $model->createQuery();
             $query->addCondition('{slug} = %1%', $slug);
+            $query->setFetchUnlocalizedData(true);
             if ($data->id) {
                 $query->addCondition('{id} <> %1%', $data->id);
             }
