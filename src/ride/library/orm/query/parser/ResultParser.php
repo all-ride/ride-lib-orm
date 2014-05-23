@@ -168,7 +168,19 @@ class ResultParser {
         }
 
         $data = $this->model->createData($properties);
-        $data->_state = $properties;
+        $data->_state = $this->processState($properties);
+
+        return $data;
+    }
+
+    public function processState(array $data) {
+        foreach ($data as $field => $fieldValue) {
+            if (is_object($fieldValue)) {
+                $data[$field] = clone $fieldValue;
+            } elseif (is_array($fieldValue)) {
+                $data[$field] = $this->processState($fieldValue);
+            }
+        }
 
         return $data;
     }

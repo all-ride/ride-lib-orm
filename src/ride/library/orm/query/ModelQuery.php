@@ -421,6 +421,11 @@ class ModelQuery {
 
         $result = $this->queryUnlocalized($result, $indexField);
 
+        $resultParser = $this->model->getResultParser();
+        foreach ($result as $index => $data) {
+            $result[$index]->_state = $resultParser->processState($data->_state);
+        }
+
         return $result;
     }
 
