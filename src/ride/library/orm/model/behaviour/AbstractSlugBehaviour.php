@@ -2,6 +2,7 @@
 
 namespace ride\library\orm\model\behaviour;
 
+use ride\library\orm\model\LocalizedModel;
 use ride\library\orm\model\Model;
 use ride\library\validation\exception\ValidationException;
 use ride\library\StringHelper;
@@ -27,15 +28,41 @@ abstract class AbstractSlugBehaviour extends AbstractBehaviour {
         $slug = $baseSlug = StringHelper::safeString($slugString);
         $index = 1;
 
+        if ($model->getMeta()->getField('slug')->isLocalized()) {
+            $orm = $model->getOrmManager();
+            $localizedModel = $orm->getModel($model->getName() . LocalizedModel::MODEL_SUFFIX);
+        } else {
+            $localizedModel = null;
+        }
+
         do {
-            $query = $model->createQuery();
-            $query->addCondition('{slug} = %1%', $slug);
-            $query->setFetchUnlocalizedData(true);
-            if ($data->id) {
-                $query->addCondition('{id} <> %1%', $data->id);
+            if ($localizedModel) {
+                $query = $localizedModel->createQuery();
+                $query->addCondition('{slug} = %1%', $slug);
+
+
+                if (isset($data->dataLocale)) {
+                    $locale = $data->dataLocale;
+                } else {
+                    $locale = $orm->getLocale();
+                }
+
+                if ($data->id) {
+                    $localizedId = $localizedModel->getLocalizedId($data->id, $locale);
+                    if ($localizedId) {
+                        $query->addCondition('{id} <> %1%', $localizedId);
+                    }
+                }
+            } else {
+                $query = $model->createQuery();
+                $query->addCondition('{slug} = %1%', $slug);
+                if ($data->id) {
+                    $query->addCondition('{id} <> %1%', $data->id);
+                }
             }
 
-            if ($query->count()) {
+            $count = $query->count();
+            if ($count) {
                 $slug = $baseSlug . '-' . $index;
                 $index++;
             } else {
