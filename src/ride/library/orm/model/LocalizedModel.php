@@ -39,6 +39,10 @@ class LocalizedModel extends GenericModel {
 
         $data->id = $this->getLocalizedId($data->dataId, $data->dataLocale);
 
+        if (isset($data->dataLocale) && isset($data->_state['dataLocale']) && $data->dataLocale != $data->_state['dataLocale']) {
+            $data->_state = array();
+        }
+
         parent::saveData($data);
     }
 
