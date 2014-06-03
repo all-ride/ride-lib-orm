@@ -7,10 +7,13 @@ use ride\library\orm\definition\field\BelongsToField;
 use ride\library\orm\definition\field\HasManyField;
 use ride\library\orm\definition\field\HasOneField;
 use ride\library\orm\definition\field\PropertyField;
+use ride\library\orm\definition\ModelTable;
 use ride\library\orm\exception\ModelException;
+use ride\library\orm\exception\OrmException;
+use ride\library\orm\entry\format\EntryFormatter;
+use ride\library\orm\meta\ModelMeta;
 use ride\library\orm\model\behaviour\Behaviour;
 use ride\library\orm\model\data\validator\GenericDataValidator;
-use ride\library\orm\model\meta\ModelMeta;
 use ride\library\orm\query\parser\ResultParser;
 use ride\library\orm\query\CachedModelQuery;
 use ride\library\orm\OrmManager;
@@ -27,22 +30,28 @@ use \Serializable;
 abstract class AbstractModel implements Model, Serializable {
 
     /**
-     * Instance of the model manager
-     * @var \ride\library\orm\OrmManager
-     */
-    protected $orm;
-
-    /**
      * Factory for data objects
      * @var \ride\library\reflection\ReflectionHelper
      */
     protected $reflectionHelper;
 
     /**
+     * Instance of the model manager
+     * @var \ride\library\orm\OrmManager
+     */
+    protected $orm;
+
+    /**
      * Meta of this model
-     * @var ModelMeta
+     * @var \ride\library\orm\meta\ModelMeta
      */
     protected $meta;
+
+    /**
+     * Parser for database results
+     * @var \ride\library\orm\query\parser\ResultParser
+     */
+    protected $resultParser;
 
     /**
      * Behaviours of the model
@@ -57,22 +66,16 @@ abstract class AbstractModel implements Model, Serializable {
     protected $validationConstraint;
 
     /**
-     * Parser for database results
-     * @var \ride\library\orm\query\parser\ResultParser
-     */
-    protected $resultParser;
-
-    /**
      * Constructs a new data model
      * @param \ride\library\reflection\ReflectionHelper $reflectionHelper
-     * @param ModelMeta $modelMeta Meta data of the model
+     * @param \ride\library\orm\meta\ModelMeta $modelMeta Meta data of the model
      * @param array $behaviours
      * @return null
      */
     public function __construct(ReflectionHelper $reflectionHelper, ModelMeta $meta, array $behaviours = array()) {
         $this->reflectionHelper = $reflectionHelper;
         $this->meta = $meta;
-        $this->resultParser = new ResultParser($this);
+        $this->proxies = array();
         $this->behaviours = array();
 
         foreach ($behaviours as $behaviour) {
@@ -80,14 +83,6 @@ abstract class AbstractModel implements Model, Serializable {
         }
 
         $this->initialize();
-    }
-
-    /**
-     * Gets the instance of the reflection helper
-     * @return \ride\library\reflection\ReflectionHelper
-     */
-    public function getReflectionHelper() {
-        return $this->reflectionHelper;
     }
 
     /**
@@ -107,6 +102,10 @@ abstract class AbstractModel implements Model, Serializable {
         $this->behaviours[] = $behaviour;
     }
 
+    /**
+     * Gets the behaviours of this model
+     * @return array
+     */
     public function getBehaviours() {
         return $this->behaviours;
     }
@@ -145,7 +144,7 @@ abstract class AbstractModel implements Model, Serializable {
             $this->behaviours = array();
         }
 
-        $this->resultParser = new ResultParser($this);
+        $this->proxies = array();
     }
 
     /**
@@ -166,6 +165,14 @@ abstract class AbstractModel implements Model, Serializable {
     }
 
     /**
+     * Gets the instance of the reflection helper
+     * @return \ride\library\reflection\ReflectionHelper
+     */
+    public function getReflectionHelper() {
+        return $this->reflectionHelper;
+    }
+
+    /**
      * Gets the name of this model
      * @return string
      */
@@ -175,7 +182,7 @@ abstract class AbstractModel implements Model, Serializable {
 
     /**
      * Gets the meta data of this model
-     * @return ModelMeta
+     * @return \ride\library\orm\meta\ModelMeta
      */
     public function getMeta() {
         return $this->meta;
@@ -186,15 +193,19 @@ abstract class AbstractModel implements Model, Serializable {
      * @return \ride\library\orm\query\parser\ResultParser
      */
     public function getResultParser() {
+        if (!isset($this->resultParser)) {
+            $this->resultParser = new ResultParser($this);
+        }
+
         return $this->resultParser;
     }
 
     /**
-     * Creates a new data object for this model
-     * @param boolean $initialize True to create a data object with default values (default), false to create an empty data object
-     * @return mixed A new data object for this model
+     * Creates a new entry for this model
+     * @param array $properties Propery values to initialize the entry with
+     * @return mixed New entry for this model
      */
-    public function createData(array $properties = array()) {
+    public function createEntry(array $properties = array()) {
         $fields = $this->meta->getFields();
         foreach ($fields as $field) {
             $name = $field->getName();
@@ -210,17 +221,50 @@ abstract class AbstractModel implements Model, Serializable {
             }
 
             $properties[$name] = $field->getDefaultValue();
+
+            if ($field instanceof BelongsToField && isset($properties[$name]) && !is_object($properties[$name])) {
+                $properties[$name] = $this->getRelationModel($name)->createProxy($properties[$name]);
+            }
         }
 
-        $data = $this->reflectionHelper->createData($this->meta->getDataClassName(), $properties);
+        $entry = $this->reflectionHelper->createData($this->meta->getEntryClassName(), $properties);
 
         foreach ($this->behaviours as $behaviour) {
-            $behaviour->postCreateData($this, $data);
+            $behaviour->postCreateEntry($this, $entry);
         }
 
-        $data->_state = array();
+        return $entry;
+    }
 
-        return $data;
+    /**
+     * Creates an entry proxy for this model
+     * @param integer|string $id Primary key of the entry
+     * @param string|null $locale Code of the locale
+     * @param array $properties Known properties of the entry instance
+     * @return mixed An entry proxy instance for this model
+     */
+    public function createProxy($id, $locale = null, array $properties = array()) {
+        $locale = $this->getLocale($locale);
+
+        if (!$properties && isset($this->proxies[$id][$locale]) && $this->proxies[$id][$locale]->hasCleanState()) {
+            return $this->proxies[$id][$locale];
+        }
+
+        $properties = array(
+            'model' => $this,
+            'id' => $id,
+            'properties' => $properties,
+        );
+
+        if ($this->meta->isLocalized()) {
+            $properties['locale'] = $locale;
+        }
+
+        $proxy = $this->reflectionHelper->createData($this->meta->getProxyClassName(), $properties);
+
+        $this->proxies[$id][$locale] = $proxy;
+
+        return $proxy;
     }
 
     /**
@@ -233,16 +277,34 @@ abstract class AbstractModel implements Model, Serializable {
     }
 
     /**
+     * Parses entries into an array of formatted entries
+     * @param array $entries Array of entries from this model
+     * @return array Array with the primary key of the entry as key and the
+     * entry formatted with title format as value
+     */
+    public function getOptionsFromEntries(array $entries) {
+        $entryFormatter = $this->orm->getEntryFormatter();
+        $titleFormat = $this->meta->getFormat(EntryFormatter::FORMAT_TITLE);
+
+        $options = array();
+        foreach ($entries as $entry) {
+            $options[$this->reflectionHelper->getProperty($entry, ModelTable::PRIMARY_KEY)] = $entryFormatter->formatEntry($entry, $titleFormat);
+        }
+
+        return $options;
+    }
+
+    /**
      * Converts a data instance to an array
      * @param mixed $data Primary key or a data instance
      * @return array|integer|null
      */
-    public function convertDataToArray($data) {
+    public function convertEntryToArray($data) {
         if ($data === null || is_numeric($data)) {
             return $data;
         }
 
-        $this->meta->isValidData($data);
+        $this->meta->isValidEntry($data);
 
         $array = array();
 
@@ -278,45 +340,29 @@ abstract class AbstractModel implements Model, Serializable {
     }
 
     /**
-     * Validates a data object of this model
-     * @param mixed $data Data object of the model
+     * Validates an entry of this model
+     * @param mixed $entry Entry instance or entry properties of this model
      * @return null
-     * @throws \ride\library\orm\exception\OrmException when the validation factory is not set
-     * @throws \ride\library\validation\exception\ValidationException when one of the fields is not valid
+     * @throws \ride\library\orm\exception\OrmException when the validation
+     * factory is not set
+     * @throws \ride\library\validation\exception\ValidationException when one
+     * of the fields is not valid
      */
-    public function validate($data) {
+    public function validate($entry) {
         $exception = new ValidationException('Validation errors occured in ' . $this->getName());
 
         foreach ($this->behaviours as $behaviour) {
-            $behaviour->preValidate($this, $data, $exception);
+            $behaviour->preValidate($this, $entry, $exception);
         }
 
         $constraint = $this->getValidationConstraint();
         if ($constraint) {
-            $constraint->validateData($data, $exception);
+            $constraint->validateData($entry, $exception);
         }
 
         foreach ($this->behaviours as $behaviour) {
-            $behaviour->postValidate($this, $data, $exception);
+            $behaviour->postValidate($this, $entry, $exception);
         }
-
-        if ($exception->hasErrors()) {
-            throw $exception;
-        }
-    }
-
-    /**
-     * Validates a value for a certain field of this model
-     * @param string $fieldName Name of the field
-     * @param mixed $value Value to validate
-     * @return null
-     * @throws \ride\library\validation\exception\ValidationException when the field is not valid
-     */
-    protected function validateField($fieldName, $value) {
-        $exception = new ValidationException('Validation errors occured in ' . $this->getName());
-
-        $constraint = $this->getValidationConstraint();
-        $constraint->validateProperty($fieldName, $value, $exception);
 
         if ($exception->hasErrors()) {
             throw $exception;
@@ -334,7 +380,7 @@ abstract class AbstractModel implements Model, Serializable {
 
         $this->validationConstraint = $this->meta->getValidationConstraint($this->getOrmManager()->getValidationFactory());
         if ($this->validationConstraint) {
-            $this->initializeValidationConstraint($this->validationConstraint);
+            $this->processValidationConstraint($this->validationConstraint);
         }
 
         return $this->validationConstraint;
@@ -346,110 +392,78 @@ abstract class AbstractModel implements Model, Serializable {
      * @param \ride\library\validation\constraint\Constraint $constraint
      * @return null
      */
-    protected function initializeValidationConstraint(Constraint $constraint) {
+    protected function processValidationConstraint(Constraint $constraint) {
 
     }
 
     /**
      * Saves data to the model
-     * @param mixed $data A data object or an array of data objects when no id argument is provided, the value for the field otherwise
-     * @param string $fieldName Name of the field to save
-     * @param integer $id Primary key of the data to save, $data will be considered as the value for the provided field name
-     * @param string $locale The locale of the data, only used when the id argument is provided
+     * @param mixed $entry An entry instance or an array of entry instances
      * @return null
-     * @throws Exception when the data could not be saved
+     * @throws \Exception when the entry could not be saved
      */
-    public function save($data, $fieldName = null, $id = null, $locale = null) {
+    public function save($entry) {
         $isTransactionStarted = $this->beginTransaction();
-        $isFieldNameProvided = !is_null($fieldName);
 
         try {
-            if (is_array($data)) {
-                if ($isFieldNameProvided) {
-                    foreach ($data as $d) {
-                        $this->saveField($d, $fieldName);
-                    }
-                } else {
-                    foreach ($data as $d) {
-                        $this->saveData($d);
-                    }
-                }
-            } elseif ($isFieldNameProvided) {
-                if (is_array($id)) {
-                    foreach ($id as $pk) {
-                        if (is_object($pk)) {
-                            $this->saveField($data, $fieldName, $pk->id, $locale);
-                        } else {
-                            $this->saveField($data, $fieldName, $pk, $locale);
-                        }
-                    }
-                } else {
-                    $this->saveField($data, $fieldName, $id, $locale);
+            if (is_array($entry)) {
+                foreach ($entry as $entryValue) {
+                    $this->saveEntry($entryValue);
                 }
             } else {
-                $this->saveData($data);
+                $this->saveEntry($entry);
             }
 
             $this->commitTransaction($isTransactionStarted);
-        } catch (Exception $e) {
+        } catch (Exception $exception) {
             $this->rollbackTransaction($isTransactionStarted);
-            throw $e;
+
+            throw $exception;
         }
     }
 
     /**
-     * Saves a data object to the model
-     * @param mixed $data A data object of this model
+     * Saves an entry to the model
+     * @param mixed $entry A instance of an entry
      * @return null
-     * @throws Exception when the data could not be saved
+     * @throws Exception when the entry could not be saved
      */
-    abstract protected function saveData($data);
+    abstract protected function saveEntry($entry);
 
     /**
-     * Saves a field from data to the model
-     * @param mixed $data A data object or the value to save when the id argument is provided
-     * @param string $fieldName Name of the field to save
-     * @param integer $id Primary key of the data to save, $data will be considered as the value
-     * @param string $locale The locale of the data, only used when the id argument is provided
+     * Deletes data from the model
+     * @param mixed $entry An entry instance or an array with entry instances
      * @return null
-     * @throws Exception when the field could not be saved
+     * @throws \Exception when the entry could not be deleted
      */
-    abstract protected function saveField($data, $fieldName, $id = null, $locale = null);
-
-    /**
-     * Deletes data from this model
-     * @param mixed $data Primary key of the data, a data object or an array with the previous as value
-     * @return null
-     * @throws Exception when the data could not be deleted
-     */
-    public function delete($data) {
+    public function delete($entry) {
         $isTransactionStarted = $this->beginTransaction();
 
         try {
-            if (is_array($data)) {
-                foreach ($data as $index => $d) {
-                    $data[$index] = $this->deleteData($d);
+            if (is_array($entry)) {
+                foreach ($entry as $entryIndex => $entryValue) {
+                    $entry[$index] = $this->deleteEntry($entryValue);
                 }
             } else {
-                $data = $this->deleteData($data);
+                $entry = $this->deleteEntry($entry);
             }
 
             $this->commitTransaction($isTransactionStarted);
-        } catch (Exception $e) {
+        } catch (Exception $exception) {
             $this->rollbackTransaction($isTransactionStarted);
 
-            throw $e;
+            throw $exception;
         }
 
-        return $data;
+        return $entry;
     }
 
     /**
-     * Deletes data from this model
-     * @param mixed $data Primary key of the data or a data object of this model
-     * @return mixed The full data which has been deleted
+     * Deletes an entry from this model
+     * @param mixed $entry Entry instance to be deleted
+     * @return mixed The full entry which has been deleted
      */
-    abstract protected function deleteData($data);
+    abstract protected function deleteEntry($entry);
 
     /**
      * Clears the result cache of this model
@@ -473,7 +487,7 @@ abstract class AbstractModel implements Model, Serializable {
             return $data;
         }
 
-        $this->meta->isValidData($data);
+        $this->meta->isValidEntry($data);
 
         if (!empty($data->id)) {
             return $data->id;
@@ -491,8 +505,8 @@ abstract class AbstractModel implements Model, Serializable {
     protected function getLocale($locale) {
     	if ($locale === null) {
         	$locale = $this->orm->getLocale();
-        } else if (!is_string($locale) || $locale == '') {
-            throw new OrmException('Provided locale is invalid');
+        } elseif (!is_string($locale) || $locale == '') {
+            throw new OrmException('Provided locale is invalid: ' . $locale);
         }
 
         return $locale;

@@ -7,8 +7,10 @@ use ride\library\orm\definition\field\BelongsToField;
 use ride\library\orm\definition\field\HasField;
 use ride\library\orm\definition\field\HasOneField;
 use ride\library\orm\definition\ModelTable as DefinitionModelTable;
+use ride\library\orm\entry\LocalizedEntry;
 use ride\library\orm\exception\OrmException;
-use ride\library\orm\model\meta\ModelMeta;
+use ride\library\orm\meta\ModelMeta;
+use ride\library\orm\model\LocalizedModel;
 use ride\library\orm\model\Model;
 use ride\library\orm\query\parser\QueryParser;
 
@@ -57,13 +59,13 @@ class ModelQuery {
      * Flag to set whether to include unlocalized data in the result
      * @var boolean
      */
-    protected $includeUnlocalizedData;
+    protected $includeUnlocalized;
 
     /**
      * Flag to set whether to fetch unlocalized data in the result
      * @var boolean
      */
-    protected $fetchUnlocalizedData;
+    protected $fetchUnlocalized;
 
     /**
      * Flag to set whether to add a is localized order
@@ -153,9 +155,9 @@ class ModelQuery {
         $this->queryParser = $this->orm->getQueryParser();
         $this->locales = $locales;
 
-        $this->recursiveDepth = 1;
-        $this->includeUnlocalizedData = false;
-        $this->fetchUnlocalizedData = false;
+        $this->recursiveDepth = 0;
+        $this->includeUnlocalized = false;
+        $this->fetchUnlocalized = false;
         $this->addIsLocalizedOrder = false;
 
         $this->distinct = false;
@@ -225,36 +227,36 @@ class ModelQuery {
     }
 
     /**
-     * Sets whether to include unlocalized data
-     * @param boolean|string $flag True to include the unlocalized data, false
-     * to omit the unlocalized data
+     * Sets whether to include unlocalized entries
+     * @param boolean|string $flag True to include the unlocalized entries,
+     * false to omit the unlocalized entries
      * @return null
      */
-    public function setIncludeUnlocalizedData($flag) {
-        $this->includeUnlocalizedData = $flag;
+    public function setIncludeUnlocalized($includeUnlocalized) {
+        $this->includeUnlocalized = $includeUnlocalized;
     }
 
     /**
-     * Gets whether to unclude unlocalized data
+     * Gets whether to unclude unlocalized entries
      * @return boolean True to include unlocalized data, false otherwise
      */
-    public function willIncludeUnlocalizedData() {
-        return $this->includeUnlocalizedData;
+    public function willIncludeUnlocalized() {
+        return $this->includeUnlocalized;
     }
 
     /**
-     * Sets whether to fetch unlocalized data. if the data is not localized,
-     * the next locale will be queried until a localized version of the data
+     * Sets whether to fetch unlocalized entries. if an entry is not localized,
+     * the next locale will be queried until a localized version of the entry
      * is retrieved.
-     * @param boolean|string $flag True to fetch the unlocalized data, false
+     * @param boolean|string $flag True to fetch the unlocalized entries, false
      * otherwise
      * @return null
      */
-    public function setFetchUnlocalizedData($flag) {
-        $this->fetchUnlocalizedData = $flag;
+    public function setFetchUnlocalized($fetchUnlocalized) {
+        $this->fetchUnlocalized = $fetchUnlocalized;
 
-        if ($flag) {
-            $this->includeUnlocalizedData = $flag;
+        if ($fetchUnlocalized) {
+            $this->includeUnlocalized = $fetchUnlocalized;
         }
     }
 
@@ -262,8 +264,8 @@ class ModelQuery {
      * Gets whether to fetch unlocalized data
      * @return boolean True to fetch unlocalized data, false otherwise
      */
-    public function willFetchUnlocalizedData() {
-        return $this->fetchUnlocalizedData;
+    public function willFetchUnlocalized() {
+        return $this->fetchUnlocalized;
     }
 
     /**
@@ -393,17 +395,50 @@ class ModelQuery {
      */
     public function query($parse = null) {
         $statement = $this->queryParser->parseQuery($this);
-        $belongsToFields = $this->queryParser->getRecursiveBelongsToFields();
-        $hasFields = $this->queryParser->getRecursiveHasFields();
-
         $connection = $this->orm->getConnection();
         $result = $connection->executeStatement($statement);
 
         if ($parse !== false) {
+            $belongsToFields = $this->queryParser->getRecursiveBelongsToFields();
+            $hasFields = $this->queryParser->getRecursiveHasFields();
+
             $result = $this->parseResult($result, $belongsToFields, $hasFields, $parse);
         }
 
         return $result;
+    }
+
+    /**
+     * Queries a relation field
+     * @param string|integer $id Primary key of the entry
+     * @param string $fieldName Name of the relation field
+     * @return mixed Instance of an entry proxie with the relation field queried
+     */
+    public function queryRelation($id, $fieldName) {
+        $entry = $this->model->createProxy($id);
+
+        $belongsToFields = array();
+        $hasFields = array();
+
+        $field = $this->model->getMeta()->getField($fieldName);
+        if ($field instanceof HasField) {
+            $hasFields[$fieldName] = $field;
+        } elseif ($field instanceof BelongsToField) {
+            $belongsToFields[$fieldName] = $field;
+        } else {
+            throw new OrmException('Could not query field: ' . $fieldName . ' is not a relation field');
+        }
+
+        $this->setRecursiveDepth(1);
+
+        $result = array($entry);
+        $result = $this->queryRelations($result, $belongsToFields, $hasFields);
+        $result = $this->queryUnlocalized($result);
+
+        $resultParser = $this->model->getResultParser();
+        $entry->setEntryState($resultParser->processState($entry->getEntryState()));
+
+        return $entry;
     }
 
     /**
@@ -416,14 +451,12 @@ class ModelQuery {
      */
     protected function parseResult($result, $belongsToFields, $hasFields, $indexField = null) {
         $result = $this->model->getResultParser()->parseResult($this->orm, $result, $indexField);
-
         $result = $this->queryRelations($result, $belongsToFields, $hasFields);
-
         $result = $this->queryUnlocalized($result, $indexField);
 
         $resultParser = $this->model->getResultParser();
-        foreach ($result as $index => $data) {
-            $result[$index]->_state = $resultParser->processState($data->_state);
+        foreach ($result as $index => $entry) {
+            $result[$index]->setEntryState($resultParser->processState($entry->getEntryState()));
         }
 
         return $result;
@@ -436,14 +469,18 @@ class ModelQuery {
      * @return array The result with the unlocalized data queried in the first localized data from the locales list
      */
     protected function queryUnlocalized($result, $indexField = null) {
-        if (!$this->fetchUnlocalizedData || !$this->model->getMeta()->isLocalized()) {
+        if (!$this->fetchUnlocalized || !$this->model->getMeta()->isLocalized()) {
             return $result;
         }
 
         $unlocalizedResult = array();
-        foreach ($result as $index => $data) {
-            $id = $this->reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY);
-            if ($data->isDataLocalized || !$id) {
+        foreach ($result as $index => $entry) {
+            if (!$entry instanceof LocalizedEntry) {
+                continue;
+            }
+
+            $id = $this->reflectionHelper->getProperty($entry, DefinitionModelTable::PRIMARY_KEY);
+            if ($entry->isLocalized() || !$id) {
                 continue;
             }
 
@@ -463,20 +500,20 @@ class ModelQuery {
 
             $query = clone($this);
             $query->setLocale($locale);
-            $query->setIncludeUnlocalizedData(false);
-            $query->setFetchUnlocalizedData(false);
+            $query->setIncludeUnlocalized(false);
+            $query->setFetchUnlocalized(false);
             $query->setLimit(0);
             $query->addCondition($condition);
             $query->removeOrderBy();
 
             $localeResult = $query->query($indexField);
 
-            foreach ($localeResult as $index => $localeData) {
-                $id = $this->reflectionHelper->getProperty($localeData, DefinitionModelTable::PRIMARY_KEY);
+            foreach ($localeResult as $index => $localeEntry) {
+                $id = $this->reflectionHelper->getProperty($localeEntry, DefinitionModelTable::PRIMARY_KEY);
 
-                $localeData->dataLocale = $locale;
+                $this->reflectionHelper->setProperty($localeEntry, LocalizedModel::FIELD_LOCALE, $locale);
 
-                $result[$index] = $localeData;
+                $result[$index] = $localeEntry;
 
                 unset($unlocalizedResult[$id]);
             }
@@ -512,7 +549,7 @@ class ModelQuery {
             foreach ($belongsToFields as $fieldName => $field) {
                 $result = $this->queryBelongsTo($result, $meta, $recursiveDepth, $fieldName, $field);
             }
-        } elseif ($this->fetchUnlocalizedData) {
+        } elseif ($this->fetchUnlocalized) {
             $locale = $this->getLocale();
 
             $belongsToFields = $meta->getBelongsTo();
@@ -544,12 +581,12 @@ class ModelQuery {
 
                     $query = $relationModel->createQuery($locale);
                     $query->setRecursiveDepth($recursiveDepth);
-                    $query->setFetchUnlocalizedData(true);
+                    $query->setFetchUnlocalized(true);
                     $query->addCondition('{id} = %1%', $fieldId);
                     $value = $query->queryFirst();
 
                     $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
-                    $result[$index]->_state[$fieldName] = $value;
+                    $result[$index]->setFieldState($fieldName, $value);
                 }
             }
         }
@@ -608,7 +645,7 @@ class ModelQuery {
                 $value = $reflectionHelper->getProperty($localizedData, $fieldName);
 
                 $this->reflectionHelper->setProperty($result[$id], $fieldName, $value);
-                $result[$id]->_state[$fieldName] = $value;
+                $result[$id]->setFieldState($fieldName, $value);
             }
         }
 
@@ -637,13 +674,13 @@ class ModelQuery {
 
             $query = $relationModel->createQuery($locale);
             $query->setRecursiveDepth($recursiveDepth);
-            $query->setIncludeUnlocalizedData($this->includeUnlocalizedData);
-            $query->setFetchUnlocalizedData($this->fetchUnlocalizedData);
+            $query->setIncludeUnlocalized($this->includeUnlocalized);
+            $query->setFetchUnlocalized($this->fetchUnlocalized);
             $query->addCondition('{id} = %1%', $value);
             $value = $query->queryFirst();
 
             $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
-            $result[$index]->_state[$fieldName] = $value;
+            $result[$index]->setFieldState($fieldName, $value);
         }
 
         return $result;
@@ -699,8 +736,8 @@ class ModelQuery {
         foreach ($result as $index => $data) {
             $query = $model->createQuery($locale);
             $query->setRecursiveDepth($recursiveDepth);
-            $query->setIncludeUnlocalizedData($this->includeUnlocalizedData);
-            $query->setFetchUnlocalizedData($this->fetchUnlocalizedData);
+            $query->setIncludeUnlocalized($this->includeUnlocalized);
+            $query->setFetchUnlocalized($this->fetchUnlocalized);
             $query->removeFields('{' . $foreignKey . '}');
             $query->addCondition('{' . $foreignKey . '} = %1%', $this->reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY));
 
@@ -711,7 +748,7 @@ class ModelQuery {
             }
 
             $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
-            $result[$index]->_state[$fieldName] = $value;
+            $result[$index]->setFieldState($fieldName, $value);
         }
 
         return $result;
@@ -757,7 +794,7 @@ class ModelQuery {
         $queryResult = $query->query($indexOn);
         foreach ($queryResult as $queryIndex => $queryData) {
             if ($recursiveDepth === 0) {
-                $this->reflectionHelper->setProperty($queryData, $foreignKey, $this->reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY));
+                $this->reflectionHelper->setProperty($queryData, $foreignKey, $data);
             } else {
                 $this->reflectionHelper->setProperty($queryData, $foreignKey, $data);
             }
@@ -790,8 +827,8 @@ class ModelQuery {
         foreach ($result as $index => $data) {
             $query = $linkModel->createQuery($locale);
             $query->setRecursiveDepth($recursiveDepth);
-            $query->setIncludeUnlocalizedData($this->includeUnlocalizedData);
-            $query->setFetchUnlocalizedData($this->fetchUnlocalizedData);
+            $query->setIncludeUnlocalized($this->includeUnlocalized);
+            $query->setFetchUnlocalized($this->fetchUnlocalized);
             $query->setOperator(Condition::OPERATOR_OR);
             $query->setFields('{id}, {' . $foreignKey . '}');
             $query->addCondition('{' . $foreignKeyToSelf . '} = %1%', $reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY));
@@ -803,7 +840,7 @@ class ModelQuery {
             }
 
             $reflectionHelper->setProperty($result[$index], $fieldName, $value);
-            $result[$index]->_state[$fieldName] = $value;
+            $result[$index]->setFieldState($fieldName, $value);
         }
 
         return $result;
@@ -878,8 +915,8 @@ class ModelQuery {
         foreach ($result as $index => $data) {
             $query = $linkModel->createQuery($locale);
             $query->setRecursiveDepth($recursiveDepth);
-            $query->setIncludeUnlocalizedData($this->includeUnlocalizedData);
-            $query->setFetchUnlocalizedData($this->fetchUnlocalizedData);
+            $query->setIncludeUnlocalized($this->includeUnlocalized);
+            $query->setFetchUnlocalized($this->fetchUnlocalized);
             $query->setOperator(Condition::OPERATOR_OR);
 
             $id = $this->reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY);
@@ -897,7 +934,7 @@ class ModelQuery {
             }
 
             $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
-            $result[$index]->_state[$fieldName] = $value;
+            $result[$index]->setFieldState($fieldName, $value);
         }
 
         return $result;

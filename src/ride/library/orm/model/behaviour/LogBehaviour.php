@@ -4,172 +4,111 @@ namespace ride\library\orm\model\behaviour;
 
 use ride\library\orm\definition\ModelTable;
 use ride\library\orm\model\LocalizedModel;
-use ride\library\orm\model\LogModel;
+use ride\library\orm\model\EntryLogModel;
 use ride\library\orm\model\Model;
 
 /**
- * Interface to add extra behaviour to a model
+ * Behaviour to keep a log of your manipulation actions
  */
 class LogBehaviour extends AbstractBehaviour {
 
     /**
-     * Container of the old data
+     * Data container of the pre save entry states
      * @var array
      */
-    private $oldData;
+    private $oldEntry;
 
     /**
      * Hook after inserting data
      * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
+     * @param mixed $entry
      * @return null
      */
-    public function postInsert(Model $model, $data) {
-        $logFields = $this->getLogFields($model, $data);
+    public function postInsert(Model $model, $entry) {
+        $logFields = $this->getLogFields($model, $entry);
 
-        $logModel = $model->getOrmManager()->getModel(LogModel::NAME);
-        $logModel->logInsert($model->getName(), $logFields, $data);
+        $logModel = $model->getOrmManager()->getModel(EntryLogModel::NAME);
+        $logModel->logInsert($model->getName(), $logFields, $entry);
     }
 
     /**
      * Hook before updating data
      * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
+     * @param mixed $entry
      * @return null
      */
-    public function preUpdate(Model $model, $data) {
+    public function preUpdate(Model $model, $entry) {
         $localeField = LocalizedModel::FIELD_LOCALE;
 
         $locale = null;
-        if (isset($data->$localeField)) {
-            $locale = $data->$localeField;
+        if (isset($entry->$localeField)) {
+            $locale = $entry->$localeField;
         }
 
         $modelName = $model->getName();
 
-        if (!isset($this->oldData)) {
-            $this->oldData = array($modelName => array());
-        } elseif (!isset($this->oldData[$modelName])) {
-            $this->oldData[$modelName] = array();
+        if (!isset($this->oldEntry)) {
+            $this->oldEntry = array($modelName => array());
+        } elseif (!isset($this->oldEntry[$modelName])) {
+            $this->oldEntry[$modelName] = array();
         }
 
-        $id = $model->getReflectionHelper()->getProperty($data, ModelTable::PRIMARY_KEY);
+        $id = $entry->getId();
 
         $query = $model->createQuery($locale);
-        $query->setIncludeUnlocalizedData(true);
+        $query->setIncludeUnlocalized(true);
         $query->addCondition('{id} = %1%', $id);
 
-        $this->oldData[$modelName][$id] = $query->queryFirst();
+        $this->oldEntry[$modelName][$id] = $query->queryFirst();
     }
 
     /**
      * Hook after updating data
      * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
+     * @param mixed $entry
      * @return null
      */
-    public function postUpdate(Model $model, $data) {
-        $logFields = $this->getLogFields($model, $data);
+    public function postUpdate(Model $model, $entry) {
+        $logFields = $this->getLogFields($model, $entry);
 
         $modelName = $model->getName();
-        $id = $model->getReflectionHelper()->getProperty($data, ModelTable::PRIMARY_KEY);
+        $id = $entry->getId();
 
-        $oldData = null;
-        if (isset($this->oldData[$modelName][$id])) {
-            $oldData = $this->oldData[$modelName][$id];
+        $oldEntry = null;
+        if (isset($this->oldEntry[$modelName][$id])) {
+            $oldEntry = $this->oldEntry[$modelName][$id];
 
-            unset($this->oldData[$modelName][$id]);
-            if (!$this->oldData[$modelName]) {
-                unset($this->oldData[$modelName]);
+            unset($this->oldEntry[$modelName][$id]);
+            if (!$this->oldEntry[$modelName]) {
+                unset($this->oldEntry[$modelName]);
             }
-            if (!$this->oldData) {
-                unset($this->oldData);
+            if (!$this->oldEntry) {
+                unset($this->oldEntry);
             }
         }
 
-        $logModel = $model->getOrmManager()->getModel(LogModel::NAME);
-        $logModel->logUpdate($modelName, $logFields, $data, $oldData);
-    }
-
-    /**
-     * Hook before updating a field
-     * @param \ride\library\orm\model\Model $model
-     * @param integer $id
-     * @param string $fieldName
-     * @param mixed $value
-     * @return null
-     */
-    public function preUpdateField(Model $model, $id, $fieldName, $value) {
-        $modelName = $model->getName();
-        $key = $id . '::' . $fieldName;
-
-        if (!isset($this->oldData)) {
-            $this->oldData = array($modelName => array());
-        } elseif (!isset($this->oldData[$modelName])) {
-            $this->oldData[$modelName] = array();
-        }
-
-        $query = $model->createQuery();
-        $query->setIncludeUnlocalizedData(true);
-        $query->setFields('{id}, {' . $fieldName . '}');
-        $query->addCondition('{id} = %1%', $id);
-
-        $this->oldData[$modelName][$key] = $query->queryFirst();
-    }
-
-    /**
-    * Hook after updating a field
-    * @param \ride\library\orm\model\Model $model
-    * @param integer $id
-    * @param string $fieldName
-    * @param mixed $value
-    * @return null
-    */
-    public function postUpdateField(Model $model, $id, $fieldName, $value) {
-        $modelName = $model->getName();
-        $key = $id . '::' . $fieldName;
-
-        $fields = array($fieldName => null);
-
-        $data = $model->createData();
-        $data->id = $id;
-        $data->$fieldName = $value;
-
-        $oldData = null;
-        if (isset($this->oldData[$modelName][$key])) {
-            $oldData = $this->oldData[$modelName][$key];
-
-            unset($this->oldData[$modelName][$key]);
-            if (!$this->oldData[$modelName]) {
-                unset($this->oldData[$modelName]);
-            }
-            if (!$this->oldData) {
-                unset($this->oldData);
-            }
-        }
-
-        $logModel = $model->getOrmManager()->getModel(LogModel::NAME);
-        $logModel->logUpdate($modelName, $fields, $data, $oldData);
+        $logModel = $model->getOrmManager()->getModel(EntryLogModel::NAME);
+        $logModel->logUpdate($modelName, $logFields, $entry, $oldEntry);
     }
 
     /**
      * Hook before deleting data
      * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
+     * @param mixed $entry
      * @return null
      */
-    public function preDelete(Model $model, $data) {
-        $logModel = $model->getOrmManager()->getModel(LogModel::NAME);
-        $logModel->logDelete($model->getName(), $data);
+    public function preDelete(Model $model, $entry) {
+        $logModel = $model->getOrmManager()->getModel(EntryLogModel::NAME);
+        $logModel->logDelete($model->getName(), $entry);
     }
 
     /**
      * Gets the fields which need to be logged
      * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
+     * @param mixed $entry
      * @return null
      */
-    protected function getLogFields(Model $model, $data) {
+    protected function getLogFields(Model $model, $entry) {
         $reflectionHelper = $model->getReflectionHelper();
 
         $logFields = array();
@@ -180,7 +119,7 @@ class LogBehaviour extends AbstractBehaviour {
                 continue;
             }
 
-            $logFields[$fieldName] = $reflectionHelper->getProperty($data, $fieldName);
+            $logFields[$fieldName] = $reflectionHelper->getProperty($entry, $fieldName);
         }
 
         return $logFields;

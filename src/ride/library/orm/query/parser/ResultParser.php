@@ -9,29 +9,16 @@ use ride\library\orm\model\LocalizedModel;
 use ride\library\orm\model\Model;
 use ride\library\orm\OrmManager;
 
-
 /**
  * Parser to parse database results into orm results
  */
 class ResultParser {
 
     /**
-     * Meta definition of the model of the result
-     * @var \ride\library\orm\model\ModelMeta
+     * Instance of the model
+     * @var \ride\library\orm\model\Model
      */
-    private $meta;
-
-    /**
-     * Empty data object for the model
-     * @var mixed
-     */
-    private $data;
-
-    /**
-     * Array with empty data objects for relation models
-     * @var array
-     */
-    private $modelData;
+    protected $model;
 
     /**
      * Constructs a new result parser
@@ -43,14 +30,16 @@ class ResultParser {
     }
 
     /**
-     * Parses a database result into a orm result
+     * Parses a database result into a ORM result
      * @param \ride\library\database\result\DatabaseResult $databaseResult
      * @param string $indexFieldName Name of the field to index the result on
-     * @return array Array with data objects
+     * @return array Array with entry objects
      */
     public function parseResult(OrmManager $orm, DatabaseResult $databaseResult, $indexFieldName = null) {
         $this->orm = $orm;
         $this->meta = $this->model->getMeta();
+        $this->isLocalized = $this->meta->isLocalized();
+        $this->belongsTo = $this->meta->getBelongsTo();
 
         $result = array();
 
@@ -59,14 +48,14 @@ class ResultParser {
         }
 
         foreach ($databaseResult as $row) {
-            $data = $this->getDataObjectFromRow($row);
+            $entry = $this->getEntryFromRow($row);
 
             if ($indexFieldName && isset($row[$indexFieldName])) {
-                $result[$row[$indexFieldName]] = $data;
+                $result[$row[$indexFieldName]] = $entry;
             } elseif ($indexFieldName && isset($row[QueryParser::ALIAS_SELF . QueryParser::ALIAS_SEPARATOR . $indexFieldName])) {
-                $result[$row[QueryParser::ALIAS_SELF . QueryParser::ALIAS_SEPARATOR . $indexFieldName]] = $data;
+                $result[$row[QueryParser::ALIAS_SELF . QueryParser::ALIAS_SEPARATOR . $indexFieldName]] = $entry;
             } else {
-                $result[] = $data;
+                $result[] = $entry;
             }
         }
 
@@ -74,19 +63,20 @@ class ResultParser {
     }
 
     /**
-     * Gets a data object from the provided database result row
+     * Gets an entry for the provided database result row
      * @param array $row Database result row
-     * @return array Array with data objects
+     * @return mixed Instance of an entry
      */
-    private function getDataObjectFromRow($row) {
+    protected function getEntryFromRow($row) {
         $aliasses = array();
         $properties = array();
 
+        // extract aliasses and process values
         foreach ($row as $column => $value) {
             $positionAliasSeparator = strpos($column, QueryParser::ALIAS_SEPARATOR);
             if ($positionAliasSeparator === false) {
                 try {
-                    if ($column != 'isDataLocalized' && $value !== null) {
+                    if ($column != QueryParser::ALIAS_IS_LOCALIZED && $value !== null) {
                         $type = $this->meta->getField($column)->getType();
                         if ($type == 'serialize') {
                             $value = unserialize($value);
@@ -128,6 +118,12 @@ class ResultParser {
             $aliasses[$alias][$fieldName] = $value;
         }
 
+        $locale = null;
+        if ($this->isLocalized && isset($properties[LocalizedModel::FIELD_LOCALE])) {
+            $locale = $locale;
+        }
+
+        // handle relation entries
         foreach ($aliasses as $fieldName => $value) {
             if (!array_key_exists(ModelTable::PRIMARY_KEY, $value)) {
                 $properties[$fieldName] = $value;
@@ -160,15 +156,29 @@ class ResultParser {
                     }
                 }
 
-                $properties[$fieldName] = $relationModel->createData($value);
-                $properties[$fieldName]->_state = $value;
+                $properties[$fieldName] = $relationModel->createProxy($value[ModelTable::PRIMARY_KEY], $locale, $value);
             } else {
                 $properties[$fieldName] = null;
             }
         }
 
-        $data = $this->model->createData($properties);
-        $data->_state = $this->processState($properties);
+        // create entry
+        if (!array_key_exists(ModelTable::PRIMARY_KEY, $properties)) {
+            $properties[ModelTable::PRIMARY_KEY] = 0;
+        }
+
+        foreach ($this->belongsTo as $fieldName => $field) {
+            if (!isset($properties[$fieldName]) || is_object($properties[$fieldName])) {
+                continue;
+            }
+
+            $relationModel = $this->orm->getModel($field->getRelationModelName());
+
+            $properties[$fieldName] = $relationModel->createProxy($properties[$fieldName], $locale);
+        }
+
+        $data = $this->model->createProxy($properties[ModelTable::PRIMARY_KEY], $locale, $properties);
+        $data->setEntryState($this->processState($properties));
 
         return $data;
     }

@@ -72,17 +72,17 @@ class UniqueBehaviour extends AbstractBehaviour {
     /**
      * Hook before validation of the data
      * @param \ride\library\orm\model\Model $model
+     * @param mixed $entry
      * @param \ride\library\validation\exception\ValidationException $exception
-     * @param mixed $data
      * @return null
      */
-    public function postValidate(Model $model, $data, ValidationException $exception) {
-        $value = $model->getReflectionHelper()->getProperty($data, $this->field);
+    public function postValidate(Model $model, $entry, ValidationException $exception) {
+        $value = $model->getReflectionHelper()->getProperty($entry, $this->field);
         if (!$value) {
             return;
         }
 
-        $query = $this->createQuery($model, $data);
+        $query = $this->createQuery($model, $entry);
         if (!$query->count()) {
             return;
         }
@@ -99,28 +99,28 @@ class UniqueBehaviour extends AbstractBehaviour {
     /**
      * Creates the query to check for uniqueness
      * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
+     * @param mixed $entry
      * @return \ride\library\orm\query\ModelQuery
      */
-    protected function createQuery(Model $model, $data) {
+    protected function createQuery(Model $model, $entry) {
         $reflectionHelper = $model->getReflectionHelper();
 
         $query = $model->createQuery();
         $query->setRecursiveDepth(0);
-        $query->setFetchUnlocalizedData(true);
+        $query->setFetchUnlocalized(true);
 
         $query->setFields('{id}, {' . $this->field . '}');
 
-        $query->addCondition('{' . $this->field . '} = %1%', $reflectionHelper->getProperty($data, $this->field));
+        $query->addCondition('{' . $this->field . '} = %1%', $reflectionHelper->getProperty($entry, $this->field));
 
-        $id = $reflectionHelper->getProperty($data, ModelTable::PRIMARY_KEY);
+        $id = $entry->getId();
         if ($id) {
             $query->addCondition('{id} <> %1%', $id);
         }
 
         if ($this->conditionFields) {
             foreach ($this->conditionFields as $conditionField) {
-                $query->addCondition('{' . $conditionField . '} = %1%', $reflectionHelper->getProperty($data, $conditionField));
+                $query->addCondition('{' . $conditionField . '} = %1%', $reflectionHelper->getProperty($entry, $conditionField));
             }
         }
 

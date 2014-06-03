@@ -267,8 +267,8 @@ class CacheableModelQuery extends ModelQuery {
             $this->distinct . '-' .
             $this->recursiveDepth . '-' .
             $this->locale . '-' .
-            $this->includeUnlocalizedData . '-' .
-            $this->fetchUnlocalizedData . '-' .
+            $this->includeUnlocalized . '-' .
+            $this->fetchUnlocalized . '-' .
             $this->addIsLocalizedOrder . ';';
 
         if ($this->fields) {
@@ -468,6 +468,8 @@ class CacheableModelQuery extends ModelQuery {
                 $value = $statementParser->parseStatement($statement);
 
                 $sql = str_replace('%' . $variable . '%', '(' . $value . ')', $sql);
+            } elseif (is_object($value)) {
+                $sql = str_replace('%' . $variable . '%', $connection->quoteValue($value->id), $sql);
             } elseif (is_array($value)) {
                 // array value
                 foreach ($value as $k => $v) {

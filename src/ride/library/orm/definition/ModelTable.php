@@ -15,8 +15,8 @@ use ride\library\orm\definition\field\PropertyField;
 use ride\library\orm\definition\field\RelationField;
 use ride\library\orm\exception\ModelException;
 use ride\library\orm\exception\OrmException;
-use ride\library\orm\model\data\format\DataFormat as Format;
-use ride\library\orm\model\data\format\DataFormatter;
+use ride\library\orm\model\data\format\EntryFormat as Format;
+use ride\library\orm\model\data\format\EntryFormatter;
 use ride\library\validation\constraint\Constraint;
 
 /**
@@ -91,13 +91,14 @@ class ModelTable {
     private $constraint;
 
     /**
-     * Array with formats to generate a string representation of a data object
+     * Array with formats to generate a string representation of a the entries
      * @var array
      */
-    private $dataFormats;
+    private $formats;
 
     /**
-     * Flag to see if deletes should be blocked when a record is still linked by another model
+     * Flag to see if deletes should be blocked when a record is still linked by
+     * another model
      * @var boolean
      */
     private $willBlockDeleteWhenUsed;
@@ -120,7 +121,7 @@ class ModelTable {
         $this->fields = array();
         $this->indexes = array();
         $this->constraint = null;
-        $this->dataFormats = array();
+        $this->formats = array();
         $this->willBlockDeleteWhenUsed = false;
         $this->options = array();
 
@@ -150,8 +151,8 @@ class ModelTable {
             $fields[] = 'constraint';
         }
 
-        if ($this->dataFormats) {
-            $fields[] = 'dataFormats';
+        if ($this->formats) {
+            $fields[] = 'formats';
         }
 
         if ($this->willBlockDeleteWhenUsed) {
@@ -174,8 +175,8 @@ class ModelTable {
             $this->indexes = array();
         }
 
-        if (!$this->dataFormats) {
-            $this->dataFormats = array();
+        if (!$this->formats) {
+            $this->formats = array();
         }
 
         if (!$this->options) {
@@ -704,98 +705,82 @@ class ModelTable {
     }
 
     /**
-     * Adds a data format
+     * Adds a entry format
      * @param string $name Name of the format
-     * @param string $format Format
+     * @param string $format Format string
      * @return null
      */
-    public function setDataFormat($name, $format) {
+    public function setFormat($name, $format) {
         if (!is_string($name) || !$name) {
             throw new ModelException('Provided name is empty');
         }
 
         if (!is_string($format) || !$format) {
-            throw new ModelException('Provided name is empty');
+            throw new ModelException('Provided format is empty');
         }
 
-        $this->dataFormats[$name] = $format;
+        $this->formats[$name] = $format;
     }
 
     /**
-     * Gets a data format
+     * Gets a format string
      * @param string $name Name of the format
      * @param boolean $throwException Set to true to throw an exception when
      * the data format does not exist
-     * @return string|null Data format for the provided name or null when it's
-     * not set
-     * @throws \ride\library\orm\exception\ModelException when there is no data
+     * @return string|null Format for the provided name or null when it's not
+     *  set
+     * @throws \ride\library\orm\exception\ModelException when there is no
      * format set with the provided name and $throwException is true
      */
-    public function getDataFormat($name, $throwException = true) {
-        if ($this->hasDataFormat($name)) {
-            return $this->dataFormats[$name];
-        }
-
-        if ($name == DataFormatter::FORMAT_TITLE) {
-            return $this->createDefaultTitleDataFormat();
+    public function getFormat($name, $throwException = true) {
+        if ($this->hasFormat($name)) {
+            return $this->formats[$name];
         }
 
         if ($throwException) {
-            throw new ModelException('No data format set with name ' . $name);
+            throw new ModelException('No format set with name ' . $name);
         }
 
         return null;
     }
 
     /**
-     * Checks if this model has a certain data format
-     * @param string $name Name of the data format
-     * @return boolean True if this table has a data format by the provided name, false otherwise
-     * @throws \ride\library\orm\exception\ModelException when the provided name is empty or not a string
+     * Checks if this model has a certain format
+     * @param string $name Name of the format
+     * @return boolean True if this table has a format by the provided name,
+     * false otherwise
+     * @throws \ride\library\orm\exception\ModelException when the provided name
+     * is empty or not a string
      */
-    public function hasDataFormat($name) {
+    public function hasFormat($name) {
         if (!is_string($name) || !$name) {
             throw new ModelException('Provided name is empty');
         }
 
-        return isset($this->dataFormats[$name]);
+        return isset($this->formats[$name]);
     }
 
     /**
-     * Removes a data format
-     * @param string $name Name of the data format
+     * Removes a format
+     * @param string $name Name of the format
      * @return null
      * @throws \ride\library\orm\exception\ModelException
      */
-    public function removeDataFormat($name) {
-        if (!$this->hasDataFormat($name)) {
-            throw new ModelException('No data format set with name ' . $name);
+    public function removeFormat($name) {
+        if (!$this->hasFormat($name)) {
+            throw new ModelException('Could not remove format: none set with name ' . $name);
         }
 
-        unset($this->dataFormats[$name]);
+        unset($this->formats[$name]);
     }
 
     /**
-     * Gets all the data formats
-     * @param boolean $createDefaultTitleDataFormat Set to false to skip adding the default title format if no title format is set
-     * @return array Array with the name of the format as key and the format as value
+     * Gets all the formats
+     * @return array Array with the name of the format as key and the format
+     * string as value
      */
-    public function getDataFormats($createDefaultTitleDataFormat = true) {
-        $dataFormats = $this->dataFormats;
-
-        if ($createDefaultTitleDataFormat && !isset($dataFormats[DataFormatter::FORMAT_TITLE])) {
-            $dataFormats[DataFormatter::FORMAT_TITLE] = $this->createDefaultTitleDataFormat();
-        }
-
-        return $dataFormats;
-    }
-
-    /**
-     * Creates a default title data format
-     * @return DataFormat
-     */
-    protected function createDefaultTitleDataFormat() {
-        return $this->name . ' ' . Format::SYMBOL_OPEN . self::PRIMARY_KEY . Format::SYMBOL_CLOSE;
+    public function getFormats() {
+        return $this->formats;
     }
 
 }
