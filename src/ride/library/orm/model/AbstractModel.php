@@ -482,15 +482,16 @@ abstract class AbstractModel implements Model, Serializable {
      * @return integer The primary key of the data
      * @throws \ride\library\orm\exception\ModelException when no primary key could be retrieved from the data
      */
-    protected function getPrimaryKey($data) {
-        if (is_numeric($data)) {
-            return $data;
+    protected function getPrimaryKey($entry) {
+        if (is_numeric($entry)) {
+            return $entry;
         }
 
-        $this->meta->isValidEntry($data);
+        $this->meta->isValidEntry($entry);
 
-        if (!empty($data->id)) {
-            return $data->id;
+        $id = $this->reflectionHelper->getProperty($entry, ModelTable::PRIMARY_KEY);
+        if ($id) {
+            return $id;
         }
 
         throw new ModelException('No primary key found in the provided data');
