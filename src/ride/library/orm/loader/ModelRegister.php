@@ -11,12 +11,12 @@ use ride\library\orm\definition\field\RelationField;
 use ride\library\orm\definition\ModelTable;
 use ride\library\orm\exception\ModelException;
 use ride\library\orm\exception\OrmException;
-use ride\library\orm\model\meta\ModelMeta;
+use ride\library\orm\meta\ModelMeta;
+use ride\library\orm\model\behaviour\LogBehaviour;
+use ride\library\orm\model\GenericModel;
 use ride\library\orm\model\LocalizedModel;
 use ride\library\orm\model\Model;
-use ride\library\orm\model\GenericModel;
 use ride\library\reflection\ReflectionHelper;
-use ride\library\orm\model\behaviour\LogBehaviour;
 
 /**
  * Register of the models. This register will handle the localized models and
@@ -37,12 +37,19 @@ class ModelRegister {
     private $models;
 
     /**
+     * Namespace for the default classes
+     * @var string
+     */
+    protected $defaultNamespace;
+
+    /**
      * Constructs a new model register
      * @return null
      */
-    public function __construct(ReflectionHelper $reflectionHelper) {
+    public function __construct(ReflectionHelper $reflectionHelper, $defaultNamespace) {
         $this->reflectionHelper = $reflectionHelper;
         $this->models = array();
+        $this->defaultNamespace = $defaultNamespace;
     }
 
     /**
@@ -161,7 +168,7 @@ class ModelRegister {
             }
 
             foreach ($this->models as $unlinkedModel) {
-                if ($unlinkedModel->getName() == $modelName || $unlinkedModel->getName() == $modelName . LocalizedModel::MODEL_SUFFIX) {
+                if ($unlinkedModel->getName() == $modelName || $unlinkedModel->getName() == $modelName . ModelMeta::SUFFIX_LOCALIZED) {
                     continue;
                 }
 
@@ -199,16 +206,16 @@ class ModelRegister {
             return;
         }
 
-        $localizedModelName = $model->getName() . LocalizedModel::MODEL_SUFFIX;
+        $localizedModelName = $model->getName() . ModelMeta::SUFFIX_LOCALIZED;
 
         $modelTable = $model->getMeta()->getModelTable();
         $group = $modelTable->getOption('group');
 
-        $dataField = new BelongsToField(LocalizedModel::FIELD_DATA, $model->getName());
+        $dataField = new BelongsToField(LocalizedModel::FIELD_ENTRY, $model->getName());
         $localeField = new PropertyField(LocalizedModel::FIELD_LOCALE, 'string');
 
         $localeIndex = new Index(LocalizedModel::FIELD_LOCALE, array($localeField));
-        $dataLocaleIndex = new Index(LocalizedModel::FIELD_LOCALE . ucfirst(LocalizedModel::FIELD_DATA), array($localeField, $dataField));
+        $dataLocaleIndex = new Index(LocalizedModel::FIELD_LOCALE . ucfirst(LocalizedModel::FIELD_ENTRY), array($localeField, $dataField));
 
         $isLogged = false;
 
@@ -246,7 +253,10 @@ class ModelRegister {
             $localizedModelTable->addField($field);
         }
 
-        $localizedModel = new LocalizedModel($model->getReflectionHelper(), new ModelMeta($localizedModelTable), $behaviours);
+        $entryClassName = $this->defaultNamespace . '\\' . $localizedModelName . 'Entry';
+        $proxyClassName = $this->defaultNamespace . '\\proxy\\' . $localizedModelName . 'EntryProxy';
+
+        $localizedModel = new LocalizedModel($model->getReflectionHelper(), new ModelMeta($localizedModelTable, $entryClassName, $proxyClassName), $behaviours);
 
         $this->registerModel($localizedModel, false);
     }
@@ -292,8 +302,8 @@ class ModelRegister {
             if (!$numRelations) {
                 $belongsTo = null;
 
-                if (preg_match('/' . LocalizedModel::MODEL_SUFFIX . '$/', $modelName)) {
-                    $unlocalizedModelName = substr($modelName, 0, strlen(LocalizedModel::MODEL_SUFFIX) * -1);
+                if (preg_match('/' . ModelMeta::SUFFIX_LOCALIZED . '$/', $modelName)) {
+                    $unlocalizedModelName = substr($modelName, 0, strlen(ModelMeta::SUFFIX_LOCALIZED) * -1);
                     $unlocalizedRelations = $relationModel->getMeta()->getRelation($unlocalizedModelName);
 
                     if ($unlocalizedRelations[ModelTable::BELONGS_TO]) {
@@ -498,7 +508,10 @@ class ModelRegister {
         $table->addField($field2);
         $table->addIndex($index);
 
-        $linkModel = new GenericModel($this->reflectionHelper, new ModelMeta($table));
+        $entryClassName = $this->defaultNamespace . '\\' . $linkModelName . 'Entry';
+        $proxyClassName = $this->defaultNamespace . '\\proxy\\' . $linkModelName . 'EntryProxy';
+
+        $linkModel = new GenericModel($this->reflectionHelper, new ModelMeta($table, $entryClassName, $proxyClassName));
 
         $this->registerModel($linkModel, false);
 
@@ -530,8 +543,7 @@ class ModelRegister {
 
         if ($linkModelName1) {
             return $linkModelName1;
-        }
-        if ($linkModelName2) {
+        } elseif ($linkModelName2) {
             return $linkModelName2;
         }
 
@@ -568,6 +580,7 @@ class ModelRegister {
 
                 if ($field->getLinkModelName() == $tmpLinkModelName) {
                     $isLinkModelNameValid = false;
+
                     break;
                 }
             }

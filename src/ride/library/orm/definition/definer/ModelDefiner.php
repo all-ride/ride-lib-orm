@@ -3,7 +3,8 @@
 namespace ride\library\orm\definition\definer;
 
 use ride\library\database\definition\definer\Definer;
-use ride\library\orm\model\Model;
+use ride\library\orm\definition\ModelTable;
+use ride\library\orm\exception\OrmException;
 
 use \Exception;
 
@@ -13,16 +14,10 @@ use \Exception;
 class ModelDefiner {
 
     /**
-     * The database definer
+     * Instance of the database definer
      * @var \ride\library\database\definition\definer\Definer
      */
     private $definer;
-
-    /**
-     * The database connection
-     * @var \ride\library\database\driver\Driver
-     */
-    private $connection;
 
     /**
      * Constructs & new model definer
@@ -31,15 +26,14 @@ class ModelDefiner {
      */
     public function __construct(Definer $definer) {
         $this->definer = $definer;
-        $this->connection = $definer->getConnection();
     }
 
     /**
      * Gets a list of unused tables
-     * @param array $models Array with the used models
-     * @return array Array with table names
+     * @param array $usedModels Array with the used model name as key
+     * @return array Array with table name as value
      */
-    public function getUnusedTables(array $models) {
+    public function getUnusedTables(array $usedModels) {
         $tables = $this->definer->getTableList();
 
         foreach ($tables as $index => $table) {
@@ -56,13 +50,19 @@ class ModelDefiner {
      * @param array $models Array with Model objects
      * @return null
      */
-    public function defineModels(array $models) {
-        $isTransactionStarted = $this->connection->beginTransaction();
+    public function defineModels(array $modelTables) {
+        $connection = $definer->getConnection();
+
+        $isTransactionStarted = $connection->beginTransaction();
         try {
             $tables = array();
 
-            foreach ($models as $model) {
-                $table = $this->getDatabaseTable($model);
+            foreach ($modelTables as $index => $modelTable) {
+                if (!$modelTable instanceof ModelTable) {
+                    throw new OrmException('Could not define the model: instance at index ' . $index . ' is not a ride\\library\\orm\\definition\\ModelTable');
+                }
+
+                $table = $modelTable->getDatabaseTable();
 
                 $this->definer->defineTable($table);
 
@@ -74,31 +74,16 @@ class ModelDefiner {
 //                 $this->definer->defineForeignKeys($table);
 //             }
 
-            $this->connection->commitTransaction($isTransactionStarted);
+            $connection->commitTransaction($isTransactionStarted);
         } catch (Exception $exception) {
             try {
-                $this->connection->rollbackTransaction($isTransactionStarted);
+                $connection->rollbackTransaction($isTransactionStarted);
             } catch (Exception $e) {
 
             }
 
             throw $exception;
         }
-    }
-
-    /**
-     * Gets the database table definition of the provided model
-     * @param \ride\library\orm\model\Model $model
-     * @return \ride\library\database\definition\Table
-     */
-    private function getDatabaseTable(Model $model) {
-        $meta = $model->getMeta();
-
-        $modelTable = $meta->getModelTable();
-
-        $databaseTable = $modelTable->getDatabaseTable();
-
-        return $databaseTable;
     }
 
 }

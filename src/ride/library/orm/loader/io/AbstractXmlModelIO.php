@@ -13,11 +13,12 @@ use ride\library\orm\definition\DataFormat;
 use ride\library\orm\definition\FieldValidator;
 use ride\library\orm\definition\ModelTable;
 use ride\library\orm\exception\OrmException;
-use ride\library\orm\model\behaviour\DatedBehaviour;
+use ride\library\orm\meta\ModelMeta;
+use ride\library\orm\model\behaviour\DateBehaviour;
 use ride\library\orm\model\behaviour\LogBehaviour;
+use ride\library\orm\model\behaviour\SlugBehaviour;
 use ride\library\orm\model\behaviour\UniqueBehaviour;
 use ride\library\orm\model\behaviour\VersionBehaviour;
-use ride\library\orm\model\meta\ModelMeta;
 use ride\library\orm\model\Model;
 use ride\library\orm\OrmManager;
 use ride\library\reflection\Boolean;
@@ -26,7 +27,6 @@ use ride\library\system\file\File;
 
 use \DOMDocument;
 use \DOMElement;
-use ride\library\orm\model\behaviour\FieldSlugBehaviour;
 
 /**
  * Read and write model definitions from and to an xml structure
@@ -136,10 +136,16 @@ abstract class AbstractXmlModelIO implements ModelIO {
     const ATTRIBUTE_MODEL_CLASS = 'modelClass';
 
     /**
-     * Name of the data class attribute for the model tag
+     * Name of the entry class attribute for the model tag
      * @var string
      */
-    const ATTRIBUTE_DATA_CLASS = 'dataClass';
+    const ATTRIBUTE_ENTRY_CLASS = 'entryClass';
+
+    /**
+     * Name of the entry proxy class attribute for the model tag
+     * @var string
+     */
+    const ATTRIBUTE_PROXY_CLASS = 'proxyClass';
 
     /**
      * Name of the log attribute for the model tag
@@ -247,6 +253,24 @@ abstract class AbstractXmlModelIO implements ModelIO {
     }
 
     /**
+     * Gets the default entry class name for the provided model
+     * @param string $modelName
+     * @return string
+     */
+    protected function getEntryClassName($modelName) {
+        return ModelMeta::CLASS_ENTRY;
+    }
+
+    /**
+     * Gets the default entry proxy class name for the provided model
+     * @param string $modelName
+     * @return string
+     */
+    protected function getProxyClassName($modelName) {
+        return ModelMeta::CLASS_PROXY;
+    }
+
+    /**
      * Read models from a xml model definition file
      * @param \ride\library\system\file\File $file
      * @return array Array with Model instances
@@ -335,10 +359,12 @@ abstract class AbstractXmlModelIO implements ModelIO {
         $modelClassName = $modelElement->hasAttribute(self::ATTRIBUTE_MODEL_CLASS) ?
                           $modelElement->getAttribute(self::ATTRIBUTE_MODEL_CLASS) :
                           OrmManager::DEFAULT_MODEL;
-
-        $dataClassName = $modelElement->hasAttribute(self::ATTRIBUTE_DATA_CLASS) ?
-                         $modelElement->getAttribute(self::ATTRIBUTE_DATA_CLASS) :
-                         ModelMeta::CLASS_DATA;
+        $entryClassName = $modelElement->hasAttribute(self::ATTRIBUTE_ENTRY_CLASS) ?
+                         $modelElement->getAttribute(self::ATTRIBUTE_ENTRY_CLASS) :
+                         $this->getEntryClassName($modelName);
+        $proxyClassName = $modelElement->hasAttribute(self::ATTRIBUTE_PROXY_CLASS) ?
+                         $modelElement->getAttribute(self::ATTRIBUTE_PROXY_CLASS) :
+                         $this->getProxyClassName($modelName);
 
         $willBlockDeleteWhenUsed = $modelElement->getAttribute(self::ATTRIBUTE_WILL_BLOCK_DELETE) ?
                     Boolean::getBoolean($modelElement->getAttribute(self::ATTRIBUTE_WILL_BLOCK_DELETE)) :
@@ -346,7 +372,6 @@ abstract class AbstractXmlModelIO implements ModelIO {
 
         $modelTable = new ModelTable($modelName);
         $modelTable->setWillBlockDeleteWhenUsed($willBlockDeleteWhenUsed);
-//         $modelTable->setValidationConstraint($validationConstraint);
 
         $fields = $this->getFieldsFromElement($modelElement, $file, $modelName);
         foreach ($fields as $field) {
@@ -357,34 +382,97 @@ abstract class AbstractXmlModelIO implements ModelIO {
         $this->setFormatsFromElement($modelElement, $modelTable);
         $this->setOptionsFromElement($modelElement, $modelTable);
 
-        $behaviours = array();
-        if ($modelTable->getOption('behaviour.date')) {
-            $behaviours[] = new DatedBehaviour();
-        }
-        if ($modelTable->getOption('behaviour.version')) {
-            $behaviours[] = new VersionBehaviour();
-        }
-        $slugField = $modelTable->getOption('behaviour.slug.field');
-        if ($slugField) {
-            $behaviours[] = new FieldSlugBehaviour(explode(',', $slugField));
-        }
-        if ($modelTable->getOption('behaviour.log')) {
-            $behaviours[] = new LogBehaviour();
-        }
-
-        foreach ($fields as $field) {
-            if ($field->isUnique()) {
-                $behaviours[] = new UniqueBehaviour($field->getName());
-            }
-        }
+        $behaviours = $this->getBehavioursFromModelTable($modelTable);
 
         $arguments = array(
         	'reflectionHelper' => $this->reflectionHelper,
-            'meta' => new ModelMeta($modelTable, $dataClassName),
+            'meta' => new ModelMeta($modelTable, $entryClassName, $proxyClassName),
             'behaviours' => $behaviours,
         );
 
         return $this->reflectionHelper->createObject($modelClassName, $arguments, OrmManager::INTERFACE_MODEL);
+    }
+
+    /**
+     * Gets the behaviours for the model from the table options, adds unset
+     * fields needed for the requested behaviours
+     * @param \ride\library\orm\definition\ModelTable $modelTable
+     * @return array Array with model behaviour instances
+     */
+    protected function getBehavioursFromModelTable(ModelTable $modelTable) {
+        $behaviours = array();
+
+        if ($modelTable->getOption('behaviour.date')) {
+            $behaviours[] = new DateBehaviour();
+
+            if (!$modelTable->hasField('dateAdded')) {
+                $dateAddedField = new PropertyField('dateAdded', 'datetime');
+                $dateAddedField->setOptions(array(
+                    'label' => 'label.date.added',
+                    'scaffold.form.omit' => 'true',
+                    'scaffold.order' => 'true',
+                ));
+
+                $modelTable->addField($dateAddedField);
+            }
+            if (!$modelTable->hasField('dateModified')) {
+                $dateModifiedField = new PropertyField('dateModified', 'datetime');
+                $dateModifiedField->setOptions(array(
+                    'label' => 'label.date.modified',
+                    'scaffold.form.omit' => 'true',
+                    'scaffold.order' => 'true',
+                ));
+
+                $modelTable->addField($dateModifiedField);
+            }
+        }
+
+        if ($modelTable->getOption('behaviour.log')) {
+            $behaviours[] = new LogBehaviour();
+        }
+
+        if ($modelTable->getOption('behaviour.slug')) {
+            $behaviours[] = new SlugBehaviour();
+
+            if (!$modelTable->hasField('slug')) {
+                $slugField = new PropertyField('slug', 'string');
+                $slugField->setIsUnique(true);
+                $slugField->setOptions(array(
+                    'label' => 'label.slug',
+                    'scaffold.form.omit' => 'true',
+                ));
+                $slugField->addValidator('required', array());
+
+                $modelTable->addField($slugField);
+            }
+        }
+
+        if ($modelTable->getOption('behaviour.version')) {
+            $behaviours[] = new VersionBehaviour();
+
+            if (!$modelTable->hasField('version')) {
+                $versionField = new PropertyField('version', 'integer');
+                $versionField->setOptions(array(
+                    'label' => 'label.version',
+                    'scaffold.form.omit' => 'true',
+                ));
+
+                $modelTable->addField($versionField);
+            }
+        }
+
+        $fields = $modelTable->getFields();
+        foreach ($fields as $fieldName => $field) {
+            if ($fieldName == ModelTable::PRIMARY_KEY) {
+                continue;
+            }
+
+            if ($field->isUnique()) {
+                $behaviours[] = new UniqueBehaviour($fieldName);
+            }
+        }
+
+        return $behaviours;
     }
 
     /**
@@ -656,7 +744,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
             $name = $formatElement->getAttribute(self::ATTRIBUTE_NAME);
             $format = $formatElement->textContent;
 
-            $modelTable->setDataFormat($name, $format);
+            $modelTable->setFormat($name, $format);
         }
     }
 
@@ -695,21 +783,16 @@ abstract class AbstractXmlModelIO implements ModelIO {
         $modelTable = $meta->getModelTable();
 
         $modelClass = get_class($model);
-        $dataClass = $meta->getDataClassName();
-        $group = $modelTable->getGroup();
+        $entryClass = $meta->getEntryClassName();
+        $proxyClass = $meta->getProxyClassName();
 
         $modelElement = $dom->createElement(self::TAG_MODEL);
         $modelElement->setAttribute(self::ATTRIBUTE_NAME, $model->getName());
-        if ($meta->isLogged()) {
-            $modelElement->setAttribute(self::ATTRIBUTE_LOG, 'true');
-        }
         $modelElement->setAttribute(self::ATTRIBUTE_MODEL_CLASS, $modelClass);
-        $modelElement->setAttribute(self::ATTRIBUTE_DATA_CLASS, $dataClass);
+        $modelElement->setAttribute(self::ATTRIBUTE_ENTRY_CLASS, $entryClass);
+        $modelElement->setAttribute(self::ATTRIBUTE_PROXY_CLASS, $proxyClass);
         if ($meta->willBlockDeleteWhenUsed()) {
             $modelElement->setAttribute(self::ATTRIBUTE_WILL_BLOCK_DELETE, 'true');
-        }
-        if ($group) {
-            $modelElement->setAttribute(self::ATTRIBUTE_GROUP, $group);
         }
 
         $fields = $modelTable->getFields();
@@ -720,20 +803,32 @@ abstract class AbstractXmlModelIO implements ModelIO {
 
             $fieldElement = $this->getElementFromField($dom, $field);
             $importedFieldElement = $dom->importNode($fieldElement, true);
+
             $modelElement->appendChild($importedFieldElement);
         }
 
         $indexes = $modelTable->getIndexes();
         foreach ($indexes as $index) {
             $indexElement = $this->getElementFromIndex($dom, $index);
+
             $modelElement->appendChild($indexElement);
         }
 
-        $dataFormats = $modelTable->getDataFormats(false);
-        foreach ($dataFormats as $dataFormat) {
-            $formatElement = $dom->createElement(self::TAG_FORMAT, $dataFormat->getFormat());
-            $formatElement->setAttribute(self::ATTRIBUTE_NAME, $dataFormat->getName());
+        $formats = $modelTable->getFormats();
+        foreach ($formats as $formatName => $formatString) {
+            $formatElement = $dom->createElement(self::TAG_FORMAT, $formatString);
+            $formatElement->setAttribute(self::ATTRIBUTE_NAME, $formatName);
+
             $modelElement->appendChild($formatElement);
+        }
+
+        $options = $modelTable->getOptions();
+        foreach ($options as $name => $value) {
+            $optionElement = $dom->createElement(self::TAG_OPTION);
+            $optionElement->setAttribute(self::ATTRIBUTE_NAME, $name);
+            $optionElement->setAttribute(self::ATTRIBUTE_VALUE, $value);
+
+            $modelElement->appendChild($optionElement);
         }
 
         return $modelElement;

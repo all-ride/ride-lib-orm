@@ -19,6 +19,8 @@ use ride\library\orm\definition\field\HasManyField;
 use ride\library\orm\definition\field\PropertyField;
 use ride\library\orm\definition\field\RelationField;
 use ride\library\orm\definition\ModelTable;
+use ride\library\orm\entry\proxy\EntryProxy;
+use ride\library\orm\entry\LocalizedEntry;
 use ride\library\orm\exception\ModelException;
 use ride\library\orm\model\data\format\DataFormatter;
 use ride\library\orm\model\data\DataFactory;
@@ -40,22 +42,16 @@ class GenericModel extends AbstractModel {
     private $saveStack;
 
     /**
-     * Depth of the data list
-     * @var integer
-     */
-    protected $dataListDepth = 1;
-
-    /**
      * Fieldname to order the data list
      * @var string
      */
-    protected $dataListOrderField;
+    protected $findOrderField;
 
     /**
      * Order direction of the data list
      * @var string
      */
-    protected $dataListOrderDirection;
+    protected $findOrderDirection;
 
     /**
      * Initializes the save stack
@@ -63,9 +59,8 @@ class GenericModel extends AbstractModel {
      */
     protected function initialize() {
         $this->saveStack = array();
-        $this->dataListDepth = $this->meta->getOption('data.list.recursive.depth', $this->dataListDepth);
-        $this->dataListOrderField = $this->meta->getOption('data.list.order.field');
-        $this->dataListOrderDirection = $this->meta->getOption('data.list.order.direction', 'ASC');
+        $this->findOrderField = $this->meta->getOption('order.field');
+        $this->findOrderDirection = $this->meta->getOption('order.direction', 'ASC');
     }
 
     /**
@@ -75,9 +70,8 @@ class GenericModel extends AbstractModel {
     public function serialize() {
         $serialize = array(
             'parent' => parent::serialize(),
-            'depth' => $this->dataListDepth,
-            'orderField' => $this->dataListOrderField,
-            'orderDirection' => $this->dataListOrderDirection,
+            'orderField' => $this->findOrderField,
+            'orderDirection' => $this->findOrderDirection,
         );
 
         return serialize($serialize);
@@ -93,43 +87,126 @@ class GenericModel extends AbstractModel {
 
         parent::unserialize($unserialized['parent']);
 
-        $this->dataListDepth = $unserialized['depth'];
-        $this->dataListOrderField = $unserialized['orderField'];
+        $this->findOrderField = $unserialized['orderField'];
+        $this->findOrderDirection = $unserialized['orderDirection'];
         $this->saveStack = array();
     }
 
     /**
-     * Gets a list of the data in this model, useful for eg. select fields
-     * @param array $options Options for the query
-     * @return array Array with the id of the data as key and a string
-     * representation as value
-     * @see getDataListQuery
+     * Gets an entry by it's primary key
+     * @param integer|string $id Id of the entry
+     * @param string $locale Locale code
+     * @param boolean $fetchUnlocalized Flag to see if unlocalized entries
+     * should be fetched
+     * @param integer $recursiveDepth Recursive depth of the query
+     * @return mixed Instance of the entry if found, null otherwise
      */
-    public function getDataList(array $options = null) {
-        $query = $this->getDataListQuery($options);
+    public function getById($id, $locale = null, $fetchUnlocalized = false, $recursiveDepth = 0) {
+        $query = $this->createQuery($locale);
+        $query->setRecursiveDepth($recursiveDepth);
+        $query->setIncludeUnlocalized(true);
+        $query->setFetchUnlocalized($fetchUnlocalized);
 
-        $result = $query->query();
+        $query->addCondition('{' . ModelTable::PRIMARY_KEY . '} = %1%', $id);
 
-        return $this->getDataListResult($result);
+        return $query->queryFirst();
     }
 
     /**
-     * Gets the query for the data list
+     * Finds an entry in this model
      * @param array $options Options for the query
+     * <ul>
+     * <li>filter: array with the field name as key and the filter value as
+     * value</li>
+     * <li>match: array with the field name as key and the search query as
+     * value</li>
+     * <li>order: array with field and direction as key</li>
+     * </li>
+     * @param string $locale Locale code
+     * @param boolean $fetchUnlocalized Flag to see if unlocalized entries
+     * should be fetched
+     * @param integer $recursiveDepth Recursive depth of the query
+     * @return mixed Instance of the entry if found, null otherwise
+     */
+    public function getBy(array $options, $locale = null, $fetchUnlocalized = false, $recursiveDepth = 0) {
+        $query = $this->createFindQuery($options, $locale, $fetchUnlocalized, $recursiveDepth);
+
+        return $query->queryFirst();
+    }
+
+    /**
+     * Finds entries in this model
+     * @param array $options Options for the query
+     * <ul>
+     * <li>filter: array with the field name as key and the filter value as
+     * value</li>
+     * <li>match: array with the field name as key and the search query as
+     * value</li>
+     * <li>order: array with field and direction as key</li>
+     * <li>limit: number of entries to fetch</li>
+     * <li>page: page number</li>
+     * </li>
+     * @param string $locale Code of the locale
+     * @param boolean $fetchUnlocalized Flag to see if unlocalized entries
+     * should be fetched
+     * @param integer $recursiveDepth Recursive depth of the query
+     * @return array
+     */
+    public function find(array $options = null, $locale = null, $fetchUnlocalized = false, $recursiveDepth = 0) {
+        $query = $this->createFindQuery($options, $locale, $fetchUnlocalized, $recursiveDepth);
+
+        if (isset($options['limit'])) {
+            $page = isset($options['page']) ? $options['page'] : 1;
+
+            $query->setLimit($options['limit'], $options['limit'] * ($page - 1));
+        }
+
+        return $query->query();
+    }
+
+    /**
+     * Gets the find query for this model
+     * @param array $options Options for the query
+     * <ul>
+     * <li>filter: array with the field name as key and the filter value as
+     * value</li>
+     * <li>match: array with the field name as key and the search query as
+     * value</li>
+     * <li>order: array with field and direction key</li>
+     * </li>
+     * @param string $locale Code of the locale
+     * @param boolean $fetchUnlocalized Flag to see if unlocalized entries
+     * should be fetched
+     * @param integer $recursiveDepth Recursive depth of the query
      * @return \ride\library\orm\query\ModelQuery
      */
-    public function getDataListQuery(array $options = null) {
-        $locale = isset($options['locale']) ? $options['locale'] : null;
-        $fetchUnlocalized = isset($options['unlocalized']) ? $options['unlocalized'] : true;
-        $filter = isset($options['filter']) ? $options['filter'] : array();
-        $orderField = isset($options['order']['field']) ? $options['order']['field'] : $this->dataListOrderField;
-        $orderDirection = isset($options['order']['direction']) ? $options['order']['direction'] : $this->dataListOrderDirection;
-
+    protected function createFindQuery(array $options = null, $locale = null, $fetchUnlocalized = false, $recursiveDepth = 0) {
         $query = $this->createQuery($locale);
-        $query->setRecursiveDepth($this->dataListDepth);
-        $query->setFetchUnlocalizedData($fetchUnlocalized);
+        $query->setRecursiveDepth($recursiveDepth);
+        $query->setFetchUnlocalized($fetchUnlocalized);
 
+        $filter = isset($options['filter']) ? $options['filter'] : array();
         foreach ($filter as $fieldName => $filterValue) {
+            $fieldTokens = explode('.', $fieldName);
+            $field = $this->meta->getField($fieldTokens[0]);
+
+            if (!$field instanceof HasField) {
+                if (!is_array($filterValue)) {
+                    $filterValue = array($filterValue);
+                }
+
+                $condition = '';
+                foreach ($filterValue as $index => $value) {
+                    $condition .= ($condition ? ' OR ' : '') . '{' . $fieldName . '} = %' . $index . '%';
+                }
+
+                $query->addConditionWithVariables($condition, $filterValue);
+            }
+
+        }
+
+        $match = isset($options['match']) ? $options['match'] : array();
+        foreach ($match as $fieldName => $filterValue) {
             $fieldTokens = explode('.', $fieldName);
             $field = $this->meta->getField($fieldTokens[0]);
 
@@ -147,6 +224,7 @@ class GenericModel extends AbstractModel {
                     } else {
                         $operator = '=';
                     }
+
                     $condition .= ($condition ? ' OR ' : '') . '{' . $fieldName . '} ' . $operator . ' %' . $index . '%';
                 }
 
@@ -154,6 +232,8 @@ class GenericModel extends AbstractModel {
             }
         }
 
+        $orderField = isset($options['order']['field']) ? $options['order']['field'] : $this->findOrderField;
+        $orderDirection = isset($options['order']['direction']) ? $options['order']['direction'] : $this->findOrderDirection;
         if ($orderField) {
             $fieldTokens = explode('.', $orderField);
             $field = $this->meta->getField($fieldTokens[0]);
@@ -165,160 +245,39 @@ class GenericModel extends AbstractModel {
     }
 
     /**
-     * Parse the query result for a data list
-     * @param array $result Query result
-     * @return array Array with the id of the data as key and a string
-     * representation as value
-     */
-    public function getDataListResult(array $result) {
-        $dataFormatter = $this->orm->getDataFormatter();
-        $titleFormat = $this->meta->getDataFormat(DataFormatter::FORMAT_TITLE);
-
-        $list = array();
-        foreach ($result as $data) {
-            $list[$data->id] = $dataFormatter->formatData($data, $titleFormat);
-        }
-
-        return $list;
-    }
-
-    /**
-     * Gets a data record by it's id
-     * @param integer $id Id of the data
-     * @param integer $recursiveDepth Recursive depth of the query
-     * @param string $locale Locale code
-     * @param boolean $fetchUnlocalizedData Flag to see if unlocalized data should be fetched
-     * @return mixed Instance of the data if found, null otherwise
-     */
-    public function getById($id, $recursiveDepth = 1, $locale = null, $fetchUnlocalizedData = false) {
-        return $this->getBy(ModelTable::PRIMARY_KEY, $id, $recursiveDepth, $locale, $fetchUnlocalizedData);
-    }
-
-    /**
-     * Gets a data record by a specific field name
-     * @param string $field Name of the field
-     * @param mixed $value Value for the field
-     * @param integer $recursiveDepth Recursive depth of the query
-     * @param string $locale Locale code
-     * @param boolean $fetchUnlocalizedData Flag to see if unlocalized data should be fetched
-     * @return mixed Instance of the data if found, null otherwise
-     */
-    public function getBy($field, $value, $recursiveDepth = 1, $locale = null, $fetchUnlocalizedData = false) {
-        $query = $this->createQuery($locale);
-        $query->setRecursiveDepth($recursiveDepth);
-        $query->setIncludeUnlocalizedData(true);
-        $query->setFetchUnlocalizedData($fetchUnlocalizedData);
-
-        $query->addCondition('{' . $field . '} = %1%', $value);
-
-        return $query->queryFirst();
-    }
-
-    /**
-     * Saves a field from data to the model
-     * @param mixed $data A data object or the value to save when the id argument is provided
-     * @param string $fieldName Name of the field to save
-     * @param integer $id Primary key of the data to save, $data will be considered as the value
-     * @param string $locale The locale of the data, only used when the id argument is provided
+     * Saves an entry to the model
+     * @param mixed $entry An entry of this model
      * @return null
-     * @throws Exception when the field could not be saved
+     * @throws \Exception when the data could not be saved
      */
-    protected function saveField($data, $fieldName, $id = null, $locale = null) {
-        if ($id === null) {
-            $this->meta->isValidData($data);
-
-            if (empty($data->id)) {
-                throw new ModelException('No primary key found in the data');
-            }
-
-            $id = $data->id;
-            $value = $data->$fieldName;
-        } else {
-            $value = $data;
+    protected function saveEntry($entry) {
+        if (is_null($entry)) {
+            return $entry;
         }
 
-        foreach ($this->behaviours as $behaviour) {
-            $behaviour->preUpdateField($this, $id, $fieldName, $value, $locale);
+        $this->meta->isValidEntry($entry);
+
+        $id = $this->reflectionHelper->getProperty($entry, ModelTable::PRIMARY_KEY);
+        if (isset($this->saveStack[$id])) {
+            return;
         }
 
-        $this->validateField($fieldName, $value);
-
-        $field = $this->meta->getField($fieldName);
-        if ($field->isLocalized()) {
-            $this->saveLocalizedField($value, $fieldName, $id, $locale);
-        } elseif ($field instanceof HasManyField) {
-            $this->saveHasMany($value, $fieldName, $id, false, $field->isDependant());
-        } elseif ($field instanceof HasOneField) {
-            $this->saveHasOne($value, $fieldName, $id);
-        } else {
-            if ($field instanceof BelongsToField) {
-                $value = $this->saveBelongsTo($value, $fieldName);
-            }
-
-            $condition = new SimpleCondition(new FieldExpression(ModelTable::PRIMARY_KEY), new SqlExpression($id), Condition::OPERATOR_EQUALS);
-
-            $statement = new UpdateStatement();
-            $statement->addTable(new TableExpression($this->getName()));
-            $statement->addValue(new FieldExpression($fieldName), new ScalarExpression($value));
-            $statement->addCondition($condition);
-
-            $this->executeStatement($statement);
-
-            $this->clearCache();
+        $isProxy = $entry instanceof EntryProxy;
+        if ($isProxy && $entry->hasCleanState()) {
+            return;
         }
 
-        foreach ($this->behaviours as $behaviour) {
-            $behaviour->postUpdateField($this, $id, $fieldName, $value, $locale);
-        }
-    }
-
-    /**
-     * Saves a localized field to the localized model
-     * @param mixed $data A data object or the value to save when the id argument is provided
-     * @param string $fieldName Name of the field to save
-     * @param integer $id Primary key of the data to save, $data will be considered as the value
-     * @param string $locale The locale of the data, only used when the id argument is provided
-     * @return null
-     * @throws Exception when the field could not be saved
-     */
-    private function saveLocalizedField($data, $fieldName, $id, $locale) {
-        $locale = $this->getLocale($locale);
-
-        $localizedModel = $this->meta->getLocalizedModel();
-
-        $localizedId = $localizedModel->getLocalizedId($id, $locale);
-
-        $localizedModel->save($data, $fieldName, $localizedId, $locale);
-    }
-
-    /**
-     * Saves a data object to the model
-     * @param mixed $data A data object of this model
-     * @return null
-     * @throws Exception when the data could not be saved
-     */
-    protected function saveData($data) {
-        if (is_null($data)) {
-            return $data;
-        }
-
-        $this->meta->isValidData($data);
-        $this->validate($data);
+        $this->validate($entry);
 
         $table = new TableExpression($this->meta->getName());
         $idField = new FieldExpression(ModelTable::PRIMARY_KEY, $table);
 
-        $id = $this->reflectionHelper->getProperty($data, ModelTable::PRIMARY_KEY);
-
         if (!$id) {
             $statement = new InsertStatement();
+
             $isNew = true;
         } else {
-            if (isset($this->saveStack[$id])) {
-                return;
-            } else {
-                $this->saveStack[$id] = $id;
-            }
+            $this->saveStack[$id] = $id;
 
             $condition = new SimpleCondition($idField, new ScalarExpression($id), Condition::OPERATOR_EQUALS);
 
@@ -330,23 +289,25 @@ class GenericModel extends AbstractModel {
 
         foreach ($this->behaviours as $behaviour) {
             if ($isNew) {
-                $behaviour->preInsert($this, $data);
+                $behaviour->preInsert($this, $entry);
             } else {
-                $behaviour->preUpdate($this, $data);
+                $behaviour->preUpdate($this, $entry);
             }
         }
+
+        $newState = array();
 
         $statement->addTable($table);
 
         $properties = $this->meta->getProperties();
         foreach ($properties as $fieldName => $field) {
-            if ($fieldName == ModelTable::PRIMARY_KEY || $field->isLocalized()) {
+            if ($fieldName == ModelTable::PRIMARY_KEY || $field->isLocalized() || ($isProxy && !$entry->isFieldLoaded($fieldName))) {
                 continue;
             }
 
-            $value = $this->reflectionHelper->getProperty($data, $fieldName);
+            $value = $this->reflectionHelper->getProperty($entry, $fieldName);
 
-            if (isset($data->_state) && array_key_exists($fieldName, $data->_state) && $data->_state[$fieldName] === $value) {
+            if ($isProxy && $entry->hasFieldState($fieldName) && $entry->getFieldState($fieldName) === $value) {
                 continue;
             }
 
@@ -355,23 +316,36 @@ class GenericModel extends AbstractModel {
             }
 
             $statement->addValue(new FieldExpression($fieldName), new ScalarExpression($value));
+            $newState[$fieldName] = $value;
         }
 
         $belongsTo = $this->meta->getBelongsTo();
         foreach ($belongsTo as $fieldName => $field) {
-            if ($field->isLocalized()) {
+            if ($field->isLocalized() || ($isProxy && !$entry->isFieldLoaded($fieldName))) {
                 continue;
             }
 
-            $value = $this->reflectionHelper->getProperty($data, $fieldName);
+            $value = $this->reflectionHelper->getProperty($entry, $fieldName);
 
-            if (isset($data->_state) && array_key_exists($fieldName, $data->_state) && $data->_state[$fieldName] === $value) {
-                continue;
+            if ($isProxy && $entry->hasFieldState($fieldName)) {
+                $fieldState = $entry->getFieldState($fieldName);
+                if ($fieldState === $value) {
+                    continue;
+                }
+
+                $hasFieldState = true;
+            } else {
+                $hasFieldState = false;
             }
 
             $foreignKey = $this->saveBelongsTo($value, $fieldName);
 
+            if ($hasFieldState && $foreignKey === $this->reflectionHelper->getProperty($fieldState, ModelTable::PRIMARY_KEY)) {
+                continue;
+            }
+
             $statement->addValue(new FieldExpression($fieldName), new ScalarExpression($foreignKey));
+            $newState[$fieldName] = $value;
         }
 
         $fields = $statement->getValues();
@@ -379,6 +353,7 @@ class GenericModel extends AbstractModel {
         $executeStatement = !empty($fields);
         if (!$executeStatement && $isNew && $this->meta->isLocalized()) {
             $statement->addValue(new FieldExpression(ModelTable::PRIMARY_KEY), new ScalarExpression(0));
+
             $executeStatement = true;
         }
 
@@ -389,59 +364,60 @@ class GenericModel extends AbstractModel {
             if ($isNew) {
                 $id = $connection->getLastInsertId();
 
-                $this->reflectionHelper->setProperty($data, ModelTable::PRIMARY_KEY, $id);
+                $entry->setId($id);
             }
 
             $this->clearCache();
         }
 
-//        foreach ($belongsTo as $fieldName => $field) {
-//            if (!isset($data->$fieldName)) {
-//                continue;
-//            }
-//
-//            $data->$fieldName = $this->saveLinkedBelongsTo($data->$fieldName, $fieldName, $field, $data->id);
-//        }
-
         $hasOne = $this->meta->getHasOne();
         foreach ($hasOne as $fieldName => $field) {
-            if (!isset($data->$fieldName) || $field->isLocalized()) {
+            if ($field->isLocalized() || ($isProxy && !$entry->isFieldLoaded($fieldName))) {
                 continue;
             }
 
-            $value = $this->reflectionHelper->getProperty($data, $fieldName);
+            $value = $this->reflectionHelper->getProperty($entry, $fieldName);
 
-            if (isset($data->_state) && array_key_exists($fieldName, $data->_state) && $data->_state[$fieldName] === $value) {
+            if ($isProxy && $entry->hasFieldState($fieldName) && $entry->getFieldState($fieldName) === $value) {
                 continue;
             }
 
             $this->saveHasOne($value, $fieldName, $id);
+            $newState[$fieldName] = $value;
         }
 
         $hasMany = $this->meta->getHasMany();
         foreach ($hasMany as $fieldName => $field) {
-            if ($field->isLocalized()) {
+            if ($field->isLocalized() || ($isProxy && !$entry->isFieldLoaded($fieldName))) {
                 continue;
             }
 
-            $value = $this->reflectionHelper->getProperty($data, $fieldName);
+            $value = $this->reflectionHelper->getProperty($entry, $fieldName);
 
-            if (isset($data->_state) && array_key_exists($fieldName, $data->_state) && $data->_state[$fieldName] === $value) {
+            if ($isProxy && $entry->hasFieldState($fieldName) && $entry->getFieldState($fieldName) === $value) {
                 continue;
             }
 
             $this->saveHasMany($value, $fieldName, $id, $isNew, $field->isDependant());
+            $newState[$fieldName] = $value;
         }
 
         if ($this->meta->isLocalized()) {
-            $this->saveLocalizedData($data);
+            $this->saveLocalizedEntry($entry, $isProxy, $newState);
         }
 
         foreach ($this->behaviours as $behaviour) {
             if ($isNew) {
-                $behaviour->postInsert($this, $data);
+                $behaviour->postInsert($this, $entry);
             } else {
-                $behaviour->postUpdate($this, $data);
+                $behaviour->postUpdate($this, $entry);
+            }
+        }
+
+        if ($isProxy) {
+            $newState = $this->getResultParser()->processState($newState);
+            foreach ($newState as $fieldName => $value) {
+                $entry->setFieldState($fieldName, $value);
             }
         }
 
@@ -449,130 +425,132 @@ class GenericModel extends AbstractModel {
     }
 
     /**
-     * Saves the localized fields of the data object to the model
-     * @param mixed $data Data object
+     * Saves the localized fields of the entry to the model
+     * @param mixed $entry Entry instance
+     * @param boolean $isProxy Flag to see if the entry is an entry proxy
+     * @param array $newState Updated state of the entry
      * @return null
      */
-    private function saveLocalizedData($data) {
-        $dataField = LocalizedModel::FIELD_DATA;
-        $localeField = LocalizedModel::FIELD_LOCALE;
-
-        if (!isset($data->$localeField)) {
-            $data->$localeField = null;
+    private function saveLocalizedEntry($entry, $isProxy, array &$newState) {
+        $entryLocale = null;
+        if ($entry instanceof LocalizedEntry) {
+            $entryLocale = $entry->getLocale();
         }
 
         $localizedModel = $this->getLocalizedModel();
+        $localizedEntry = $localizedModel->createProxy(0);
 
-        $localizedData = $localizedModel->createData();
-        $this->reflectionHelper->setProperty($localizedData, $localeField, $this->getLocale($this->reflectionHelper->getProperty($data, $localeField)));
-        $this->reflectionHelper->setProperty($localizedData, $dataField, $this->reflectionHelper->getProperty($data, ModelTable::PRIMARY_KEY));
+        $this->reflectionHelper->setProperty($localizedEntry, LocalizedModel::FIELD_ENTRY, $this->createProxy($entry->getId(), $entryLocale));
+        $this->reflectionHelper->setProperty($localizedEntry, LocalizedModel::FIELD_LOCALE, $this->getLocale($entryLocale));
 
-        if (isset($data->_state)) {
-            $localizedData->_state = $data->_state;
+        if ($isProxy) {
+            $localizedEntry->setEntryState($entry->getEntryState());
         }
 
-        $hasSetFields = false;
         $fields = $this->meta->getLocalizedFields();
         foreach ($fields as $fieldName => $field) {
-            $this->reflectionHelper->setProperty($localizedData, $fieldName, $this->reflectionHelper->getProperty($data, $fieldName));
+            if ($isProxy && !$entry->isFieldLoaded($fieldName)) {
+                continue;
+            }
+
+            $this->reflectionHelper->setProperty($localizedEntry, $fieldName, $this->reflectionHelper->getProperty($entry, $fieldName));
         }
 
-        $localizedModel->save($localizedData);
+        $localizedModel->save($localizedEntry);
 
         foreach ($fields as $fieldName => $field) {
-            $this->reflectionHelper->setProperty($data, $fieldName, $this->reflectionHelper->getProperty($localizedData, $fieldName));
+            if ($isProxy) {
+                if (!$entry->isFieldLoaded($fieldName)) {
+                    continue;
+                }
+
+                $newState[$fieldName] = $localizedEntry->getFieldState($fieldName);
+            }
+
+            $this->reflectionHelper->setProperty($entry, $fieldName, $this->reflectionHelper->getProperty($localizedEntry, $fieldName));
         }
     }
 
     /**
      * Saves a belongs to value to the model of the field
-     * @param mixed $data Value of the belongs to field
+     * @param mixed $relationEntry Value of the belongs to field
      * @param string $fieldName Name of the belongs to field
-     * @return integer The foreign key of the belongs to value
+     * @return integer Foreign key for the belongs to field
      */
-    private function saveBelongsTo($data, $fieldName) {
-        if (empty($data)) {
+    private function saveBelongsTo($relationEntry, $fieldName) {
+        if (empty($relationEntry)) {
             return null;
         }
 
-        if (is_numeric($data)) {
-            if ($data == 0) {
+        if (is_numeric($relationEntry)) {
+            if ($relationEntry == 0) {
                 return null;
             }
 
-            return $data;
+            return $relationEntry;
         }
 
-        $model = $this->getRelationModel($fieldName);
-        $model->save($data);
+        $relationModel = $this->getRelationModel($fieldName);
+        $relationModel->save($relationEntry);
 
-        return $this->reflectionHelper->getProperty($data, ModelTable::PRIMARY_KEY);
+        return $this->reflectionHelper->getProperty($relationEntry, ModelTable::PRIMARY_KEY);
     }
-
-//    private function saveLinkedBelongsTo($data, $fieldName, $field, $id) {
-//        try {
-//            $linkModel = $this->meta->getRelationLinkModel($fieldName);
-//        } catch (ModelException $e) {
-//            return $data;
-//        }
-//
-//        return $data;
-//    }
 
     /**
      * Saves a has one value to the model of the field
-     * @param mixed $data Value of the has one field
+     * @param mixed $relationEntry Value of the has one field
      * @param string $fieldName Name of the has one field
      * @param integer $id Primary key of the data which is being saved
      * @return null
      */
-    private function saveHasOne($data, $fieldName, $id) {
-        if (is_null($data)) {
+    private function saveHasOne($relationEntry, $fieldName, $id) {
+        if (is_null($entry)) {
             return;
         }
 
-        $model = $this->meta->getRelationModel($fieldName);
-        $foreignKey = $this->meta->getRelationForeignKey($fieldName);
+        $relationModel = $this->meta->getRelationModel($fieldName);
+        $relationForeignKey = $this->meta->getRelationForeignKey($fieldName);
 
-        $data->$foreignKey = $id;
+        $this->reflectionHelper->setProperty($relationEntry, $relationForeignKey, $this->createProxy($id));
 
-        $model->save($data);
+        $relationModel->save($relationEntry);
     }
 
     /**
      * Saves a has many value to the model of the field
-     * @param mixed $data Value of the has many field
+     * @param array|null $relationEntries Value of the has many field
      * @param string $fieldName Name of the has many field
      * @param integer $id Primary key of the data which is being saved
      * @param boolean $isNew Flag to see if this is an insert or an update
-     * @param boolean $isDependant Flag to see if the values of the field are dependant on this model
+     * @param boolean $isDependant Flag to see if the values of the field are
+     * dependant on this model
      * @return null
      */
-    private function saveHasMany($data, $fieldName, $id, $isNew, $isDependant) {
-        if (is_null($data)) {
+    private function saveHasMany($relationEntries, $fieldName, $id, $isNew, $isDependant) {
+        if (is_null($relationEntries)) {
             return;
         }
 
+        if (!is_array($relationEntries)) {
+            throw new ModelException('Provided value for ' . $fieldName . ' should be an array');
+        }
+
         if ($this->meta->isHasManyAndBelongsToMany($fieldName)) {
-            $this->saveHasManyAndBelongsToMany($data, $fieldName, $id, $isNew);
+            $this->saveHasManyAndBelongsToMany($relationEntries, $fieldName, $id, $isNew);
         } else {
-            $this->saveHasManyAndBelongsTo($data, $fieldName, $id, $isNew, $isDependant);
+            $this->saveHasManyAndBelongsTo($relationEntries, $fieldName, $id, $isNew, $isDependant);
         }
     }
 
     /**
      * Saves a has many value to the model of the field. This is a many to many field.
-     * @param mixed $data Value of the has many field
+     * @param mixed $relationEntries Value of the has many field
      * @param string $fieldName Name of the has many field
      * @param integer $id Primary key of the data which is being saved
      * @param boolean $isNew Flag to see whether this is an insert or an update
      * @return null
      */
-    private function saveHasManyAndBelongsToMany($data, $fieldName, $id, $isNew) {
-        if (!is_array($data)) {
-            throw new ModelException('Provided value for ' . $fieldName . ' should be an array');
-        }
-
+    private function saveHasManyAndBelongsToMany($relationEntries, $fieldName, $id, $isNew) {
         $foreignKeys = $this->meta->getRelationForeignKey($fieldName);
 
         $foreignKeyToSelf = null;
@@ -583,125 +561,192 @@ class GenericModel extends AbstractModel {
             $foreignKeys = array_values($foreignKeys);
         }
 
+        $relationModel = $this->getRelationModel($fieldName);
+        $linkModel = $this->getRelationLinkModel($fieldName);
+
         if (!$isNew) {
             if ($foreignKeyToSelf) {
                 // relation with other model
-                $this->deleteOldHasManyAndBelongsToMany($id, $fieldName, $foreignKeyToSelf);
+                $oldHasMany = $this->findOldHasManyAndBelongsToMany($linkModel, $id, $foreignKeyToSelf, $foreignKeys[0]);
             } else {
                 // relation with self
-                foreach ($foreignKeys as $foreignKey) {
-                    $this->deleteOldHasManyAndBelongsToMany($id, $fieldName, $foreignKey);
-                }
+                $oldHasMany = $this->findOldHasManyAndBelongsToMany($linkModel, $id, $foreignKeys);
             }
         }
 
-        $model = $this->getRelationModel($fieldName);
-        $linkModel = $this->getRelationLinkModel($fieldName);
         $linkTable = new TableExpression($linkModel->getName());
         $foreignKey1 = new FieldExpression($foreignKeys[0]);
         $foreignKey2 = new FieldExpression($foreignKeys[1]);
 
-        foreach ($data as $recordId => $record) {
-            if (!is_numeric($record)) {
-                $model->save($record);
+        foreach ($relationEntries as $relationEntry) {
+            if (!is_numeric($relationEntry)) {
+                $relationModel->save($relationEntry);
 
-                $recordNewId = $this->reflectionHelper->getProperty($record, ModelTable::PRIMARY_KEY);
+                $relationEntryId = $this->reflectionHelper->getProperty($relationEntry, ModelTable::PRIMARY_KEY);
             } else {
-                $recordNewId = $record;
+                $relationEntryId = $relationEntry;
+            }
+
+            if (isset($oldHasMany[$relationEntryId])) {
+                unset($oldHasMany[$relationEntryId]);
+
+                continue;
             }
 
             $statement = new InsertStatement();
             $statement->addTable($linkTable);
-            $statement->addValue($foreignKey1, $recordNewId);
+            $statement->addValue($foreignKey1, $relationEntryId);
             $statement->addValue($foreignKey2, $id);
 
             $this->executeStatement($statement);
 
             $linkModel->clearCache();
         }
+
+        if (!$isNew && $oldHasMany) {
+            $this->deleteOldHasManyAndBelongsToMany($linkModel, $oldHasMany);
+        }
     }
 
     /**
-     * Deletes the links for the provided many to many field
-     * @param integer $id Primary key of the data which is being saved
-     * @param string $fieldName Name of the has many field
-     * @param \ride\library\orm\definition\field\ModelField $foreignKey Definition of the foreign key field in the link model
+     * Gets the primary keys of the has many to many values
+     * @param Model $linkModel Link model of the has many field
+     * @param integer $id Primary key of the entry
+     * @param string|array $foreignKeyToSelf Name of the foreign key(s) to this
+     * model
+     * @param string|null $foreignKey Name of the foreign key to the relation
+     * model
+     * @return array Array with the primary key of the relation entry as key and
+     * the primary key in the link model as value
+     */
+    private function findOldHasManyAndBelongsToMany($linkModel, $id, $foreignKeyToSelf, $foreignKey = null) {
+        $statement = new SelectStatement();
+        $statement->addTable(new TableExpression($linkModel->getName()));
+        $statement->addField(new FieldExpression(ModelTable::PRIMARY_KEY));
+
+        if (is_array($foreignKeyToSelf)) {
+            $statement->setOperator(Condition::OPERATOR_OR);
+
+            foreach ($foreignKeyToSelf as $foreignKey) {
+                $condition = new SimpleCondition(new FieldExpression($foreignKey), new ScalarExpression($id), Condition::OPERATOR_EQUALS);
+
+                $statement->addField(new FieldExpression($foreignKey));
+                $statement->addCondition($condition);
+            }
+
+            $isRelationWithSelf = true;
+        } else {
+            $condition = new SimpleCondition(new FieldExpression($foreignKeyToSelf), new ScalarExpression($id), Condition::OPERATOR_EQUALS);
+
+            $statement->addField(new FieldExpression($foreignKeyToSelf));
+            $statement->addField(new FieldExpression($foreignKey));
+            $statement->addCondition($condition);
+
+            $isRelationWithSelf = false;
+        }
+
+        $result = $this->executeStatement($statement);
+
+        $oldHasMany = array();
+
+        if ($isRelationWithSelf) {
+            foreach ($result as $record) {
+                if ($record[$foreignKeyToSelf[0]] == $id) {
+                    $oldHasMany[$record[$foreignKeyToSelf[1]]] = $record[ModelTable::PRIMARY_KEY];
+                } else {
+                    $oldHasMany[$record[$foreignKeyToSelf[0]]] = $record[ModelTable::PRIMARY_KEY];
+                }
+            }
+        } else {
+            foreach ($result as $record) {
+                $oldHasMany[$record[$foreignKey]] = $record[ModelTable::PRIMARY_KEY];
+            }
+        }
+
+        return $oldHasMany;
+    }
+
+    /**
+     * Deletes the old has many values which are not saved
+     * @param Model $relationModel Model of the has many field
+     * @param array $oldHasMany Array with the primary key of the relation entry
+     * as key and the primary key in the link model as value
      * @return null
      */
-    private function deleteOldHasManyAndBelongsToMany($id, $fieldName, $foreignKey) {
-        $linkModel = $this->getRelationLinkModel($fieldName);
-
-        $condition = new SimpleCondition(new FieldExpression($foreignKey), new ScalarExpression($id), Condition::OPERATOR_EQUALS);
-
-        $statement = new DeleteStatement();
-        $statement->addTable(new TableExpression($linkModel->getName()));
-        $statement->addCondition($condition);
-
-        $this->executeStatement($statement);
-
-        $linkModel->clearCache();
+    private function deleteOldHasManyAndBelongsToMany($linkModel, $oldHasMany) {
+        foreach ($oldHasMany as $id) {
+            $linkEntry = $linkModel->createProxy($id);
+            $linkModel->delete($linkEntry);
+        }
     }
 
     /**
-     * Saves a has many value to the model of the field. This is a many to one field.
-     * @param mixed $data Value of the has many field
+     * Saves a has many value to the model of the field. This is a many to one
+     * field.
+     * @param mixed $relationEntries Value of the has many field
      * @param string $fieldName Name of the has many field
      * @param integer $id Primary key of the data which is being saved
      * @param boolean $isNew Flag to see whether this is an insert or an update
-     * @param boolean $isDependant Flag to see if the values of the field are dependant on this model
+     * @param boolean $isDependant Flag to see if the values of the field are
+     * dependant on this model
      * @return null
      */
-    private function saveHasManyAndBelongsTo($data, $fieldName, $id, $isNew, $isDependant) {
-        $model = $this->getRelationModel($fieldName);
+    private function saveHasManyAndBelongsTo($relationEntries, $fieldName, $id, $isNew, $isDependant) {
+        $relationModel = $this->getRelationModel($fieldName);
 
         $foreignKey = $this->meta->getRelationForeignKey($fieldName);
 
         if (!$isNew) {
-            $oldHasMany = $this->findOldHasManyAndBelongsTo($model, $foreignKey, $id);
+            $oldHasMany = $this->findOldHasManyAndBelongsTo($relationModel, $foreignKey, $id);
         }
 
-        foreach ($data as $record) {
-            if (is_numeric($record)) {
-                if (!$isNew && array_key_exists($record, $oldHasMany)) {
+        foreach ($relationEntries as $relationEntry) {
+            if (is_numeric($relationEntry)) {
+                if (!$isNew && array_key_exists($relationEntry, $oldHasMany)) {
                     unset($oldHasMany[$record]);
                 }
 
                 continue;
             }
 
-            $this->reflectionHelper->setProperty($record, $foreignKey, $id);
+            $skipSave = false;
+            if ($relationEntry instanceof EntryProxy && $relationEntry->hasCleanState()) {
+                $skipSave = true;
+            }
 
-            $model->save($record);
+            if (!$skipSave) {
+                $this->reflectionHelper->setProperty($relationEntry, $foreignKey, $this->createProxy($id));
 
-            $recordId = $this->reflectionHelper->getProperty($record, ModelTable::PRIMARY_KEY);
-            if (!$isNew && array_key_exists($recordId, $oldHasMany)) {
-                unset($oldHasMany[$recordId]);
+                $relationModel->save($relationEntry);
+            }
+
+            $relationEntryId = $this->reflectionHelper->getProperty($relationEntry, ModelTable::PRIMARY_KEY);
+            if (!$isNew && array_key_exists($relationEntryId, $oldHasMany)) {
+                unset($oldHasMany[$relationEntryId]);
             }
         }
 
         if (!$isNew && $oldHasMany) {
-            $this->deleteOldHasManyAndBelongsTo($model, $foreignKey, $oldHasMany, $isDependant);
+            $this->deleteOldHasManyAndBelongsTo($relationModel, $foreignKey, $oldHasMany, $isDependant);
         }
     }
 
     /**
      * Gets the primary keys of the has many values
-     * @param Model $model Model of the has many field
+     * @param Model $relationModel Model of the has many field
      * @param string $foreignKey Name of the foreign key to this model
      * @param integer $id Value for the foreign key
      * @return array Array with the primary key of the has many value as key and value
      */
-    private function findOldHasManyAndBelongsTo($model, $foreignKey, $id) {
+    private function findOldHasManyAndBelongsTo($relationModel, $foreignKey, $id) {
         $condition = new SimpleCondition(new FieldExpression($foreignKey), new ScalarExpression($id), Condition::OPERATOR_EQUALS);
 
         $statement = new SelectStatement();
-        $statement->addTable(new TableExpression($model->getName()));
+        $statement->addTable(new TableExpression($relationModel->getName()));
         $statement->addField(new FieldExpression(ModelTable::PRIMARY_KEY));
         $statement->addCondition($condition);
 
         $result = $this->executeStatement($statement);
-
-        $model->clearCache();
 
         $oldHasMany = array();
         foreach ($result as $record) {
@@ -713,44 +758,48 @@ class GenericModel extends AbstractModel {
 
     /**
      * Deletes the old has many values which are not saved
-     * @param Model $model Model of the has many field
+     * @param Model $relationModel Model of the has many field
      * @param string $foreignKey Name of the foreign key to this model
      * @param array $oldHasMany Array with the primary key of the has many value as key and value
      * @param boolean $idDependant Flag to see whether the has many value is dependant on this model
      * @return null
      */
-    private function deleteOldHasManyAndBelongsTo($model, $foreignKey, $oldHasMany, $isDependant) {
+    private function deleteOldHasManyAndBelongsTo($relationModel, $foreignKey, $oldHasMany, $isDependant) {
         if ($isDependant) {
-            $model->delete($oldHasMany);
+            $relationModel->delete($oldHasMany);
 
             return;
         }
 
         foreach ($oldHasMany as $id) {
-            $model->saveField(null, $foreignKey, $id);
+            $relationEntry = $relationModel->createProxy($id);
+
+            $this->reflectionHelper->setProperty($relationEntry, $foreignKey, null);
+
+            $relationModel->save($relationEntry);
         }
     }
 
     /**
      * Deletes data from this model
-     * @param mixed $data Primary key of the data or a data object of this model
+     * @param mixed $entry Primary key of the data or a data object of this model
      * @return null
      */
-    protected function deleteData($data) {
-        $id = $this->getPrimaryKey($data);
+    protected function deleteEntry($entry) {
+        $id = $this->getPrimaryKey($entry);
 
         $query = $this->createQuery();
-        $query->setIncludeUnlocalizedData(true);
+        $query->setIncludeUnlocalized(true);
         $query->addCondition('{id} = %1%', $id);
 
-        $data = $query->queryFirst();
+        $entry = $query->queryFirst();
 
-        if ($data == null) {
+        if ($entry == null) {
             return;
         }
 
-        if ($this->meta->willBlockDeleteWhenUsed() && $this->isDataReferencedInUnlinkedModels($data)) {
-            $validationError = new ValidationError('orm.error.data.used', '%data% is still in use by another record', array('data' => $this->meta->formatData($data)));
+        if ($this->meta->willBlockDeleteWhenUsed() && $this->isDataReferencedInUnlinkedModels($entry)) {
+            $validationError = new ValidationError('orm.error.data.used', '%data% is still in use by another record', array('data' => $this->meta->formatData($entry)));
 
             $validationException = new ValidationException();
             $validationException->addErrors('id', array($validationError));
@@ -759,14 +808,14 @@ class GenericModel extends AbstractModel {
         }
 
         foreach ($this->behaviours as $behaviour) {
-            $behaviour->preDelete($this, $data);
+            $behaviour->preDelete($this, $entry);
         }
 
         if ($this->meta->isLocalized()) {
-            $this->deleteLocalized($data);
+            $this->deleteLocalized($entry);
         }
 
-        $this->deleteDataInUnlinkedModels($data);
+        $this->deleteDataInUnlinkedModels($entry);
 
         $condition = new SimpleCondition(new FieldExpression(ModelTable::PRIMARY_KEY), new SqlExpression($id), Condition::OPERATOR_EQUALS);
 
@@ -780,33 +829,33 @@ class GenericModel extends AbstractModel {
 
         $belongsTo = $this->meta->getBelongsTo();
         foreach ($belongsTo as $fieldName => $field) {
-            $this->deleteBelongsTo($fieldName, $field, $data);
+            $this->deleteBelongsTo($fieldName, $field, $entry);
         }
 
         $hasOne = $this->meta->getHasOne();
         foreach ($hasOne as $fieldName => $field) {
-            $this->deleteBelongsTo($fieldName, $field, $data);
+            $this->deleteBelongsTo($fieldName, $field, $entry);
         }
 
         $hasMany = $this->meta->getHasMany();
         foreach ($hasMany as $fieldName => $field) {
-            $this->deleteHasMany($fieldName, $field, $data);
+            $this->deleteHasMany($fieldName, $field, $entry);
         }
 
         foreach ($this->behaviours as $behaviour) {
-            $behaviour->postDelete($this, $data);
+            $behaviour->postDelete($this, $entry);
         }
 
-        return $data;
+        return $entry;
     }
 
     /**
      * Deletes the localized data of the provided data
-     * @param mixed $data Data object
+     * @param mixed $entry Data object
      * @return null
      */
-    private function deleteLocalized($data) {
-        $this->getLocalizedModel()->deleteLocalizedData($data->id);
+    private function deleteLocalized($entry) {
+        $this->getLocalizedModel()->deleteLocalizedData($entry->id);
     }
 
     /**
@@ -814,13 +863,13 @@ class GenericModel extends AbstractModel {
      * field is dependant.
      * @param string $fieldName Name of the relation field
      * @param \ride\library\orm\definition\field\RelationField $field Definition of the relation field
-     * @param mixed $data Data obiect
+     * @param mixed $entry Data obiect
      * @return null
      */
-    private function deleteBelongsTo($fieldName, RelationField $field, $data) {
-        if ($field->isDependant() && $data->$fieldName) {
+    private function deleteBelongsTo($fieldName, RelationField $field, $entry) {
+        if ($field->isDependant() && $entry->$fieldName) {
             $model = $this->getRelationModel($fieldName);
-            $model->delete($data->$fieldName);
+            $model->delete($entry->$fieldName);
         }
     }
 
@@ -828,21 +877,21 @@ class GenericModel extends AbstractModel {
      * Deletes or clears the values of the provided has many field in the provided data.
      * @param string $fieldName Name of the has many field
      * @param \ride\library\orm\definition\field\HasManyField $field Definition of the has many field
-     * @param mixed $data Data obiect
+     * @param mixed $entry Data obiect
      * @return null
      */
-    private function deleteHasMany($fieldName, HasManyField $field, $data) {
+    private function deleteHasMany($fieldName, HasManyField $field, $entry) {
         $model = $this->getRelationModel($fieldName);
 
         if (!$this->meta->isHasManyAndBelongsToMany($fieldName)) {
             if ($field->isDependant()) {
-                if ($data->$fieldName) {
-                    foreach ($data->$fieldName as $record) {
+                if ($entry->$fieldName) {
+                    foreach ($entry->$fieldName as $record) {
                         $model->delete($record);
                     }
                 }
             } else {
-                $this->clearHasMany($this->getRelationModelTable($fieldName), $data->id, true);
+                $this->clearHasMany($this->getRelationModelTable($fieldName), $entry->id, true);
             }
             return;
         }
@@ -850,7 +899,7 @@ class GenericModel extends AbstractModel {
         $linkModelTable = $this->getRelationLinkModelTable($fieldName);
 
         if ($field->isDependant()) {
-            foreach ($data->$fieldName as $record) {
+            foreach ($entry->$fieldName as $record) {
                 $model->delete($record);
             }
 
@@ -860,7 +909,7 @@ class GenericModel extends AbstractModel {
             $keepRecord = count($fields) != 3;
         }
 
-        $this->clearHasMany($linkModelTable, $data->id, $keepRecord);
+        $this->clearHasMany($linkModelTable, $entry->id, $keepRecord);
     }
 
     /**
@@ -900,16 +949,16 @@ class GenericModel extends AbstractModel {
 
     /**
      * Checks if the provided data is referenced in another model
-     * @param mixed $data Data to check for references
+     * @param mixed $entry Data to check for references
      * @return null
      * @throws \ride\library\validation\exception\ValidationException when the data is referenced in another model
      */
-    protected function isDataReferencedInUnlinkedModels($data) {
+    protected function isDataReferencedInUnlinkedModels($entry) {
         $foundReference = false;
 
         $unlinkedModels = $this->meta->getUnlinkedModels();
         foreach ($unlinkedModels as $modelName) {
-            $foundReference = $this->isDataReferencedInModel($modelName, $data);
+            $foundReference = $this->isDataReferencedInModel($modelName, $entry);
             if ($foundReference) {
                 break;
             }
@@ -921,10 +970,10 @@ class GenericModel extends AbstractModel {
     /**
      * Checks whether the provided data is references in the provided model
      * @param string $modelName Name of the model to check for references
-     * @param mixed $data Data object to check for
+     * @param mixed $entry Data object to check for
      * @return boolean True if the provided model references the provided data, false otherwise
      */
-    private function isDataReferencedInModel($modelName, $data) {
+    private function isDataReferencedInModel($modelName, $entry) {
         $model = $this->getModel($modelName);
         $meta = $model->getMeta();
         $belongsTo = $meta->getBelongsTo();
@@ -943,7 +992,7 @@ class GenericModel extends AbstractModel {
         $query = $model->createQuery(0, null, false);
         $query->setOperator('OR');
         foreach ($fields as $fieldName) {
-            $query->addCondition('{' . $fieldName . '} = %1%', $data->id);
+            $query->addCondition('{' . $fieldName . '} = %1%', $entry->id);
         }
 
         return $query->count() ? true : false;
@@ -951,24 +1000,24 @@ class GenericModel extends AbstractModel {
 
     /**
      * Deletes or clears the data in models which use this model but are not linked from this model
-     * @param mixed $data Data object
+     * @param mixed $entry Data object
      * @return null
      */
-    private function deleteDataInUnlinkedModels($data) {
+    private function deleteDataInUnlinkedModels($entry) {
         $unlinkedModels = $this->meta->getUnlinkedModels();
 
         foreach ($unlinkedModels as $unlinkedModelName) {
-            $this->deleteDataInModel($unlinkedModelName, $data);
+            $this->deleteDataInModel($unlinkedModelName, $entry);
         }
     }
 
     /**
      * Deletes or clears the data in the provided model which has links with the provided data
      * @param string $unlinkedModelName Name of the model which has links with this model but which are not linked from this model
-     * @param mixed $data Data object
+     * @param mixed $entry Data object
      * @return null
      */
-    private function deleteDataInModel($unlinkedModelName, $data) {
+    private function deleteDataInModel($unlinkedModelName, $entry) {
         $model = $this->getModel($unlinkedModelName);
         $meta = $model->getMeta();
         $belongsTo = $meta->getBelongsTo();
@@ -993,7 +1042,7 @@ class GenericModel extends AbstractModel {
         }
 
         $table = new TableExpression($unlinkedModelName);
-        $id = new SqlExpression($data->id);
+        $id = new SqlExpression($entry->id);
 
         if ($deleteData) {
             foreach ($fields as $fieldName) {

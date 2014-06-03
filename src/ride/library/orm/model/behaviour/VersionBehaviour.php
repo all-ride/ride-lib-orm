@@ -9,45 +9,45 @@ use ride\library\database\manipulation\expression\ScalarExpression;
 use ride\library\database\manipulation\expression\TableExpression;
 use ride\library\database\manipulation\statement\UpdateStatement;
 use ride\library\orm\definition\ModelTable;
-use ride\library\orm\model\data\VersionedData;
+use ride\library\orm\entry\VersionedEntry;
 use ride\library\orm\model\Model;
 use ride\library\validation\exception\ValidationException;
 use ride\library\validation\ValidationError;
 
 /**
- * Interface to add extra behaviour to a model
+ * Behaviour to keep a version index in your entry
  */
 class VersionBehaviour extends AbstractBehaviour {
 
     /**
      * Hook after creating a data container
      * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
+     * @param mixed $entry
      * @return null
      */
-    public function postCreateData(Model $model, $data) {
-        if (!$data instanceof VersionedData || $data->getVersion()) {
+    public function postCreateEntry(Model $model, $entry) {
+        if (!$entry instanceof VersionedEntry || $entry->getVersion()) {
             return;
         }
 
-        $data->setVersion(0);
+        $entry->setVersion(0);
     }
 
     /**
-     * Hook before validation of the data
+     * Hook before validation of an entry
      * @param \ride\library\orm\model\Model $model
+     * @param mixed $entry
      * @param \ride\library\validation\exception\ValidationException $exception
-     * @param mixed $data
      * @return null
      */
-    public function postValidate(Model $model, $data, ValidationException $exception) {
-        if (!$data instanceof VersionedData || empty($data->id)) {
+    public function postValidate(Model $model, $entry, ValidationException $exception) {
+        if (!$entry instanceof VersionedEntry || empty($entry->getId())) {
             return;
         }
 
-        $currentVersion = $this->findVersionById($model, $data->id);
-        if ($data->getVersion() == $currentVersion) {
-            $data->setVersion($currentVersion + 1);
+        $currentVersion = $this->findVersionById($model, $entry->getId());
+        if ($entry->getVersion() == $currentVersion) {
+            $entry->setVersion($currentVersion + 1);
 
             return;
         }
@@ -55,51 +55,24 @@ class VersionBehaviour extends AbstractBehaviour {
         $error = new ValidationError(
             'error.validation.version',
             'Your data is outdated. You are trying to save version %yourVersion% over version %currentVersion%. Try updating your data first.',
-            array('yourVersion' => $data->getVersion(), 'currentVersion' => $currentVersion)
+            array('yourVersion' => $entry->getVersion(), 'currentVersion' => $currentVersion)
         );
 
         $exception->addErrors('version', array($error));
     }
 
     /**
-     * Hook before inserting data
+     * Hook before inserting an entry
      * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
+     * @param mixed $entry
      * @return null
      */
-    public function preInsert(Model $model, $data) {
-        if (!$data instanceof VersionedData || $data->getVersion()) {
+    public function preInsert(Model $model, $entry) {
+        if (!$entry instanceof VersionedEntry || $entry->getVersion()) {
             return;
         }
 
-        $data->setVersion(1);
-    }
-
-    /**
-     * Hook after updating a field
-     * @param \ride\library\orm\model\Model $model
-     * @param integer $id
-     * @param string $fieldName
-     * @param mixed $value
-     * @return null
-     */
-    public function postUpdateField(Model $model, $id, $fieldName, $value) {
-        $condition = new SimpleCondition(new FieldExpression(ModelTable::PRIMARY_KEY), new ScalarExpression($id));
-
-        $versionExpression = new FieldExpression('version');
-        $mathExpression = new MathematicalExpression();
-        $mathExpression->addExpression($versionExpression);
-        $mathExpression->addExpression(new ScalarExpression(1));
-
-        $statement = new UpdateStatement();
-        $statement->addTable(new TableExpression($model->getName()));
-        $statement->addValue($versionExpression, $mathExpression);
-        $statement->addCondition($condition);
-
-        $connection = $model->getOrmManager()->getConnection();
-        $connection->executeStatement($statement);
-
-        $model->clearCache();
+        $entry->setVersion(1);
     }
 
     /**
@@ -113,13 +86,13 @@ class VersionBehaviour extends AbstractBehaviour {
         $query->setFields('{version}');
         $query->addCondition('{' . ModelTable::PRIMARY_KEY . '} = %1%', $id);
 
-        $data = $query->queryFirst();
+        $entry = $query->queryFirst();
 
-        if (!$data) {
+        if (!$entry) {
             return 0;
         }
 
-        return $data->getVersion();
+        return $entry->getVersion();
     }
 
 }

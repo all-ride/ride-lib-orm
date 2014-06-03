@@ -11,97 +11,77 @@ use ride\library\validation\exception\ValidationException;
 interface Behaviour {
 
     /**
-     * Hook after creating a data container
+     * Hook after creating an entry
      * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
+     * @param mixed $entry
      * @return null
      */
-    public function postCreateData(Model $model, $data);
+    public function postCreateEntry(Model $model, $entry);
 
     /**
-     * Hook before validation of the data
+     * Hook before validation of an entry
      * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
+     * @param mixed $entry
      * @param \ride\library\validation\exception\ValidationException $exception
      * @return null
      */
-    public function preValidate(Model $model, $data, ValidationException $exception);
+    public function preValidate(Model $model, $entry, ValidationException $exception);
 
     /**
-     * Hook after validation of the data
+     * Hook after validation of an entry
      * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
+     * @param mixed $entry
      * @param \ride\library\validation\exception\ValidationException $exception
      * @return null
      */
-    public function postValidate(Model $model, $data, ValidationException $exception);
+    public function postValidate(Model $model, $entry, ValidationException $exception);
 
     /**
-     * Hook before inserting data
+     * Hook before inserting an entry
      * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
+     * @param mixed $entry
      * @return null
      */
-    public function preInsert(Model $model, $data);
+    public function preInsert(Model $model, $entry);
 
     /**
-     * Hook after inserting data
+     * Hook after inserting an entry
      * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
+     * @param mixed $entry
      * @return null
      */
-    public function postInsert(Model $model, $data);
+    public function postInsert(Model $model, $entry);
 
     /**
-     * Hook before updating data
+     * Hook before updating an entry
      * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
+     * @param mixed $entry
      * @return null
      */
-    public function preUpdate(Model $model, $data);
+    public function preUpdate(Model $model, $entry);
 
     /**
-     * Hook after updating data
+     * Hook after updating an entry
      * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
+     * @param mixed $entry
      * @return null
      */
-    public function postUpdate(Model $model, $data);
+    public function postUpdate(Model $model, $entry);
 
     /**
-     * Hook before updating a field
+     * Hook before deleting an entry
      * @param \ride\library\orm\model\Model $model
-     * @param integer $id
-     * @param string $fieldName
-     * @param mixed $value
+     * @param mixed $entry
      * @return null
      */
-    public function preUpdateField(Model $model, $id, $fieldName, $value);
+    public function preDelete(Model $model, $entry);
 
     /**
-     * Hook after updating a field
+     * Hook after deleting an entry
      * @param \ride\library\orm\model\Model $model
-     * @param integer $id
-     * @param string $fieldName
-     * @param mixed $value
+     * @param mixed $entry
      * @return null
      */
-    public function postUpdateField(Model $model, $id, $fieldName, $value);
-
-    /**
-     * Hook before deleting data
-     * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
-     * @return null
-     */
-    public function preDelete(Model $model, $data);
-
-    /**
-     * Hook after deleting data
-     * @param \ride\library\orm\model\Model $model
-     * @param mixed $data
-     * @return null
-     */
-    public function postDelete(Model $model, $data);
+    public function postDelete(Model $model, $entry);
 
 }

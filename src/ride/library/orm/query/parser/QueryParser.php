@@ -22,6 +22,7 @@ use ride\library\orm\definition\field\RelationField;
 use ride\library\orm\definition\ModelTable;
 use ride\library\orm\exception\OrmException;
 use ride\library\orm\exception\OrmParseException;
+use ride\library\orm\meta\ModelMeta;
 use ride\library\orm\model\LocalizedModel;
 use ride\library\orm\query\ModelExpression;
 use ride\library\orm\query\ModelJoin;
@@ -49,7 +50,7 @@ class QueryParser {
      * Alias for the case expression to see if the data is localized
      * @var string
      */
-    const ALIAS_IS_LOCALIZED = 'isDataLocalized';
+    const ALIAS_IS_LOCALIZED = 'isLocalized';
 
     /**
      * Alias for the field with the number of results in a count statement
@@ -115,7 +116,7 @@ class QueryParser {
      * Flag to see whether to include unlocalized data in the result
      * @var boolean
      */
-    private $includeUnlocalizedData;
+    private $includeUnlocalized;
 
     /**
      * The statement we are building
@@ -182,7 +183,7 @@ class QueryParser {
 
         $this->localize = false;
         $this->locale = $modelQuery->getLocale();
-        $this->includeUnlocalizedData = $modelQuery->willIncludeUnlocalizedData();
+        $this->includeUnlocalized = $modelQuery->willIncludeUnlocalized();
         $this->addIsLocalizedOrder = $modelQuery->willAddIsLocalizedOrder();
 
         $this->fields = array();
@@ -193,7 +194,7 @@ class QueryParser {
         $this->conditionJoins = array();
 
         $this->addTable($this->meta->getName(), self::ALIAS_SELF);
-        $this->addTable($this->meta->getName() . LocalizedModel::MODEL_SUFFIX, self::ALIAS_SELF_LOCALIZED);
+        $this->addTable($this->meta->getName() . ModelMeta::SUFFIX_LOCALIZED, self::ALIAS_SELF_LOCALIZED);
 
         $this->statement = new SelectStatement();
         $this->statement->addTable($this->tables[self::ALIAS_SELF]);
@@ -230,7 +231,7 @@ class QueryParser {
         $this->setModelQuery($modelQuery);
         $this->statement->setLimit(1);
 
-        if ($this->includeUnlocalizedData && $this->meta->isLocalized()) {
+        if ($this->includeUnlocalized && $this->meta->isLocalized()) {
             $this->localize = true;
         }
 
@@ -389,7 +390,7 @@ class QueryParser {
 
         $relationLocalizedTable = null;
         if ($relationModel->getMeta()->isLocalized()) {
-            $relationLocalizedTable = new TableExpression($relationModelName . LocalizedModel::MODEL_SUFFIX, $name . LocalizedModel::MODEL_SUFFIX);
+            $relationLocalizedTable = new TableExpression($relationModelName . ModelMeta::SUFFIX_LOCALIZED, $name . ModelMeta::SUFFIX_LOCALIZED);
         }
 
         $relationFields = $relationModel->getMeta()->getModelTable()->getFields();
@@ -464,7 +465,7 @@ class QueryParser {
         $localeField = new FieldExpression(LocalizedModel::FIELD_LOCALE, $this->tables[self::ALIAS_SELF_LOCALIZED], self::ALIAS_SELF . self::ALIAS_SEPARATOR . LocalizedModel::FIELD_LOCALE);
         $this->statement->addField($localeField);
 
-        if ($this->includeUnlocalizedData) {
+        if ($this->includeUnlocalized) {
             $joinType = JoinExpression::TYPE_LEFT;
 
             $isLocalizedCondition = new SimpleCondition($localeField, new ScalarExpression(null), Condition::OPERATOR_IS);
@@ -510,7 +511,7 @@ class QueryParser {
             return;
         }
 
-        $relationLocalizedTable = new TableExpression($relationModelName . LocalizedModel::MODEL_SUFFIX, $fieldName . LocalizedModel::MODEL_SUFFIX);
+        $relationLocalizedTable = new TableExpression($relationModelName . ModelMeta::SUFFIX_LOCALIZED, $fieldName . ModelMeta::SUFFIX_LOCALIZED);
 
         $joinCondition = $this->createLocalizeCondition($relationTable, $relationLocalizedTable);
 
@@ -783,7 +784,7 @@ class QueryParser {
         $relationField = $relationModel->getMeta()->getField($name);
 
         if ($relationField->isLocalized()) {
-            $table = new TableExpression($relationModelName . LocalizedModel::MODEL_SUFFIX, $tableName . LocalizedModel::MODEL_SUFFIX);
+            $table = new TableExpression($relationModelName . ModelMeta::SUFFIX_LOCALIZED, $tableName . ModelMeta::SUFFIX_LOCALIZED);
 
             if ($inCondition && $isRelationField) {
                 $relationTable = new TableExpression($relationModelName, $tableName);
@@ -1012,7 +1013,7 @@ class QueryParser {
      */
     private function createLocalizeCondition(TableExpression $table, TableExpression $localizedTable) {
         $expressionPrimaryKey = new FieldExpression(ModelTable::PRIMARY_KEY, $table, $table->getAlias() . self::ALIAS_SEPARATOR . ModelTable::PRIMARY_KEY);
-        $expressionData = new FieldExpression(LocalizedModel::FIELD_DATA, $localizedTable, $localizedTable->getAlias() . self::ALIAS_SEPARATOR . LocalizedModel::FIELD_DATA);
+        $expressionData = new FieldExpression(LocalizedModel::FIELD_ENTRY, $localizedTable, $localizedTable->getAlias() . self::ALIAS_SEPARATOR . LocalizedModel::FIELD_ENTRY);
         $expressionLocaleField = new FieldExpression(LocalizedModel::FIELD_LOCALE, $localizedTable, $localizedTable->getAlias() . self::ALIAS_SEPARATOR . LocalizedModel::FIELD_LOCALE);
         $expressionLocale = new ScalarExpression($this->locale);
 

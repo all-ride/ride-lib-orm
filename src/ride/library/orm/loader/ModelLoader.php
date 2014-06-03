@@ -206,7 +206,7 @@ class ModelLoader {
 
         $models = $this->io->readModels();
 
-        $this->modelRegister = new ModelRegister($this->reflectionHelper);
+        $this->modelRegister = new ModelRegister($this->reflectionHelper, $this->orm->getDefaultNamespace());
         $this->modelRegister->registerModels($models);
 
         $this->models = $this->modelRegister->getModels();
@@ -228,7 +228,7 @@ class ModelLoader {
 
             // make sure the meta is parsed before caching the model
             $meta = $model->getMeta();
-            $meta->parseMeta($this->orm);
+            $meta->parseMeta($this->modelRegister);
 
             if ($this->cache) {
                 if ($log) {

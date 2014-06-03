@@ -35,6 +35,12 @@ class OrmManager {
     const DEFAULT_MODEL = 'ride\\library\\orm\\model\\GenericModel';
 
     /**
+     * Default namespace for the generated classes
+     * @var string
+     */
+    const DEFAULT_NAMESPACE = 'ride\\library\\orm\\entry';
+
+    /**
      * Interface of a model
      * @var string
      */
@@ -98,7 +104,7 @@ class OrmManager {
      * Instance of the data formatter
      * @var \ride\library\orm\model\data\format\DataFormatter
      */
-    protected $dataFormatter;
+    protected $entryFormatter;
 
     /**
      * Instance of the validation factory
@@ -107,10 +113,16 @@ class OrmManager {
     protected $validationFactory;
 
     /**
-     * The code of the current locale
+     * Code of the current locale
      * @var string
      */
     protected $locale;
+
+    /**
+     * Namespace for the generated classes
+     * @var string
+     */
+    protected $defaultNamespace;
 
     /**
      * Constructs a new ORM manager
@@ -130,6 +142,8 @@ class OrmManager {
 
         $this->dataFormatter = null;
         $this->locale = 'en';
+
+        $this->defaultNamespace = self::DEFAULT_NAMESPACE;
     }
 
     /**
@@ -262,10 +276,15 @@ class OrmManager {
     public function defineModels() {
         $this->clearCache();
 
+        $modelTables = array();
+
         $modelRegister = $this->modelLoader->getModelRegister();
         $models = $modelRegister->getModels();
+        foreach ($models as $modelName => $model) {
+            $modelTables[$modelName] = $model->getMeta()->getModelTable();
+        }
 
-        $this->getDefiner()->defineModels($models);
+        $this->getDefiner()->defineModels($modelTables);
     }
 
     /**
@@ -321,7 +340,7 @@ class OrmManager {
 
     /**
      * Creates a query for the provided model
-     * @param string| \ride\library\orm\model\Model $model Model name or instance
+     * @param string|\ride\library\orm\model\Model $model Model name or instance
      * @param string $locale Locale code of the data
      * @return \ride\library\orm\query\ModelQuery
      */
@@ -366,23 +385,31 @@ class OrmManager {
     }
 
     /**
-     * Gets the instance of the data formatter
-     * @return \ride\library\orm\DataFormatter
+     * Gets the instance of the entry formatter
+     * @return \ride\library\orm\entry\format\EntryFormatter
      */
-    public function getDataFormatter() {
-        if (!$this->dataFormatter) {
+    public function getEntryFormatter() {
+        if (!$this->entryFormatter) {
             $modifiers = array(
-                'capitalize' => new CapitalizeDataFormatModifier(),
-                'date' => new DateDataFormatModifier(),
-                'nl2br' => new Nl2brDataFormatModifier(),
-                'strip_tags' => new StripTagsDataFormatModifier(),
-                'truncate' => new TruncateDataFormatModifier(),
+                'capitalize' => new CapitalizeEntryFormatModifier(),
+                'date' => new DateEntryFormatModifier(),
+                'nl2br' => new Nl2brEntryFormatModifier(),
+                'strip_tags' => new StripTagsEntryFormatModifier(),
+                'truncate' => new TruncateEntryFormatModifier(),
             );
 
-            $this->dataFormatter = new DataFormatter($this->reflectionHelper, $modifiers);
+            $this->entryFormatter = new GenericEntryFormatter($this->reflectionHelper, $modifiers);
         }
 
-        return $this->dataFormatter;
+        return $this->entryFormatter;
+    }
+
+    /**
+     * Gets the default namespace for the generated classes
+     * @return string
+     */
+    public function getDefaultNamespace() {
+        return $this->defaultNamespace;
     }
 
     /**
