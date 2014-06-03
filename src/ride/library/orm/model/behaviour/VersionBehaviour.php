@@ -41,7 +41,7 @@ class VersionBehaviour extends AbstractBehaviour {
      * @return null
      */
     public function postValidate(Model $model, $entry, ValidationException $exception) {
-        if (!$entry instanceof VersionedEntry || empty($entry->getId())) {
+        if (!$entry instanceof VersionedEntry || !$entry->getId()) {
             return;
         }
 
