@@ -51,7 +51,7 @@ class ModelDefiner {
      * @return null
      */
     public function defineModels(array $modelTables) {
-        $connection = $definer->getConnection();
+        $connection = $this->definer->getConnection();
 
         $isTransactionStarted = $connection->beginTransaction();
         try {
