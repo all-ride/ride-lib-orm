@@ -442,7 +442,7 @@ abstract class AbstractModel implements Model, Serializable {
         try {
             if (is_array($entry)) {
                 foreach ($entry as $entryIndex => $entryValue) {
-                    $entry[$index] = $this->deleteEntry($entryValue);
+                    $entry[$entryIndex] = $this->deleteEntry($entryValue);
                 }
             } else {
                 $entry = $this->deleteEntry($entry);

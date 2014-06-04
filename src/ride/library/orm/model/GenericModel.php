@@ -855,7 +855,7 @@ class GenericModel extends AbstractModel {
      * @return null
      */
     private function deleteLocalized($entry) {
-        $this->getLocalizedModel()->deleteLocalizedData($entry->id);
+        $this->getLocalizedModel()->deleteLocalizedEntry($entry->id);
     }
 
     /**
