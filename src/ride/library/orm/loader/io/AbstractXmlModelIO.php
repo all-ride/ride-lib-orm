@@ -15,6 +15,7 @@ use ride\library\orm\definition\ModelTable;
 use ride\library\orm\exception\OrmException;
 use ride\library\orm\meta\ModelMeta;
 use ride\library\orm\model\behaviour\DateBehaviour;
+use ride\library\orm\model\behaviour\GeoBehaviour;
 use ride\library\orm\model\behaviour\LogBehaviour;
 use ride\library\orm\model\behaviour\SlugBehaviour;
 use ride\library\orm\model\behaviour\UniqueBehaviour;
@@ -408,7 +409,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
             if (!$modelTable->hasField('dateAdded')) {
                 $dateAddedField = new PropertyField('dateAdded', 'datetime');
                 $dateAddedField->setOptions(array(
-                    'label' => 'label.date.added',
+                    'label.name' => 'label.date.added',
                     'scaffold.form.omit' => 'true',
                     'scaffold.order' => 'true',
                 ));
@@ -418,12 +419,35 @@ abstract class AbstractXmlModelIO implements ModelIO {
             if (!$modelTable->hasField('dateModified')) {
                 $dateModifiedField = new PropertyField('dateModified', 'datetime');
                 $dateModifiedField->setOptions(array(
-                    'label' => 'label.date.modified',
+                    'label.name' => 'label.date.modified',
                     'scaffold.form.omit' => 'true',
                     'scaffold.order' => 'true',
                 ));
 
                 $modelTable->addField($dateModifiedField);
+            }
+        }
+
+        if ($modelTable->getOption('behaviour.geo')) {
+            $behaviours[] = new GeoBehaviour($this->getGeocoder(), 'address');
+
+            if (!$modelTable->hasField('latitude')) {
+                $latitudeField = new PropertyField('latitude', 'float');
+                $latitudeField->setOptions(array(
+                    'label' => 'label.latitude',
+                    'scaffold.form.omit' => 'true',
+                ));
+
+                $modelTable->addField($latitudeField);
+            }
+            if (!$modelTable->hasField('longitude')) {
+                $longitudeField = new PropertyField('longitude', 'float');
+                $longitudeField->setOptions(array(
+                    'label' => 'label.longitude',
+                    'scaffold.form.omit' => 'true',
+                ));
+
+                $modelTable->addField($longitudeField);
             }
         }
 
@@ -438,7 +462,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
                 $slugField = new PropertyField('slug', 'string');
                 $slugField->setIsUnique(true);
                 $slugField->setOptions(array(
-                    'label' => 'label.slug',
+                    'label.name' => 'label.slug',
                     'scaffold.form.omit' => 'true',
                 ));
                 $slugField->addValidator('required', array());
@@ -453,7 +477,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
             if (!$modelTable->hasField('version')) {
                 $versionField = new PropertyField('version', 'integer');
                 $versionField->setOptions(array(
-                    'label' => 'label.version',
+                    'label.name' => 'label.version',
                     'scaffold.form.omit' => 'true',
                 ));
 
@@ -474,6 +498,12 @@ abstract class AbstractXmlModelIO implements ModelIO {
 
         return $behaviours;
     }
+
+    /**
+     * Gets the instance of the geocode
+     * @return \ride\library\geocode\Geocoder
+     */
+    abstract protected function getGeocoder();
 
     /**
      * Get the model fields from the model element
