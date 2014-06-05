@@ -13,6 +13,7 @@ use ride\library\orm\definition\ModelTable;
 use ride\library\orm\loader\ModelRegister;
 use ride\library\orm\meta\ModelMeta;
 use ride\library\orm\model\behaviour\DateBehaviour;
+use ride\library\orm\model\behaviour\GeoBehaviour;
 use ride\library\orm\model\behaviour\SlugBehaviour;
 use ride\library\orm\model\behaviour\VersionBehaviour;
 use ride\library\orm\model\Model;
@@ -64,7 +65,7 @@ class GenericEntryGenerator extends AbstractEntryGenerator {
                 $timestampArgument->setDescription('UNIX timestamp of the date');
 
                 $setterCode =
-'if ($this->dateAdded) {
+'if ($this->getDateAdded()) {
     return;
 }
 
@@ -76,8 +77,33 @@ $this->dateModified = $timestamp;';
 
                 $class->addMethod($setterMethod);
             }
-            if ($behaviour instanceof VersionBehaviour) {
-                $class->addImplements('ride\\library\\orm\\entry\\VersionedEntry');
+            if ($behaviour instanceof GeoBehaviour) {
+                $class->addImplements('ride\\library\\orm\\entry\\GeoEntry');
+
+                $geoValue = $meta->getOption('behaviour.geo');
+                try {
+                    Boolean::getBoolean($geoValue);
+                } catch (InvalidArgumentException $exception) {
+                    $fields = explode(',', $geoValue);
+
+                    if (count($fields) == 1) {
+                        $field = array_pop($fields);
+
+                        $addressCode = 'return $this->get' . ucfirst($field) . '();';
+                    } else {
+                        $addressCode = "\$address = '';\n";
+                        foreach ($fields as $field) {
+                            $addressCode .= '$address .= \' \' . $this->get' . ucfirst(trim($field)) . "();\n";
+                        }
+                        $addressCode .= "\nreturn trim(\$address);";
+                    }
+
+                    $addressMethod = $this->generator->createMethod('getGeoAddress', array(), $addressCode);
+                    $addressMethod->setDescription('Gets the address to lookup the coordinates for');
+                    $addressMethod->setReturnValue($this->generator->createVariable('result', 'string'));
+
+                    $class->addMethod($addressMethod);
+                }
             }
             if ($behaviour instanceof SlugBehaviour) {
                 $class->addImplements('ride\\library\\orm\\entry\\SluggedEntry');
@@ -106,6 +132,9 @@ $this->dateModified = $timestamp;';
 
                     $class->addMethod($slugMethod);
                 }
+            }
+            if ($behaviour instanceof VersionBehaviour) {
+                $class->addImplements('ride\\library\\orm\\entry\\VersionedEntry');
             }
         }
 
