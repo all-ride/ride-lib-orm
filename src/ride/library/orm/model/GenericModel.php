@@ -438,13 +438,21 @@ class GenericModel extends AbstractModel {
         );
 
         $localizedModel = $this->getLocalizedModel();
-        $localizedEntry = $localizedModel->createProxy(0, $entryLocale, $properties);
 
-        if ($isProxy && !$isNew) {
-            $state = $entry->getEntryState();
-            $state[LocalizedModel::FIELD_ENTRY] = $properties[LocalizedModel::FIELD_ENTRY];
+        if ($isNew) {
+            $localizedEntry = $localizedModel->createProxy(0, $entryLocale);
 
-            $localizedEntry->setEntryState($state);
+            $this->reflectionHelper->setProperty($localizedEntry, LocalizedModel::FIELD_ENTRY, $properties[LocalizedModel::FIELD_ENTRY]);
+            $this->reflectionHelper->setProperty($localizedEntry, LocalizedModel::FIELD_LOCALE, $properties[LocalizedModel::FIELD_LOCALE]);
+        } else {
+            $localizedEntry = $localizedModel->createProxy(0, $entryLocale, $properties);
+
+            if ($isProxy) {
+                $state = $entry->getEntryState();
+                $state[LocalizedModel::FIELD_ENTRY] = $properties[LocalizedModel::FIELD_ENTRY];
+
+                $localizedEntry->setEntryState($state);
+            }
         }
 
         $fields = $this->meta->getLocalizedFields();
