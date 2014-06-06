@@ -13,6 +13,18 @@ use ride\library\validation\exception\ValidationException;
 class GeoBehaviour extends AbstractBehaviour {
 
     /**
+     * Instance of the geo coder
+     * @var \ride\library\geocode\Geocoder
+     */
+    protected $geocode;
+
+    /**
+     * Name of the service
+     * @var string
+     */
+    protected $geocoderService;
+
+    /**
      * Constructs a new behaviour
      * @param \ride\library\geocode\Geocoder $geocoder Instance of a geocoder
      * @param string $geocoderService Name of the service inside the geocoder
@@ -20,7 +32,7 @@ class GeoBehaviour extends AbstractBehaviour {
      */
     public function __construct(Geocoder $geocoder, $geocoderService) {
         $this->geocoder = $geocoder;
-        $this->goecoderService = $geocoderService;
+        $this->geocoderService = $geocoderService;
     }
 
     /**

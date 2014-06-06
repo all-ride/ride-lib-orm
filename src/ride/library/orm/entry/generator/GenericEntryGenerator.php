@@ -191,11 +191,17 @@ $this->dateModified = $timestamp;';
         $type = $relationModelMeta->getEntryClassName();
         $description = $field->getOption('description');
 
+        $typeNamespace = null;
+        $typeName = null;
+        Code::resolveClassName($type, $typeNamespace, $typeName);
+        $typeAlias = 'Alias' . $typeName;
+
         $property = $this->generator->createProperty($name, $type, Code::SCOPE_PROTECTED);
         $property->setDefaultValue(null);
         $property->setDescription($description);
 
         $setter = $this->generator->createMethod('set' . ucfirst($name), array($property), '$this->' . $name . ' = $' . $name . ';');
+        $setter->addUse($type, $typeAlias);
         $getter = $this->generator->createMethod('get' . ucfirst($name), array(), 'return $this->' . $name . ';');
         $getter->setReturnValue($property);
 
@@ -230,6 +236,7 @@ $this->dateModified = $timestamp;';
         $typeNamespace = null;
         $typeName = null;
         Code::resolveClassName($type, $typeNamespace, $typeName);
+        $typeAlias = 'Alias' . $typeName;
 
         $adderCode =
 '$this->get' . ucfirst($name) . '();
@@ -238,7 +245,7 @@ $this->' . $name . '[$entry->getId()] = $entry;';
 
         $setterCode =
 'foreach ($' . $name . ' as $' . $name . 'Index => $' . $name . 'Value) {
-    if (!$' . $name . 'Value instanceof ' . $typeName . ') {
+    if (!$' . $name . 'Value instanceof ' . $typeAlias . ') {
         throw new InvalidArgumentException("Could not set ' . $name . ': value on index $' . $name . 'Index is not an instance of ' . str_replace('\\', '\\\\', $type) . '");
     }
 }
@@ -262,7 +269,7 @@ return true;';
         $remover = $this->generator->createMethod('removeFrom' . ucfirst($name), array($argument), $removerCode);
         $setter = $this->generator->createMethod('set' . ucfirst($name), array($property), $setterCode);
         $setter->addUse('InvalidArgumentException');
-        $setter->addUse($type);
+        $setter->addUse($type, $typeAlias);
         $getter = $this->generator->createMethod('get' . ucfirst($name), array(), 'return $this->' . $name . ';');
         $getter->setReturnValue($property);
 
