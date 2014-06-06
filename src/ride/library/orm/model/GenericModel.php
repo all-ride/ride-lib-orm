@@ -254,6 +254,7 @@ class GenericModel extends AbstractModel {
         $table = new TableExpression($this->meta->getName());
         $idField = new FieldExpression(ModelTable::PRIMARY_KEY, $table);
 
+        $id = $this->reflectionHelper->getProperty($entry, ModelTable::PRIMARY_KEY);
         if (!$id) {
             $statement = new InsertStatement();
 
@@ -277,6 +278,7 @@ class GenericModel extends AbstractModel {
             }
         }
 
+        $isProxy = $entry instanceof EntryProxy;
         $newState = array();
 
         $statement->addTable($table);
@@ -423,8 +425,7 @@ class GenericModel extends AbstractModel {
             return false;
         }
 
-        $isProxy = $entry instanceof EntryProxy;
-        if ($isProxy && $entry->hasCleanState()) {
+        if ($entry instanceof EntryProxy && $entry->hasCleanState()) {
             return false;
         }
 
