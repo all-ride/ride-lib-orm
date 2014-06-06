@@ -66,6 +66,12 @@ abstract class AbstractModel implements Model, Serializable {
     protected $validationConstraint;
 
     /**
+     * Stack with the primary keys of the data which is saved, to skip save loops
+     * @var array
+     */
+    protected $saveStack;
+
+    /**
      * Constructs a new data model
      * @param \ride\library\reflection\ReflectionHelper $reflectionHelper
      * @param \ride\library\orm\meta\ModelMeta $modelMeta Meta data of the model
@@ -246,7 +252,7 @@ abstract class AbstractModel implements Model, Serializable {
     public function createProxy($id, $locale = null, array $properties = array()) {
         $locale = $this->getLocale($locale);
 
-        if (!$properties && isset($this->proxies[$id][$locale]) && $this->proxies[$id][$locale]->hasCleanState()) {
+        if (!isset($this->saveStack[$id]) && !$properties && isset($this->proxies[$id][$locale]) && $this->proxies[$id][$locale]->hasCleanState()) {
             return $this->proxies[$id][$locale];
         }
 
