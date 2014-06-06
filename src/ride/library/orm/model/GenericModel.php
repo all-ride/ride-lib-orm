@@ -36,12 +36,6 @@ use \Exception;
 class GenericModel extends AbstractModel {
 
     /**
-     * Stack with the primary keys of the data which is saved, to skip save loops
-     * @var array
-     */
-    private $saveStack;
-
-    /**
      * Fieldname to order the data list
      * @var string
      */
@@ -403,7 +397,7 @@ class GenericModel extends AbstractModel {
         }
 
         if ($this->meta->isLocalized()) {
-            $this->saveLocalizedEntry($entry, $isProxy, $newState);
+            $this->saveLocalizedEntry($entry, $isProxy, $isNew, $newState);
         }
 
         foreach ($this->behaviours as $behaviour) {
@@ -428,10 +422,11 @@ class GenericModel extends AbstractModel {
      * Saves the localized fields of the entry to the model
      * @param mixed $entry Entry instance
      * @param boolean $isProxy Flag to see if the entry is an entry proxy
+     * @param boolean $isNew Flag to see if the entry is a new one
      * @param array $newState Updated state of the entry
      * @return null
      */
-    private function saveLocalizedEntry($entry, $isProxy, array &$newState) {
+    private function saveLocalizedEntry($entry, $isProxy, $isNew, array &$newState) {
         $entryLocale = null;
         if ($entry instanceof LocalizedEntry) {
             $entryLocale = $entry->getLocale();
@@ -445,13 +440,16 @@ class GenericModel extends AbstractModel {
         $localizedModel = $this->getLocalizedModel();
         $localizedEntry = $localizedModel->createProxy(0, $entryLocale, $properties);
 
-        if ($isProxy) {
-            $localizedEntry->setEntryState($entry->getEntryState());
+        if ($isProxy && !$isNew) {
+            $state = $entry->getEntryState();
+            $state[LocalizedModel::FIELD_ENTRY] = $properties[LocalizedModel::FIELD_ENTRY];
+
+            $localizedEntry->setEntryState($state);
         }
 
         $fields = $this->meta->getLocalizedFields();
         foreach ($fields as $fieldName => $field) {
-            if ($isProxy && !$entry->isFieldLoaded($fieldName)) {
+            if (!$isNew && $isProxy && !$entry->isFieldLoaded($fieldName)) {
                 continue;
             }
 
