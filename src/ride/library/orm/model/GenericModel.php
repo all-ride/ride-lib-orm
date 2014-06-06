@@ -245,19 +245,7 @@ class GenericModel extends AbstractModel {
      * @throws \Exception when the data could not be saved
      */
     protected function saveEntry($entry) {
-        if (is_null($entry)) {
-            return $entry;
-        }
-
-        $this->meta->isValidEntry($entry);
-
-        $id = $this->reflectionHelper->getProperty($entry, ModelTable::PRIMARY_KEY);
-        if (isset($this->saveStack[$id])) {
-            return;
-        }
-
-        $isProxy = $entry instanceof EntryProxy;
-        if ($isProxy && $entry->hasCleanState()) {
+        if (!$this->willSave($entry)) {
             return;
         }
 
@@ -416,6 +404,31 @@ class GenericModel extends AbstractModel {
         }
 
         unset($this->saveStack[$id]);
+    }
+
+    /**
+     * Checks if the provided entry needs a save
+     * @param mixed $entry
+     * @return boolean
+     */
+    protected function willSave($entry) {
+        if (is_null($entry)) {
+            return false;
+        }
+
+        $this->meta->isValidEntry($entry);
+
+        $id = $this->reflectionHelper->getProperty($entry, ModelTable::PRIMARY_KEY);
+        if (isset($this->saveStack[$id])) {
+            return false;
+        }
+
+        $isProxy = $entry instanceof EntryProxy;
+        if ($isProxy && $entry->hasCleanState()) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
