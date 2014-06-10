@@ -433,29 +433,6 @@ abstract class AbstractXmlModelIO implements ModelIO {
             }
         }
 
-        if ($modelTable->getOption('behaviour.geo')) {
-            $behaviours[] = new GeoBehaviour($this->getGeocoder(), 'address');
-
-            if (!$modelTable->hasField('latitude')) {
-                $latitudeField = new PropertyField('latitude', 'float');
-                $latitudeField->setOptions(array(
-                    'label' => 'label.latitude',
-                    'scaffold.form.omit' => 'true',
-                ));
-
-                $modelTable->addField($latitudeField);
-            }
-            if (!$modelTable->hasField('longitude')) {
-                $longitudeField = new PropertyField('longitude', 'float');
-                $longitudeField->setOptions(array(
-                    'label' => 'label.longitude',
-                    'scaffold.form.omit' => 'true',
-                ));
-
-                $modelTable->addField($longitudeField);
-            }
-        }
-
         if ($modelTable->getOption('behaviour.log')) {
             $behaviours[] = new LogBehaviour();
         }
@@ -503,12 +480,6 @@ abstract class AbstractXmlModelIO implements ModelIO {
 
         return $behaviours;
     }
-
-    /**
-     * Gets the instance of the geocode
-     * @return \ride\library\geocode\Geocoder
-     */
-    abstract protected function getGeocoder();
 
     /**
      * Get the model fields from the model element
