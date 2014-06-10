@@ -28,6 +28,7 @@ use ride\library\system\file\File;
 
 use \DOMDocument;
 use \DOMElement;
+use \Exception;
 
 /**
  * Read and write model definitions from and to an xml structure
@@ -277,13 +278,17 @@ abstract class AbstractXmlModelIO implements ModelIO {
      * @return array Array with Model instances
      */
     protected function readModelsFromFile(File $file) {
-        $dom = new DOMDocument('1.0', 'utf-8');
-        $dom->preserveWhiteSpace = false;
+        try {
+            $dom = new DOMDocument('1.0', 'utf-8');
+            $dom->preserveWhiteSpace = false;
 
-        @$dom->load($file);
+            @$dom->load($file);
 
-        $rootElement = $dom->documentElement;
-        return $this->getModelsFromElement($rootElement, $file);
+            $rootElement = $dom->documentElement;
+            return $this->getModelsFromElement($rootElement, $file);
+        } catch (Exception $exception) {
+            throw new Exception('Could not read models from ' . $file, 0, $exception);
+        }
     }
 
     /**

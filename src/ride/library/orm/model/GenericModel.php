@@ -199,6 +199,8 @@ class GenericModel extends AbstractModel {
 
         }
 
+        $conditions = array();
+
         $match = isset($options['match']) ? $options['match'] : array();
         foreach ($match as $fieldName => $filterValue) {
             $fieldTokens = explode('.', $fieldName);
@@ -212,18 +214,20 @@ class GenericModel extends AbstractModel {
                 $condition = '';
 
                 foreach ($filterValue as $index => $value) {
-                    if ($field instanceof PropertyField) {
+                    if ($field instanceof PropertyField  || count($fieldTokens) !== 1) {
                         $operator = 'LIKE';
                         $filterValue[$index] = '%' . $value . '%';
                     } else {
                         $operator = '=';
                     }
 
-                    $condition .= ($condition ? ' OR ' : '') . '{' . $fieldName . '} ' . $operator . ' %' . $index . '%';
+                    $conditions[] = '{' . $fieldName . '} ' . $operator . ' %' . $index . '%';
                 }
-
-                $query->addConditionWithVariables($condition, $filterValue);
             }
+        }
+
+        if ($conditions) {
+            $query->addConditionWithVariables(implode(' OR ', $conditions), $filterValue);
         }
 
         $orderField = isset($options['order']['field']) ? $options['order']['field'] : $this->findOrderField;
