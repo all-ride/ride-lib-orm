@@ -289,13 +289,13 @@ class GenericModel extends AbstractModel {
 
         $properties = $this->meta->getProperties();
         foreach ($properties as $fieldName => $field) {
-            if ($fieldName == ModelTable::PRIMARY_KEY || $field->isLocalized() || ($isProxy && !$entry->isFieldLoaded($fieldName))) {
+            if ($fieldName == ModelTable::PRIMARY_KEY || $field->isLocalized() || ($isProxy && !$isNew && !$entry->isFieldLoaded($fieldName))) {
                 continue;
             }
 
             $value = $this->reflectionHelper->getProperty($entry, $fieldName);
 
-            if ($isProxy && $entry->hasFieldState($fieldName) && $entry->getFieldState($fieldName) === $value) {
+            if ($isProxy && !$isNew && $entry->hasFieldState($fieldName) && $entry->getFieldState($fieldName) === $value) {
                 continue;
             }
 
@@ -309,13 +309,13 @@ class GenericModel extends AbstractModel {
 
         $belongsTo = $this->meta->getBelongsTo();
         foreach ($belongsTo as $fieldName => $field) {
-            if ($field->isLocalized() || ($isProxy && !$entry->isFieldLoaded($fieldName))) {
+            if ($field->isLocalized() || ($isProxy && !$isNew && !$entry->isFieldLoaded($fieldName))) {
                 continue;
             }
 
             $value = $this->reflectionHelper->getProperty($entry, $fieldName);
 
-            if ($isProxy && $entry->hasFieldState($fieldName)) {
+            if ($isProxy && !$isNew && $entry->hasFieldState($fieldName)) {
                 $fieldState = $entry->getFieldState($fieldName);
                 if ($fieldState === $value) {
                     continue;
@@ -360,13 +360,13 @@ class GenericModel extends AbstractModel {
 
         $hasOne = $this->meta->getHasOne();
         foreach ($hasOne as $fieldName => $field) {
-            if ($field->isLocalized() || ($isProxy && !$entry->isFieldLoaded($fieldName))) {
+            if ($field->isLocalized() || ($isProxy && !$isNew && !$entry->isFieldLoaded($fieldName))) {
                 continue;
             }
 
             $value = $this->reflectionHelper->getProperty($entry, $fieldName);
 
-            if ($isProxy && $entry->hasFieldState($fieldName) && $entry->getFieldState($fieldName) === $value) {
+            if ($isProxy && !$isNew && $entry->hasFieldState($fieldName) && $entry->getFieldState($fieldName) === $value) {
                 continue;
             }
 
@@ -376,13 +376,13 @@ class GenericModel extends AbstractModel {
 
         $hasMany = $this->meta->getHasMany();
         foreach ($hasMany as $fieldName => $field) {
-            if ($field->isLocalized() || ($isProxy && !$entry->isFieldLoaded($fieldName))) {
+            if ($field->isLocalized() || ($isProxy && !$isNew && !$entry->isFieldLoaded($fieldName))) {
                 continue;
             }
 
             $value = $this->reflectionHelper->getProperty($entry, $fieldName);
 
-            if ($isProxy && $entry->hasFieldState($fieldName) && $entry->getFieldState($fieldName) === $value) {
+            if ($isProxy && !$isNew && $entry->hasFieldState($fieldName) && $entry->getFieldState($fieldName) === $value) {
                 continue;
             }
 
