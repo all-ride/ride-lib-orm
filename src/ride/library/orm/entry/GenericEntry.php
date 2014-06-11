@@ -57,6 +57,26 @@ class GenericEntry {
     }
 
     /**
+     * Gets a property
+     * @param string $name Name of the property
+     * @return boolean
+     */
+    public function __isset($name) {
+        return isset($this->$name);
+    }
+
+    /**
+     * Unsets a property
+     * @param string $name Name of the property
+     * @return null
+     */
+    public function __unset($name) {
+        if (isset($this->$name)) {
+            unset($this->$name);
+        }
+    }
+
+    /**
      * Sets the id of this entry
      * @param integer|string $id
      * @return null
