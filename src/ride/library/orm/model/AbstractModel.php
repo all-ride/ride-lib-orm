@@ -363,7 +363,7 @@ abstract class AbstractModel implements Model, Serializable {
 
         $constraint = $this->getValidationConstraint();
         if ($constraint) {
-            $constraint->validateData($entry, $exception);
+            $constraint->validateEntry($entry, $exception);
         }
 
         foreach ($this->behaviours as $behaviour) {
