@@ -196,14 +196,18 @@ class ModelMeta {
         }
 
         foreach ($this->properties as $index => $fieldName) {
-            $this->properties[$fieldName] = $this->table->getField($fieldName);
-            unset($this->properties[$index]);
+            if (is_string($fieldName)) {
+                $this->properties[$fieldName] = $this->table->getField($fieldName);
+                unset($this->properties[$index]);
+            }
         }
 
         if (isset($this->localizedFields)) {
             foreach ($this->localizedFields as $index => $fieldName) {
-                $this->localizedFields[$fieldName] = $this->table->getField($fieldName);
-                unset($this->localizedFields[$index]);
+                if (is_string($fieldName)) {
+                    $this->localizedFields[$fieldName] = $this->table->getField($fieldName);
+                    unset($this->localizedFields[$index]);
+                }
             }
         } else {
             $this->localizedFields = array();
@@ -211,8 +215,10 @@ class ModelMeta {
 
         if (isset($this->belongsTo)) {
             foreach ($this->belongsTo as $index => $fieldName) {
-                $this->belongsTo[$fieldName] = $this->table->getField($fieldName);
-                unset($this->belongsTo[$index]);
+                if (is_string($fieldName)) {
+                    $this->belongsTo[$fieldName] = $this->table->getField($fieldName);
+                    unset($this->belongsTo[$index]);
+                }
             }
         } else {
             $this->belongsTo = array();
@@ -220,8 +226,10 @@ class ModelMeta {
 
         if (isset($this->hasOne)) {
             foreach ($this->hasOne as $index => $fieldName) {
-                $this->hasOne[$fieldName] = $this->table->getField($fieldName);
-                unset($this->hasOne[$index]);
+                if (is_string($fieldName)) {
+                    $this->hasOne[$fieldName] = $this->table->getField($fieldName);
+                    unset($this->hasOne[$index]);
+                }
             }
         } else {
             $this->hasOne = array();
@@ -229,8 +237,10 @@ class ModelMeta {
 
         if (isset($this->hasMany)) {
             foreach ($this->hasMany as $index => $fieldName) {
-                $this->hasMany[$fieldName] = $this->table->getField($fieldName);
-                unset($this->hasMany[$index]);
+                if (is_string($fieldName)) {
+                    $this->hasMany[$fieldName] = $this->table->getField($fieldName);
+                    unset($this->hasMany[$index]);
+                }
             }
         } else {
             $this->hasMany = array();
