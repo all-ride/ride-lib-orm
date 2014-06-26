@@ -156,6 +156,15 @@ class ResultParser {
                     }
                 }
 
+                $relationBelongsTo = $relationMeta->getBelongsTo();
+                foreach ($relationBelongsTo as $relationPropertyName => $relationProperty) {
+                    if (isset($value[$relationPropertyName])) {
+                        $belongsToModel = $this->orm->getModel($relationModel->getMeta()->getRelationModelName($relationPropertyName));
+
+                        $value[$relationPropertyName] = $belongsToModel->createProxy($value[$relationPropertyName], $locale);
+                    }
+                }
+
                 $properties[$fieldName] = $relationModel->createProxy($value[ModelTable::PRIMARY_KEY], $locale, $value);
             } else {
                 $properties[$fieldName] = null;
