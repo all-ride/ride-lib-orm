@@ -305,7 +305,7 @@ abstract class AbstractModel implements Model, Serializable {
      * @param mixed $data Primary key or a data instance
      * @return array|integer|null
      */
-    public function convertEntryToArray($data) {
+    public function convertEntryToArray($data, array $omitFields = null, $level = 10) {
         if ($data === null || is_numeric($data)) {
             return $data;
         }
@@ -317,20 +317,33 @@ abstract class AbstractModel implements Model, Serializable {
         $fields = $this->meta->getFields();
         foreach ($fields as $field) {
             $name = $field->getName();
+            if ($omitFields && in_array($name, $omitFields)) {
+                continue;
+            }
+
             $value = $this->reflectionHelper->getProperty($data, $name);
 
             if (!$value || $field instanceof PropertyField) {
                 $array[$name] = $value;
             } elseif ($field instanceof HasManyField) {
                 $relationModel = $this->getModel($field->getRelationModelName());
+                $foreignKey = $this->meta->getRelationForeignKey($name);
 
                 foreach ($value as $index => $hasValue) {
-                    $array[$name][$index] = $relationModel->convertDataToArray($hasValue);
+                    if ($level == 0) {
+                        $array[$name][$index] = $hasValue->id;
+                    } else {
+                        $array[$name][$index] = $relationModel->convertEntryToArray($hasValue, array($foreignKey), $level - 1);
+                    }
                 }
             } else {
                 $relationModel = $this->getModel($field->getRelationModelName());
 
-                $array[$name] = $relationModel->convertDataToArray($value);
+                if ($level == 0) {
+                    $array[$name] = $value->id;
+                } else {
+                    $array[$name] = $relationModel->convertEntryToArray($value, null, $level - 1);
+                }
             }
         }
 
