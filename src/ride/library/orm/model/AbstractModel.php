@@ -250,6 +250,10 @@ abstract class AbstractModel implements Model, Serializable {
      * @return mixed An entry proxy instance for this model
      */
     public function createProxy($id, $locale = null, array $properties = array()) {
+        if ($locale === null && isset($properties['locale']) && $this->meta->isLocalized()) {
+            $locale = $properties['locale'];
+        }
+
         $locale = $this->getLocale($locale);
 
         if (!isset($this->saveStack[$id]) && !$properties && isset($this->proxies[$id][$locale]) && $this->proxies[$id][$locale]->hasCleanState()) {
