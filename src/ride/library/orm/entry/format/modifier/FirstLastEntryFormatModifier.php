@@ -7,7 +7,7 @@ use ride\library\reflection\ReflectionHelper;
 /**
  * Modifier to get the first element of a multivalue field
  */
-class FirstLastEntryModifier implements EntryFormatModifier {
+class FirstLastEntryFormatModifier implements EntryFormatModifier {
 
     /**
      * Instance of the reflection helper
@@ -34,7 +34,7 @@ class FirstLastEntryModifier implements EntryFormatModifier {
      */
     public function modifyValue($value, array $arguments) {
         if (!is_array($value) || empty($value)) {
-            return null
+            return null;
         }
 
         if ($this->isFirst) {
