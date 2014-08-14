@@ -132,6 +132,9 @@ class GenericModel extends AbstractModel {
      * Finds entries in this model
      * @param array $options Options for the query
      * <ul>
+     * <li>condition: array with condition strings or arrays with the condition
+     * string as first element and condition arguments for the remaining
+     * elements</li>
      * <li>filter: array with the field name as key and the filter value as
      * value</li>
      * <li>match: array with the field name as key and the search query as
@@ -162,6 +165,9 @@ class GenericModel extends AbstractModel {
      * Gets the find query for this model
      * @param array $options Options for the query
      * <ul>
+     * <li>condition: array with condition strings or arrays with the condition
+     * string as first element and condition arguments for the remaining
+     * elements</li>
      * <li>filter: array with the field name as key and the filter value as
      * value</li>
      * <li>match: array with the field name as key and the search query as
@@ -179,6 +185,30 @@ class GenericModel extends AbstractModel {
         $query->setRecursiveDepth($recursiveDepth);
         $query->setFetchUnlocalized($fetchUnlocalized);
 
+        // handle manual conditions
+        if (isset($options['condition'])) {
+            $conditions = $options['condition'];
+            if (!is_array($conditions)) {
+                $conditions = array($conditions);
+            }
+
+            foreach ($conditions as $condition) {
+                if (!$condition) {
+                    continue;
+                }
+
+                if (is_array($condition)) {
+                    $variables = $condition;
+                    $condition = array_shift($variables);
+                } else {
+                    $variables = array();
+                }
+
+                $query->addConditionWithVariables($condition, $variables);
+            }
+        }
+
+        // handle filters
         $filter = isset($options['filter']) ? $options['filter'] : array();
         foreach ($filter as $fieldName => $filterValue) {
             $fieldTokens = explode('.', $fieldName);
@@ -199,6 +229,7 @@ class GenericModel extends AbstractModel {
 
         }
 
+        // handle match
         $conditions = array();
 
         $match = isset($options['match']) ? $options['match'] : array();
