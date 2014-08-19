@@ -112,19 +112,21 @@ $this->dateModified = $timestamp;';
                 try {
                     Boolean::getBoolean($slugValue);
                 } catch (InvalidArgumentException $exception) {
-                    $fields = explode(',', $slugValue);
+                    $properties = explode(',', $slugValue);
 
-                    if (count($fields) == 1) {
-                        $field = array_pop($fields);
+                    $slugCode = "\$slug = '';\n";
+                    foreach ($properties as $property) {
+                        $property = trim($property);
+                        $tokens = explode('.', $property);
 
-                        $slugCode = 'return $this->get' . ucfirst($field) . '();';
-                    } else {
-                        $slugCode = "\$slug = '';\n";
-                        foreach ($fields as $field) {
-                            $slugCode .= '$slug .= \' \' . $this->get' . ucfirst(trim($field)) . "();\n";
+                        $var = '$this';
+                        foreach ($tokens as $token) {
+                            $var .= '->get' . ucfirst($token) . '()';
                         }
-                        $slugCode .= "\nreturn trim(\$slug);";
+
+                        $slugCode .= '$slug .= \' \' . ' . $var . ";\n";
                     }
+                    $slugCode .= "\nreturn trim(\$slug);";
 
                     $slugMethod = $this->generator->createMethod('getSlugBase', array(), $slugCode);
                     $slugMethod->setDescription('Gets the desired slug based on properties of the entry');
