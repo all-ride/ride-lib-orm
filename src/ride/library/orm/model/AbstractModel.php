@@ -250,6 +250,12 @@ abstract class AbstractModel implements Model, Serializable {
      * @return mixed An entry proxy instance for this model
      */
     public function createProxy($id, $locale = null, array $properties = array()) {
+        if (!is_scalar($id)) {
+            throw new OrmException('Could not create a proxy for ' . $this->getName() . ': no valid id provided (' . gettype($id) . ')');
+        } elseif (!$id && isset($properties[ModelTable::PRIMARY_KEY])) {
+            $id = $properties[ModelTable::PRIMARY_KEY];
+        }
+
         if ($locale === null && isset($properties['locale']) && $this->meta->isLocalized()) {
             $locale = $properties['locale'];
         }
