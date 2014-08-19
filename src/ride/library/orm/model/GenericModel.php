@@ -20,6 +20,7 @@ use ride\library\orm\definition\field\PropertyField;
 use ride\library\orm\definition\field\RelationField;
 use ride\library\orm\definition\ModelTable;
 use ride\library\orm\entry\proxy\EntryProxy;
+use ride\library\orm\entry\EntryCollection;
 use ride\library\orm\entry\LocalizedEntry;
 use ride\library\orm\exception\ModelException;
 use ride\library\orm\model\data\format\DataFormatter;
@@ -162,6 +163,45 @@ class GenericModel extends AbstractModel {
     }
 
     /**
+     * Finds entries in this model with the total
+     * @param array $options Options for the query
+     * <ul>
+     * <li>condition: array with condition strings or arrays with the condition
+     * string as first element and condition arguments for the remaining
+     * elements</li>
+     * <li>filter: array with the field name as key and the filter value as
+     * value</li>
+     * <li>match: array with the field name as key and the search query as
+     * value</li>
+     * <li>order: array with field and direction as key</li>
+     * <li>limit: number of entries to fetch</li>
+     * <li>page: page number</li>
+     * </li>
+     * @param string $locale Code of the locale
+     * @param boolean $fetchUnlocalized Flag to see if unlocalized entries
+     * should be fetched
+     * @param integer $recursiveDepth Recursive depth of the query
+     * @return ride\library\orm\entry\EntryCollection
+     */
+    public function collect(array $options = null, $locale = null, $fetchUnlocalized = false, $recursiveDepth = 0) {
+        $query = $this->createFindQuery($options, $locale, $fetchUnlocalized, $recursiveDepth);
+
+        if (isset($options['limit'])) {
+            $page = isset($options['page']) ? $options['page'] : 1;
+
+            $query->setLimit($options['limit'], $options['limit'] * ($page - 1));
+
+            $entries = $query->query();
+            $total = $query->count();
+        } else {
+            $entries = $query->query();
+            $total = count($entries);
+        }
+
+        return new EntryCollection($entries, $total);
+    }
+
+    /**
      * Gets the find query for this model
      * @param array $options Options for the query
      * <ul>
@@ -226,11 +266,12 @@ class GenericModel extends AbstractModel {
 
                 $query->addConditionWithVariables($condition, $filterValue);
             }
-
         }
 
         // handle match
         $conditions = array();
+        $conditionArguments = array();
+        $conditionArgumentIndex = 1;
 
         $match = isset($options['match']) ? $options['match'] : array();
         foreach ($match as $fieldName => $filterValue) {
@@ -247,18 +288,33 @@ class GenericModel extends AbstractModel {
                 foreach ($filterValue as $index => $value) {
                     if ($field instanceof PropertyField  || count($fieldTokens) !== 1) {
                         $operator = 'LIKE';
-                        $filterValue[$index] = '%' . $value . '%';
+                        $conditionArguments[$conditionArgumentIndex++] = '%' . $value . '%';
                     } else {
                         $operator = '=';
+                        $conditionArguments[$conditionArgumentIndex++] = $value;
                     }
 
-                    $conditions[] = '{' . $fieldName . '} ' . $operator . ' %' . $index . '%';
+                    $conditions[] = '{' . $fieldName . '} ' . $operator . ' %' . ($conditionArgumentIndex - 1) . '%';
                 }
             }
         }
 
+        $queryString = isset($options['query']) ? $options['query'] : null;
+        if ($queryString) {
+            $conditionArguments[$conditionArgumentIndex++] = '%' . $queryString . '%';
+
+            $properties = $this->meta->getProperties();
+            foreach ($properties as $fieldName => $property) {
+                if (!$property->getOption('scaffold.search')) {
+                    continue;
+                }
+
+                $conditions[] = '{' . $fieldName . '} LIKE  %' . ($conditionArgumentIndex - 1) . '%';
+            }
+        }
+
         if ($conditions) {
-            $query->addConditionWithVariables(implode(' OR ', $conditions), $filterValue);
+            $query->addConditionWithVariables(implode(' OR ', $conditions), $conditionArguments);
         }
 
         $orderField = isset($options['order']['field']) ? $options['order']['field'] : $this->findOrderField;

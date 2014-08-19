@@ -106,6 +106,30 @@ foreach ($properties as $propertyName => $propertyValue) {
         $constructor = $this->generator->createMethod('__construct', $arguments, $constructorCode);
         $constructor->setDescription('Construct a new ' . $modelName . ' entry proxy');
 
+        // unlink
+        $unlinkCode =
+'$this->_model = null;
+
+foreach ($this->_loaded as $property => $loadState) {
+    if ($this->$property instanceof EntryProxy) {
+        $this->$property->unlink();
+    }
+    if (isset($this->_state[$property]) && $this->_state[$property] instanceof EntryProxy) {
+        $this->_state[$property]->unlink();
+    }
+
+    if (is_array($this->$property)) {
+        foreach ($this->$property as $key => $value) {
+            if ($value instanceof EntryProxy) {
+                $value->unlink();
+            }
+        }
+    }
+}';
+
+        $unlink = $this->generator->createMethod('unlink', array(), $unlinkCode);
+        $unlink->setDescription('Removes the link with the ORM');
+
         // entry state
         $fieldStateGetterCode =
 'if (!$this->hasFieldState($fieldName)) {
@@ -254,6 +278,7 @@ $this->_loaded[$field] = true;
         $class->addProperty($stateProperty);
         $class->addProperty($loadProperty);
         $class->addMethod($constructor);
+        $class->addMethod($unlink);
         $class->addMethod($cleanChecker);
         $class->addMethod($entryStateSetter);
         $class->addMethod($entryStateGetter);

@@ -120,17 +120,23 @@ class ResultParser {
 
         $locale = null;
         if ($this->isLocalized && isset($properties[LocalizedModel::FIELD_LOCALE])) {
-            $locale = $locale;
+            $locale = $properties[LocalizedModel::FIELD_LOCALE];
         }
 
         // handle relation entries
         foreach ($aliasses as $fieldName => $value) {
             if (!array_key_exists(ModelTable::PRIMARY_KEY, $value)) {
+                // no primary key in the related properties
+                if (isset($properties[$fieldName])) {
+                    $value[ModelTable::PRIMARY_KEY] = $properties[$fieldName];
+                }
+
                 $properties[$fieldName] = $value;
 
                 continue;
             }
 
+            // check for values in the alias
             $containsValues = false;
             foreach ($value as $k => $v) {
                 if ($v) {
@@ -141,6 +147,7 @@ class ResultParser {
             }
 
             if ($containsValues) {
+                // alias contains values, create relation entry
                 $relationModelName = $this->meta->getRelationModelName($fieldName);
                 $relationModel = $this->orm->getModel($relationModelName);
 
@@ -167,15 +174,17 @@ class ResultParser {
 
                 $properties[$fieldName] = $relationModel->createProxy($value[ModelTable::PRIMARY_KEY], $locale, $value);
             } else {
+                // alias does not contain values, null
                 $properties[$fieldName] = null;
             }
         }
 
-        // create entry
+        // ensure there is an id property set
         if (!array_key_exists(ModelTable::PRIMARY_KEY, $properties)) {
             $properties[ModelTable::PRIMARY_KEY] = 0;
         }
 
+        // ensure entry objects in the belongs to fields
         foreach ($this->belongsTo as $fieldName => $field) {
             if (!isset($properties[$fieldName]) || is_object($properties[$fieldName])) {
                 continue;
@@ -183,13 +192,18 @@ class ResultParser {
 
             $relationModel = $this->orm->getModel($field->getRelationModelName());
 
-            $properties[$fieldName] = $relationModel->createProxy($properties[$fieldName], $locale);
+            if (is_array($properties[$fieldName])) {
+                $properties[$fieldName] = $relationModel->createProxy(0, $locale, $properties[$fieldName]);
+            } else {
+                $properties[$fieldName] = $relationModel->createProxy($properties[$fieldName], $locale);
+            }
         }
 
-        $data = $this->model->createProxy($properties[ModelTable::PRIMARY_KEY], $locale, $properties);
-        $data->setEntryState($this->processState($properties));
+        // create entry
+        $entry = $this->model->createProxy($properties[ModelTable::PRIMARY_KEY], $locale, $properties);
+        $entry->setEntryState($this->processState($properties));
 
-        return $data;
+        return $entry;
     }
 
     public function processState(array $data) {

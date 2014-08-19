@@ -1,13 +1,14 @@
 <?php
 
-namespace ride\library\orm\model\data;
+namespace ride\library\orm\entry;
 
+use \ArrayAccess;
 use \Iterator;
 
 /**
  * A collection of entries with the total number of available entries
  */
-class EntryCollection implements Iterator {
+class EntryCollection implements Iterator, ArrayAccess {
 
     /**
      * Array of entries
@@ -23,12 +24,12 @@ class EntryCollection implements Iterator {
 
     /**
      * Constructs a new entry collection
-     * @param array $data Array of entries
+     * @param array $entries Array of entries
      * @param integer $total Total number of available entries
      * @return null
      */
-    public function __construct(array $data, $total) {
-        $this->entries = $entries
+    public function __construct(array $entries, $total) {
+        $this->entries = $entries;
         $this->total = $total;
     }
 
@@ -53,7 +54,7 @@ class EntryCollection implements Iterator {
      * @return null
      */
     public function rewind() {
-        return rewind($this->entries);
+        return reset($this->entries);
     }
 
     /**
@@ -79,7 +80,7 @@ class EntryCollection implements Iterator {
      * @return null
      */
     public function next() {
-        next($this->entries)
+        next($this->entries);
     }
 
     /**
@@ -90,6 +91,51 @@ class EntryCollection implements Iterator {
      */
     public function valid() {
         return isset($this->entries[$this->key()]);
+    }
+
+    /**
+     * The offsetGet purpose
+     * @param string $index
+     * @return mixed
+     */
+    public function offsetGet($index) {
+        return isset($this->entries[$index]) ? $this->entries[$index] : null;
+    }
+
+    /**
+     * The offsetSet purpose
+     * @param string $index
+     * @param mixed $entry
+     * @return null
+     */
+    public function offsetSet($index, $entry) {
+        $this->entries[$index] = $entry;
+    }
+
+    /**
+     * The offsetUnset purpose
+     * @link http://www.php.net/manual/en/cachingiterator.offsetunset.php
+     * @param index string <p>
+     * The index of the element to be unset.
+     * </p>
+     * @return void
+     */
+    public function offsetUnset($index) {
+        if (isset($this->entries[$index])) {
+            unset($this->entries[$index]);
+        }
+    }
+
+    /**
+     * The offsetExists purpose
+     * @link http://www.php.net/manual/en/cachingiterator.offsetexists.php
+     * @param index string <p>
+     * The index being checked.
+     * </p>
+     * @return void true if an entry referenced by the offset exists, false otherwise.
+     */
+    public function offsetExists($index) {
+        return isset($this->entries[$index]);
     }
 
 }

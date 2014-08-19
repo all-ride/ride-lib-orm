@@ -970,6 +970,10 @@ class QueryParser {
 
         $expression = $this->processExpression($expression);
 
+        if ($expression instanceof FieldExpression && !isset($this->fields[$expression->getAlias()])) {
+            $this->statement->addField($expression);
+        }
+
         return new OrderExpression($expression, $direction);
     }
 
