@@ -49,6 +49,31 @@ class GenericEntryProxy extends GenericEntry implements EntryProxy {
     }
 
     /**
+     * Removes the link with the ORM for serialization
+     * @return null
+     */
+    public function unlink() {
+        $this->_model = null;
+
+        foreach ($this->_loaded as $property => $loadState) {
+            if ($this->$property instanceof EntryProxy) {
+                $this->$property->unlink();
+            }
+            if (isset($this->_state[$property]) && $this->_state[$property] instanceof EntryProxy) {
+                $this->_state[$property]->unlink();
+            }
+
+            if (is_array($this->$property)) {
+                foreach ($this->$property as $key => $value) {
+                    if ($value instanceof EntryProxy) {
+                        $value->unlink();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Sets the state of this entry
      * @param array $state Array with the name of the field as key and the state
      * as value

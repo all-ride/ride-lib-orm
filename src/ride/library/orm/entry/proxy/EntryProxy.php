@@ -19,6 +19,12 @@ interface EntryProxy {
     public function __construct(Model $model, $id, array $properties = array());
 
     /**
+     * Removes the link with the ORM for serialization
+     * @return null
+     */
+    public function unlink();
+
+    /**
      * Gets whether this entry is clean and not modified
      * @return boolean
      */
