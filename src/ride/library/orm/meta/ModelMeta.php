@@ -683,7 +683,7 @@ class ModelMeta {
      * @throws \ride\library\orm\exception\ModelException when no relation meta
      * could be found for the provided field
      */
-    private function getRelationMeta($fieldName) {
+    public function getRelationMeta($fieldName) {
         if (!$this->isParsed) {
             throw new OrmException('This meta is not parsed, call parseMeta first');
         }
