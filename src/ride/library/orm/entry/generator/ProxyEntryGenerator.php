@@ -75,7 +75,7 @@ foreach ($properties as $propertyName => $propertyValue) {
     $this->_loaded[$propertyName] = true;
 }';
 
-        $modelProperty = $this->generator->createProperty('_model', 'ride\\library\\orm\\model\\Model', Code::SCOPE_PRIVATE);
+        $modelProperty = $this->generator->createProperty('_model', 'ride\\library\\orm\\model\\Model', Code::SCOPE_PROTECTED);
         $modelProperty->setDescription('Instance of the ' . $modelName . ' model');
 
         $cleanProperty = $this->generator->createProperty('_isClean', 'boolean', Code::SCOPE_PRIVATE);
