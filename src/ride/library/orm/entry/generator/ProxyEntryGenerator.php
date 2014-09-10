@@ -44,14 +44,20 @@ class ProxyEntryGenerator extends AbstractEntryGenerator {
         $class = $this->generator->createClass($proxyClassName, $entryClassName, array('ride\\library\\orm\\entry\\proxy\\EntryProxy'));
         $class->setDescription("Generated proxy for an entry of the " . $modelName . " model\n\nNOTE: Do not edit this class");
 
+        $isLocalized = $meta->isLocalized();
+
         $fields = $meta->getFields();
-        $this->generateProxy($class, $fields, $modelName, $meta->isLocalized());
+        $this->generateProxy($class, $fields, $modelName, $isLocalized);
         foreach ($fields as $field) {
             if ($field instanceof PropertyField || $field instanceof BelongsToField) {
                 $this->generateProperty($class, $field, $modelRegister);
             } elseif ($field instanceof HasOneField || $field instanceof HasManyField) {
                 $this->generateHas($class, $field, $modelRegister);
             }
+        }
+
+        if ($isLocalized) {
+            $this->generateLocalized($class);
         }
 
         $classFileName = str_replace('\\', '/', $proxyClassName) . '.php';
@@ -185,7 +191,7 @@ $this->_isClean = false;
 ';
         if ($isLocalized) {
             $propertyLoaderCode .=
-'$query = $this->_model->createQuery($this->getLocale());
+'$query = $this->_model->createQuery(parent::getLocale());
 $query->setFetchUnlocalized(true);';
         } else {
             $propertyLoaderCode .= '$query = $this->_model->createQuery();';
@@ -206,6 +212,10 @@ if (!$entry) {
             }
 
             $propertyLoaderCode .= '    $this->_loaded[\'' . $fieldName . '\'] = true;' . "\n";
+        }
+
+        if ($isLocalized) {
+            $propertyLoaderCode .= '    $this->_loaded[\'locale\'] = true;' . "\n";
         }
 
         $propertyLoaderCode .= '
@@ -236,8 +246,10 @@ if (!$entry) {
 
         if ($isLocalized) {
             $propertyLoaderCode .=
-'$this->setLocale($entry->getLocale());
+'
+$this->setLocale($entry->getLocale());
 $this->setIslocalized($entry->isLocalized());
+$this->_loaded[\'locale\'] = true;
 ';
         }
 
@@ -406,6 +418,42 @@ return parent::get' . $ucName . '();';
         }
 
         $class->addMethod($setter);
+        $class->addMethod($getter);
+    }
+
+    protected function generateLocalized($class) {
+        // get locale
+        $return = $this->generator->createVariable('locale', 'string');
+        $return->setDescription('Code of the locale');
+
+        $getterCode =
+'if (!isset($this->_loaded[\'locale\'])) {
+    $this->loadProperties();
+}
+
+return parent::getLocale();';
+
+        $getter = $this->generator->createMethod('getLocale', array(), $getterCode);
+        $getter->setReturnValue($return);
+        $getter->setDescription('Gets the locale of this entry');
+
+        $class->addMethod($getter);
+
+        // is localized
+        $return = $this->generator->createVariable('isLocalized', 'boolean');
+        $return->setDescription('Flag to see if the entry is localized in the requested locale');
+
+        $getterCode =
+'if (!isset($this->_loaded[\'locale\'])) {
+    $this->loadProperties();
+}
+
+return parent::isLocalized();';
+
+        $getter = $this->generator->createMethod('isLocalized', array(), $getterCode);
+        $getter->setReturnValue($return);
+        $getter->setDescription('Gets whether the entry is localized in the requested locale');
+
         $class->addMethod($getter);
     }
 
