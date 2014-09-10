@@ -47,8 +47,11 @@ class GenericEntry {
      */
     public function __get($name) {
         $methodName = 'get' . ucfirst($name);
+
         if (method_exists($this, $methodName)) {
             return $this->$methodName();
+        } elseif (method_exists($this, $name)) {
+            return $this->$name();
         } elseif (isset($this->$name)) {
             return $this->$name;
         }
