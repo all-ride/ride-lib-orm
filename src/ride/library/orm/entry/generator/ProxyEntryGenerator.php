@@ -234,6 +234,13 @@ if (!$entry) {
 ';
         }
 
+        if ($isLocalized) {
+            $propertyLoaderCode .=
+'$this->setLocale($entry->getLocale());
+$this->setIslocalized($entry->isLocalized());
+';
+        }
+
         $propertyLoader = $this->generator->createMethod('loadProperties', array(), trim($propertyLoaderCode), Code::SCOPE_PRIVATE);
         $propertyLoader->setDescription('Loads the values of the properties of this ' . $modelName . ' entry');        // property loader
 

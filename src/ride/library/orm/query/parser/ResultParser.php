@@ -4,6 +4,7 @@ namespace ride\library\orm\query\parser;
 
 use ride\library\database\result\DatabaseResult;
 use ride\library\orm\definition\ModelTable;
+use ride\library\orm\entry\LocalizedEntry;
 use ride\library\orm\exception\ModelException;
 use ride\library\orm\model\LocalizedModel;
 use ride\library\orm\model\Model;
@@ -70,6 +71,7 @@ class ResultParser {
     protected function getEntryFromRow($row) {
         $aliasses = array();
         $properties = array();
+        $locale = null;
 
         // extract aliasses and process values
         foreach ($row as $column => $value) {
@@ -118,9 +120,10 @@ class ResultParser {
             $aliasses[$alias][$fieldName] = $value;
         }
 
-        $locale = null;
         if ($this->isLocalized && isset($properties[LocalizedModel::FIELD_LOCALE])) {
             $locale = $properties[LocalizedModel::FIELD_LOCALE];
+        } else {
+            $locale = $this->orm->getLocale();
         }
 
         // handle relation entries
@@ -202,6 +205,10 @@ class ResultParser {
         // create entry
         $entry = $this->model->createProxy($properties[ModelTable::PRIMARY_KEY], $locale, $properties);
         $entry->setEntryState($this->processState($properties));
+
+        if ($entry instanceof LocalizedEntry) {
+            $entry->setLocale($locale);
+        }
 
         return $entry;
     }
