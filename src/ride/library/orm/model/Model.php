@@ -149,6 +149,15 @@ interface Model {
     public function delete($entry);
 
     /**
+     * Deletes a locale entry from the model
+     * @param mixed $entry An entry instance of an array with entry instances
+     * @param $locale The locale currently situated in
+     * @return null
+     * @throws \Exception when the entry could not be deleted
+     */
+    public function deleteLocale($entry, $locale);
+
+    /**
      * Clears the cache of this model
      * @return null
      */

@@ -487,12 +487,36 @@ abstract class AbstractModel implements Model, Serializable {
         return $entry;
     }
 
+    public function deleteLocale($entry, $locale) {
+        $isTransactionStarted = $this->beginTransaction();
+
+        try {
+            if (is_array($entry)) {
+                foreach ($entry as $entryIndex => $entryValue) {
+                    $entry[$entryIndex] = $this->deleteEntryLocale($entryValue, $locale);
+                }
+            } else {
+                $entry = $this->deleteEntryLocale($entry, $locale);
+            }
+
+            $this->commitTransaction($isTransactionStarted);
+        } catch (Exception $exception) {
+            $this->rollbackTransaction($isTransactionStarted);
+
+            throw $exception;
+        }
+
+        return $entry;
+    }
+
     /**
      * Deletes an entry from this model
      * @param mixed $entry Entry instance to be deleted
      * @return mixed The full entry which has been deleted
      */
     abstract protected function deleteEntry($entry);
+
+    abstract protected function deleteEntryLocale($entry, $locale);
 
     /**
      * Clears the result cache of this model

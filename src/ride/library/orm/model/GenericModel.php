@@ -181,7 +181,7 @@ class GenericModel extends AbstractModel {
      * @param boolean $fetchUnlocalized Flag to see if unlocalized entries
      * should be fetched
      * @param integer $recursiveDepth Recursive depth of the query
-     * @return ride\library\orm\entry\EntryCollection
+     * @return \ride\library\orm\entry\EntryCollection
      */
     public function collect(array $options = null, $locale = null, $fetchUnlocalized = false, $recursiveDepth = 0) {
         $query = $this->createFindQuery($options, $locale, $fetchUnlocalized, $recursiveDepth);
@@ -894,10 +894,10 @@ class GenericModel extends AbstractModel {
     }
 
     /**
-     * Deletes data from this model
-     * @param mixed $entry Primary key of the data or a data object of this model
-     * @return null
-     */
+ * Deletes data from this model
+ * @param mixed $entry Primary key of the data or a data object of this model
+ * @return null
+ */
     protected function deleteEntry($entry) {
         $id = $this->getPrimaryKey($entry);
 
@@ -960,6 +960,71 @@ class GenericModel extends AbstractModel {
         }
 
         return $entry;
+    }
+
+     /**
+     * Deletes localized data from this model
+      * If last locale, delete whole entry
+     * @param mixed $entry Primary key of the data or a data object of this model
+     * @param string $locale, the current locale
+     * @return null
+     */
+    protected function deleteEntryLocale($entry, $locale) {
+        if ($entry == null) {
+            return;
+        }
+
+        $localizedModel = $this->getLocalizedModel();
+        $query = $localizedModel->createQuery();
+        $query->setIncludeUnlocalized(false);
+        $query->addCondition('{entry} = %1%', $entry->getId());
+        $query->addCondition('{locale} = %1%', $locale);
+
+        $localeEntry = $query->queryFirst();
+        if (!$localeEntry) {
+            return false;
+        }
+            $entries = $this->getEntryLocales($entry);
+            if (count($entries) > 1) {
+                $localizedModel->delete($localeEntry->getId());
+            } else {
+                $this->delete($entry);
+            }
+
+       if ($this->meta->willBlockDeleteWhenUsed() && $this->isDataReferencedInUnlinkedModels($localeEntry)) {
+            $validationError = new ValidationError('orm.error.data.used', '%data% is still in use by another record', array('data' => $this->meta->formatData($localeEntry)));
+
+            $validationException = new ValidationException();
+            $validationException->addErrors('id', array($validationError));
+
+            throw $validationException;
+        }
+
+        foreach ($this->behaviours as $behaviour) {
+            $behaviour->preDelete($this, $localeEntry);
+        }
+
+        $condition = new SimpleCondition(new FieldExpression(ModelTable::PRIMARY_KEY), new SqlExpression($localeEntry->getId()), Condition::OPERATOR_EQUALS);
+
+        $statement = new DeleteStatement();
+        $statement->addTable(new TableExpression($this->getName()));
+        $statement->addCondition($condition);
+
+        $this->executeStatement($statement);
+
+        $this->clearCache();
+
+
+        return $localeEntry;
+    }
+
+    private function getEntryLocales($entry) {
+        $query = $this->getLocalizedModel()->createQuery();
+        $query->setFields('{id}, {locale}');
+        $query->addCondition('{entry} = %1%', $entry->getId());
+        $entries = $query->query();
+
+        return $entries;
     }
 
     /**
