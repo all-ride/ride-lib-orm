@@ -181,7 +181,7 @@ class GenericModel extends AbstractModel {
      * @param boolean $fetchUnlocalized Flag to see if unlocalized entries
      * should be fetched
      * @param integer $recursiveDepth Recursive depth of the query
-     * @return ride\library\orm\entry\EntryCollection
+     * @return \ride\library\orm\entry\EntryCollection
      */
     public function collect(array $options = null, $locale = null, $fetchUnlocalized = false, $recursiveDepth = 0) {
         $query = $this->createFindQuery($options, $locale, $fetchUnlocalized, $recursiveDepth);
@@ -960,6 +960,37 @@ class GenericModel extends AbstractModel {
         }
 
         return $entry;
+    }
+
+    /**
+     * Deletes a localized entry from this model.
+     * If the requested locale is the only version of the entry, the full entry
+     * will be deleted
+     * @param mixed $entry Entry of this model
+     * @param string $locale, the current locale
+     * @return null
+     */
+    protected function deleteEntryLocale($entry, $locale) {
+        if ($entry == null) {
+            return null;
+        }
+
+        // entry and locale check
+        $id = $this->getPrimaryKey($entry);
+        $locale = $this->getLocale($locale);
+
+        // fetch localized entry state
+        $localizedModel = $this->getLocalizedModel();
+        $localizedEntryIds = $localizedModel->getLocalizedIds($id);
+
+        // remove necessairy data
+        if (!isset($localizedEntryIds[$locale])) {
+            return null;
+        } elseif (count($localizedEntryIds) > 1) {
+            return $localizedModel->delete($localizedEntryIds[$locale]);
+        } else {
+            return $this->delete($entry);
+        }
     }
 
     /**
