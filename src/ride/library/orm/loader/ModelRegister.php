@@ -534,9 +534,9 @@ class ModelRegister {
         $linkModelName2 = $field2->getLinkModelName();
 
         if ($linkModelName1 && $linkModelName2) {
-            if ($linkModelName1 != $linkModelName2) {
-                throw new ModelException('Link model names of ' . $field1->getName() . ' and ' . $field2->getName() . ' are not equal');
-            }
+            // if ($linkModelName1 != $linkModelName2) {
+            //     throw new ModelException('Link model names of ' . $field1->getName() . ' and ' . $field2->getName() . ' are not equal');
+            // }
 
             return $linkModelName1;
         }
