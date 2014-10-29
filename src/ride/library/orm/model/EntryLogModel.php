@@ -418,17 +418,9 @@ class EntryLogModel extends GenericModel {
         $this->reflectionHelper->setProperty($log, 'model', $modelName);
         $this->reflectionHelper->setProperty($log, 'entry', $id);
         $this->reflectionHelper->setProperty($log, 'version', $version);
-        $this->reflectionHelper->setProperty($log, 'user', $this->getUser());
+        $this->reflectionHelper->setProperty($log, 'user', $this->orm->getUserName());
 
         return $log;
-    }
-
-    /**
-     * Gets the name of the current user
-     * @return string|null
-     */
-    protected function getUser() {
-        return null;
     }
 
     /**

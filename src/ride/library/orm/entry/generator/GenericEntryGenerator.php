@@ -14,6 +14,7 @@ use ride\library\orm\loader\ModelRegister;
 use ride\library\orm\meta\ModelMeta;
 use ride\library\orm\model\behaviour\DateBehaviour;
 use ride\library\orm\model\behaviour\GeoBehaviour;
+use ride\library\orm\model\behaviour\OwnerBehaviour;
 use ride\library\orm\model\behaviour\SlugBehaviour;
 use ride\library\orm\model\behaviour\VersionBehaviour;
 use ride\library\orm\model\Model;
@@ -104,6 +105,9 @@ $this->dateModified = $timestamp;';
 
                     $class->addMethod($addressMethod);
                 }
+            }
+            if ($behaviour instanceof OwnerBehaviour) {
+                $class->addImplements('ride\\library\\orm\\entry\\OwnedEntry');
             }
             if ($behaviour instanceof SlugBehaviour) {
                 $class->addImplements('ride\\library\\orm\\entry\\SluggedEntry');

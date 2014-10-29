@@ -428,4 +428,12 @@ class OrmManager {
         return 'en';
     }
 
+    /**
+     * Gets the username of the current user
+     * @return string|null
+     */
+    public function getUserName() {
+        return null;
+    }
+
 }
