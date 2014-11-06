@@ -161,6 +161,10 @@ class RelationMeta {
      */
     public function setLinkModelName($linkModelName) {
         $this->linkModelName = $linkModelName;
+
+        if ($linkModelName) {
+            $this->isHasManyAndBelongsToMany = true;
+        }
     }
 
     /**
