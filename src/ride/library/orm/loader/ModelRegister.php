@@ -299,84 +299,87 @@ class ModelRegister {
             $numHasMany = count($relations[ModelTable::HAS_MANY]);
             $numRelations = $numBelongsTo + $numHasOne + $numHasMany;
 
-            if (!$numRelations) {
-                $belongsTo = null;
+            $linkModel = $field->getLinkModelName();
+            if (!$linkModel) {
+                if (!$numRelations) {
+                    $belongsTo = null;
 
-                if (preg_match('/' . ModelMeta::SUFFIX_LOCALIZED . '$/', $modelName)) {
-                    $unlocalizedModelName = substr($modelName, 0, strlen(ModelMeta::SUFFIX_LOCALIZED) * -1);
-                    $unlocalizedRelations = $relationModel->getMeta()->getRelation($unlocalizedModelName);
+                    if (preg_match('/' . ModelMeta::SUFFIX_LOCALIZED . '$/', $modelName)) {
+                        $unlocalizedModelName = substr($modelName, 0, strlen(ModelMeta::SUFFIX_LOCALIZED) * -1);
+                        $unlocalizedRelations = $relationModel->getMeta()->getRelation($unlocalizedModelName);
 
-                    if ($unlocalizedRelations[ModelTable::BELONGS_TO]) {
-                        $belongsTo = array_shift($unlocalizedRelations[ModelTable::BELONGS_TO]);
-                        if ($belongsTo->isLocalized()) {
-                            continue;
+                        if ($unlocalizedRelations[ModelTable::BELONGS_TO]) {
+                            $belongsTo = array_shift($unlocalizedRelations[ModelTable::BELONGS_TO]);
+                            if ($belongsTo->isLocalized()) {
+                                continue;
+                            }
                         }
                     }
-                }
 
-                $linkModel = $this->registerLinkModel($model, $fieldName);
+                    $linkModel = $this->registerLinkModel($model, $fieldName);
 
-                $this->updateLinkModelGroup($model, $relationModel, $linkModel);
+                    $this->updateLinkModelGroup($model, $relationModel, $linkModel);
 
-                if ($belongsTo) {
-                    $belongsTo->setLinkModelName($field->getLinkModelName());
-                }
-
-                continue;
-            }
-
-            if ($numRelations == 1) {
-                if ($numBelongsTo) {
-                    $belongsToField = array_pop($relations[ModelTable::BELONGS_TO]);
-                    $field->setForeignKeyName($belongsToField->getName());
-                    $field->setLinkModelName(null);
+                    if ($belongsTo) {
+                        $belongsTo->setLinkModelName($field->getLinkModelName());
+                    }
 
                     continue;
                 }
 
-                if ($numHasOne) {
-                    $hasField = array_pop($relations[ModelTable::HAS_ONE]);
-                } else {
-                    $hasField = array_pop($relations[ModelTable::HAS_MANY]);
-                }
+                if ($numRelations == 1) {
+                    if ($numBelongsTo) {
+                        $belongsToField = array_pop($relations[ModelTable::BELONGS_TO]);
+                        $field->setForeignKeyName($belongsToField->getName());
+                        $field->setLinkModelName(null);
 
-                $linkModel = $this->registerManyToManyLinkModel($model, $fieldName, $hasField);
+                        continue;
+                    }
 
-                $this->updateLinkModelGroup($model, $relationModel, $linkModel);
+                    if ($numHasOne) {
+                        $hasField = array_pop($relations[ModelTable::HAS_ONE]);
+                    } else {
+                        $hasField = array_pop($relations[ModelTable::HAS_MANY]);
+                    }
 
-                continue;
-            }
+                    $linkModel = $this->registerManyToManyLinkModel($model, $fieldName, $hasField);
 
-            $foreignKey = $field->getForeignKeyName();
-            if ($foreignKey) {
-                if (isset($relations[ModelTable::BELONGS_TO][$foreignKey])) {
-                    $field->setLinkModelName(null);
+                    $this->updateLinkModelGroup($model, $relationModel, $linkModel);
 
                     continue;
                 }
 
-                if (isset($relations[ModelTable::HAS_MANY][$foreignKey])) {
-                    $hasField = $relations[ModelTable::HAS_MANY][$foreignKey];
-                } elseif (isset($relations[ModelTable::HAS_ONE][$foreignKey])) {
-                    $hasField = $relations[ModelTable::HAS_ONE][$foreignKey];
-                } else {
-                    throw new OrmException('Foreign key ' . $foreignKey . ' was not found in ' . $relationModelName);
+                $foreignKey = $field->getForeignKeyName();
+                if ($foreignKey) {
+                    if (isset($relations[ModelTable::BELONGS_TO][$foreignKey])) {
+                        $field->setLinkModelName(null);
+
+                        continue;
+                    }
+
+                    if (isset($relations[ModelTable::HAS_MANY][$foreignKey])) {
+                        $hasField = $relations[ModelTable::HAS_MANY][$foreignKey];
+                    } elseif (isset($relations[ModelTable::HAS_ONE][$foreignKey])) {
+                        $hasField = $relations[ModelTable::HAS_ONE][$foreignKey];
+                    } else {
+                        throw new OrmException('Foreign key ' . $foreignKey . ' was not found in ' . $relationModelName);
+                    }
+
+                    $linkModel = $this->registerManyToManyLinkModel($model, $fieldName, $hasField);
+
+                    $this->updateLinkModelGroup($model, $relationModel, $linkModel);
+
+                    continue;
                 }
-
-                $linkModel = $this->registerManyToManyLinkModel($model, $fieldName, $hasField);
-
-                $this->updateLinkModelGroup($model, $relationModel, $linkModel);
-
-                continue;
             }
 
-            $linkModel = $field->getLinkModelName();
             $hasField = null;
 
             $relations = $relations[ModelTable::HAS_MANY] + $relations[ModelTable::HAS_ONE];
             foreach ($relations as $relationField) {
                 if ($relationField->getLinkModelName() == $linkModel) {
                     $hasField = $relationField;
+
                     break;
                 }
             }
