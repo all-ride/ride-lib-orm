@@ -247,7 +247,7 @@ $this->dateModified = $timestamp;';
         $adderCode =
 '$this->get' . ucfirst($name) . '();
 
-$this->' . $name . '[$entry->getId()] = $entry;';
+$this->' . $name . '[] = $entry;';
 
         $setterCode =
 'foreach ($' . $name . ' as $' . $name . 'Index => $' . $name . 'Value) {
@@ -261,13 +261,15 @@ $this->' . $name . ' = $' . $name . ';';
         $removerCode =
 '$this->get' . ucfirst($name) . '();
 
-if (!isset($this->' . $name . '[$entry->getId()])) {
-    return false;
+foreach ($this->' . $name . ' as $' . $name . 'Index => $' . $name . 'Value) {
+    if ($' . $name . 'Value === $entry) {
+        unset($this->' . $name . '[$' . $name . 'Index]);
+
+        return true;
+    }
 }
 
-unset($this->' . $name . '[$entry->getId()]);
-
-return true;';
+return false;';
 
         $argument = $this->generator->createVariable('entry', $type);
 
