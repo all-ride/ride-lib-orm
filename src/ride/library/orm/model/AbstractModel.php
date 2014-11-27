@@ -488,22 +488,22 @@ abstract class AbstractModel implements Model, Serializable {
     }
 
     /**
-     * Deletes a localized version of a entry
-     * @param mixed $entry An entry instance or an array with entry instances
+     * Deletes a localized version of a entry from the model
+     * @param mixed $entry Entry instance or an array with entry instances
      * @param string $locale Code of the locale
      * @return mixed Loaded entry or entries which have been deleted
      * @throws \Exception when the entry could not be deleted
      */
-    public function deleteLocale($entry, $locale) {
+    public function deleteLocalized($entry, $locale) {
         $isTransactionStarted = $this->beginTransaction();
 
         try {
             if (is_array($entry)) {
                 foreach ($entry as $entryIndex => $entryValue) {
-                    $entry[$entryIndex] = $this->deleteEntryLocale($entryValue, $locale);
+                    $entry[$entryIndex] = $this->deleteLocalizedEntry($entryValue, $locale);
                 }
             } else {
-                $entry = $this->deleteEntryLocale($entry, $locale);
+                $entry = $this->deleteLocalizedEntry($entry, $locale);
             }
 
             $this->commitTransaction($isTransactionStarted);
@@ -529,7 +529,7 @@ abstract class AbstractModel implements Model, Serializable {
      * @param string $locale Code of the locale
      * @return mixed Loaded entry which has been deleted
      */
-    abstract protected function deleteEntryLocale($entry, $locale);
+    abstract protected function deleteLocalizedEntry($entry, $locale);
 
     /**
      * Clears the result cache of this model
