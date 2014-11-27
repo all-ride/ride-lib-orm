@@ -925,7 +925,7 @@ class GenericModel extends AbstractModel {
         }
 
         if ($this->meta->isLocalized()) {
-            $this->deleteLocalized($entry);
+            $this->getLocalizedModel()->deleteEntryLocalization($id);
         }
 
         $this->deleteDataInUnlinkedModels($entry);
@@ -970,7 +970,7 @@ class GenericModel extends AbstractModel {
      * @param string $locale, the current locale
      * @return null
      */
-    protected function deleteEntryLocale($entry, $locale) {
+    protected function deleteLocalizedEntry($entry, $locale) {
         if ($entry == null) {
             return null;
         }
@@ -991,15 +991,6 @@ class GenericModel extends AbstractModel {
         } else {
             return $this->delete($entry);
         }
-    }
-
-    /**
-     * Deletes the localized data of the provided data
-     * @param mixed $entry Data object
-     * @return null
-     */
-    private function deleteLocalized($entry) {
-        $this->getLocalizedModel()->deleteLocalizedEntry($entry->id);
     }
 
     /**

@@ -113,7 +113,7 @@ class LocalizedModel extends GenericModel {
      * @throws \ride\library\orm\exception\OrmException when the provided id is
      * empty or invalid
      */
-    public function deleteLocalizedEntry($id) {
+    public function deleteEntryLocalization($id) {
         if (empty($id)) {
             throw new OrmException('Provided id is empty or invalid');
         }
