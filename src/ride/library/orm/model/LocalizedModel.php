@@ -97,6 +97,10 @@ class LocalizedModel extends GenericModel {
      * @return null|mixed Localized entry if found, null otherwise
      */
     public function getLocalizedEntry($id, $locale, $recursiveDepth = 0, $fields = null) {
+        if (!$id) {
+            return null;
+        }
+
         $query = $this->createLocalizedQuery($id, $locale, $recursiveDepth);
 
         if ($fields) {

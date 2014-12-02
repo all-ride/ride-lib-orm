@@ -431,7 +431,7 @@ class ModelQuery {
 
         $this->setRecursiveDepth(1);
 
-        $result = array($entry);
+        $result = array($id => $entry);
         $result = $this->queryRelations($result, $belongsToFields, $hasFields);
         $result = $this->queryUnlocalized($result);
 
@@ -635,14 +635,14 @@ class ModelQuery {
             $localizedModelName = $this->model->getMeta()->getLocalizedModelName();
             $localizedModel = $this->orm->getModel($localizedModelName);
 
-            $localizedData = $localizedModel->getLocalizedData($id, $locale, $recursiveDepth, $fields);
+            $localizedData = $localizedModel->getLocalizedEntry($id, $locale, $recursiveDepth, $fields);
 
             foreach ($localizedFields as $fieldName) {
                 if (!isset($localizedData->$fieldName)) {
                     continue;
                 }
 
-                $value = $reflectionHelper->getProperty($localizedData, $fieldName);
+                $value = $this->reflectionHelper->getProperty($localizedData, $fieldName);
 
                 $this->reflectionHelper->setProperty($result[$id], $fieldName, $value);
                 $result[$id]->setFieldState($fieldName, $value);
