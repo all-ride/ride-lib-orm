@@ -229,7 +229,11 @@ abstract class AbstractModel implements Model, Serializable {
             $properties[$name] = $field->getDefaultValue();
 
             if ($field instanceof BelongsToField && isset($properties[$name]) && !is_object($properties[$name])) {
-                $properties[$name] = $this->getRelationModel($name)->createProxy($properties[$name]);
+                if ($properties[$name] == '0') {
+                    $properties[$name] = $this->getRelationModel($name)->createEntry();
+                } else {
+                    $properties[$name] = $this->getRelationModel($name)->createProxy($properties[$name]);
+                }
             }
         }
 
