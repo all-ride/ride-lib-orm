@@ -31,7 +31,6 @@ class OwnerBehaviour extends AbstractBehaviour {
         }
 
         $owner = $this->getOwner($model);
-        k($owner);
 
         $entry->setOwner($owner);
     }
