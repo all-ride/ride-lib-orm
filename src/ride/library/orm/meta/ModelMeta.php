@@ -912,7 +912,7 @@ class ModelMeta {
         $foreignKeys = $modelTable->getRelationFields($relationModelName, ModelTable::BELONGS_TO);
 
         if (!$foreignKeys) {
-            if (preg_match('/' . LocalizedModel::MODEL_SUFFIX . '$/', $relationModelName)) {
+            if (preg_match('/' . self::SUFFIX_LOCALIZED . '$/', $relationModelName)) {
                 $relationModelName = substr($relationModelName, 0, strlen(LocalizedModel::MODEL_SUFFIX) * -1);
                 $foreignKeys = $modelTable->getRelationFields($relationModelName, ModelTable::BELONGS_TO);
             }
