@@ -261,7 +261,11 @@ class GenericModel extends AbstractModel {
 
                 $condition = '';
                 foreach ($filterValue as $index => $value) {
-                    $condition .= ($condition ? ' OR ' : '') . '{' . $fieldName . '} = %' . $index . '%';
+                    if ($value === null) {
+                        $condition .= ($condition ? ' OR ' : '') . '{' . $fieldName . '} IS NULL';
+                    } else {
+                        $condition .= ($condition ? ' OR ' : '') . '{' . $fieldName . '} = %' . $index . '%';
+                    }
                 }
 
                 $query->addConditionWithVariables($condition, $filterValue);
