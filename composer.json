@@ -1,7 +1,7 @@
 {
     "name": "ride/lib-orm",
     "description": "ORM library of the Ride framework.",
-    "version": "0.5.8",
+    "version": "0.5.9",
     "authors": [
         {
             "name": "Joris Vandeweerd",
