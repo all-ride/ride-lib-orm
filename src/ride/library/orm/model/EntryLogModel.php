@@ -82,7 +82,7 @@ class EntryLogModel extends GenericModel {
      * @param string $locale
      * @return mixed Entry
      */
-    public function getDataByVersion($modelName, $id, $version, $recursiveDepth = 1, $locale = null) {
+    public function getEntryByVersion($modelName, $id, $version, $recursiveDepth = 1, $locale = null) {
         $query = $this->createQuery($locale);
         $query->addCondition('{model} = %1% AND {entry} = %2%', $modelName, $id);
         $query->addCondition('{version} <= %1%', $version);
@@ -98,7 +98,7 @@ class EntryLogModel extends GenericModel {
      * @param \ride\library\orm\query\ModelQuery $query Query of the entry logs
      * @return mixed Entry
      */
-    protected function getDataByQuery($modelName, $id, ModelQuery $query, $recursiveDepth) {
+    protected function getEntryByQuery($modelName, $id, ModelQuery $query, $recursiveDepth) {
         $locale = $query->getLocale();
 
         $entryModel = $this->getModel($modelName);
