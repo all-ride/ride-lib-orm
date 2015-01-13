@@ -413,7 +413,7 @@ class QueryParser {
      * @return null
      */
     private function addJoins(array $joins) {
-        if ($this->localize) {
+        if ($this->meta->isLocalized()) {
             $this->addLocalizeJoin();
         }
 
