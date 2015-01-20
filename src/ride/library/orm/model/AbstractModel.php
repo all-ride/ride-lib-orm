@@ -297,6 +297,25 @@ abstract class AbstractModel implements Model, Serializable {
     }
 
     /**
+     * Gets an entry list as a flat list
+     * @param string $locale Code of the locale
+     * @return array Array with the id of the entry as key and the title format
+     * as value
+     */
+    public function getEntryList($locale = null) {
+        $locale = $this->getLocale($locale);
+
+        if (isset($this->list[$locale])) {
+            return $this->list[$locale];
+        }
+
+        $entries = $this->find(null, $locale);
+        $this->list[$locale] = $this->getOptionsFromEntries($entries);
+
+        return $this->list[$locale];
+    }
+
+    /**
      * Parses entries into an array of formatted entries
      * @param array $entries Array of entries from this model
      * @return array Array with the primary key of the entry as key and the
