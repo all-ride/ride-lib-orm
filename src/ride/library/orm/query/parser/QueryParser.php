@@ -413,20 +413,8 @@ class QueryParser {
      * @return null
      */
     private function addJoins(array $joins) {
-        if ($this->meta->isLocalized()) {
-            // adds the localized join only when localized fields are requested
-            $addLocalizedJoin = false;
-            foreach ($this->fields as $field) {
-                if (!$field instanceof FieldExpression || $field->getTable()->getAlias() == 'selfLocalized') {
-                    $addLocalizedJoin = true;
-
-                    break;
-                }
-            }
-
-            if ($addLocalizedJoin) {
-                $this->addLocalizeJoin();
-            }
+        if ($this->localize) {
+            $this->addLocalizeJoin();
         }
 
         foreach ($this->fieldJoins as $field) {
