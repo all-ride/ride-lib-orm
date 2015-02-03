@@ -307,13 +307,26 @@ class GenericModel extends AbstractModel {
         if ($queryString) {
             $conditionArguments[$conditionArgumentIndex++] = '%' . $queryString . '%';
 
-            $properties = $this->meta->getProperties();
-            foreach ($properties as $fieldName => $property) {
-                if (!$property->getOption('scaffold.search')) {
+            $fields = $this->meta->getFields();
+            foreach ($fields as $fieldName => $field) {
+                if (!$field->getOption('scaffold.search')) {
                     continue;
                 }
 
-                $conditions[] = '{' . $fieldName . '} LIKE  %' . ($conditionArgumentIndex - 1) . '%';
+                if ($field instanceof PropertyField) {
+                    $conditions[] = '{' . $fieldName . '} LIKE  %' . ($conditionArgumentIndex - 1) . '%';
+                } else {
+                    $relationModel = $this->getRelationModel($fieldName);
+
+                    $relationFields = $relationModel->getMeta()->getProperties();
+                    foreach ($relationFields as $relationFieldName => $relationField) {
+                        if (!$relationField->getOption('scaffold.search')) {
+                            continue;
+                        }
+
+                        $conditions[] = '{' . $fieldName . '.' . $relationFieldName . '} LIKE  %' . ($conditionArgumentIndex - 1) . '%';
+                    }
+                }
             }
         }
 
