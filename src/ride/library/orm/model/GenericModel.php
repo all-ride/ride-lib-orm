@@ -23,9 +23,7 @@ use ride\library\orm\entry\proxy\EntryProxy;
 use ride\library\orm\entry\EntryCollection;
 use ride\library\orm\entry\LocalizedEntry;
 use ride\library\orm\exception\ModelException;
-use ride\library\orm\model\data\format\DataFormatter;
-use ride\library\orm\model\data\DataFactory;
-use ride\library\orm\model\data\DataValidator;
+use ride\library\orm\query\ModelQuery;
 use ride\library\validation\exception\ValidationException;
 use ride\library\validation\ValidationError;
 
@@ -225,6 +223,19 @@ class GenericModel extends AbstractModel {
         $query->setRecursiveDepth($recursiveDepth);
         $query->setFetchUnlocalized($fetchUnlocalized);
 
+        $this->applySearch($query, $options);
+        $this->applyOrder($query, $options);
+
+        return $query;
+    }
+
+    /**
+     * Applies the scaffold search to the provided query
+     * @param \ride\library\orm\query\ModelQuery $query
+     * @param array $options
+     * @return null
+     */
+    public function applySearch(ModelQuery $query, array $options = null) {
         // handle manual conditions
         if (isset($options['condition'])) {
             $conditions = $options['condition'];
@@ -333,9 +344,18 @@ class GenericModel extends AbstractModel {
         if ($conditions) {
             $query->addConditionWithVariables(implode(' OR ', $conditions), $conditionArguments);
         }
+   }
 
+    /**
+     * Applies the scaffold order to the provided query
+     * @param \ride\library\orm\query\ModelQuery $query
+     * @param array $options
+     * @return null
+     */
+    public function applyOrder(ModelQuery $query, array $options = null) {
         $orderField = isset($options['order']['field']) ? $options['order']['field'] : $this->findOrderField;
         $orderDirection = isset($options['order']['direction']) ? $options['order']['direction'] : $this->findOrderDirection;
+
         if ($orderField) {
             $fieldTokens = explode('.', $orderField);
             $field = $this->meta->getField($fieldTokens[0]);
