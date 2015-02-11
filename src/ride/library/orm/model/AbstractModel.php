@@ -309,8 +309,20 @@ abstract class AbstractModel implements Model, Serializable {
             return $this->list[$locale];
         }
 
-        $entries = $this->find(null, $locale);
-        $this->list[$locale] = $this->getOptionsFromEntries($entries);
+        $page = 1;
+        $limit = 1000;
+        $this->list[$locale] = array();
+
+        do {
+            $entries = $this->find(array(
+                'limit' => $limit,
+                'page' => $page,
+            ), $locale);
+
+            $this->list[$locale] += $this->getOptionsFromEntries($entries);
+
+            $page++;
+        } while (count($entries) == $limit);
 
         return $this->list[$locale];
     }

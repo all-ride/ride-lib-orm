@@ -177,12 +177,28 @@ class ModelLoader {
 
     /**
      * Gets all the loaded models
-     * @param boolean $loadAll Set to true to load all the models
+     * @param boolean $reloadAll Set to true to skip the cache
      * @return array Array with the loaded models
      */
-    public function getModels($loadAll = false) {
-        if (!$loadAll || $this->modelRegister) {
+    public function getModels($reloadAll = false) {
+        if ($this->modelRegister) {
             return $this->models;
+        }
+
+        if (!$reloadAll && $this->cache) {
+            $cacheItem = $this->cache->get('_index');
+            if ($cacheItem->isValid()) {
+                $models = $cacheItem->getValue();
+                foreach ($models as $modelName => $dummy) {
+                    if (isset($this->models[$modelName])) {
+                        continue;
+                    }
+
+                    $this->models[$modelName] = $this->getModel($modelName);
+                }
+
+                return $this->models;
+            }
         }
 
         if (!$this->orm) {
@@ -220,6 +236,7 @@ class ModelLoader {
      */
     private function initializeModels() {
         $log = $this->orm->getLog();
+        $cachedModels = array();
 
         foreach ($this->models as $modelName => $model) {
             if ($log) {
@@ -241,9 +258,18 @@ class ModelLoader {
                 $this->cache->set($cacheItem);
 
                 $model->getMeta()->__wakeup();
+
+                $cachedModels[$modelName] = true;
             }
 
             $model->setOrmManager($this->orm);
+        }
+
+        if ($this->cache && $cachedModels) {
+            $cacheItem = $this->cache->create('_index');
+            $cacheItem->setValue($cachedModels);
+
+            $this->cache->set($cacheItem);
         }
     }
 
