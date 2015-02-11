@@ -331,11 +331,11 @@ class OrmManager {
 
     /**
      * Gets all the models
-     * @param boolean $loadAll Set to false to retrieve only the loaded models
+     * @param boolean $reloadAll Set to true to skip the model cache
      * @return array
      */
-    public function getModels($loadAll = true) {
-        return $this->modelLoader->getModels($loadAll);
+    public function getModels($reloadAll = false) {
+        return $this->modelLoader->getModels($reloadAll);
     }
 
     /**
