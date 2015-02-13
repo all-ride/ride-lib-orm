@@ -300,7 +300,17 @@ class ModelRegister {
             $numRelations = $numBelongsTo + $numHasOne + $numHasMany;
 
             $linkModel = $field->getLinkModelName();
-            if (!$linkModel) {
+
+            $isOrdered = false;
+            if ($field instanceof HasManyField && $field->isOrdered()) {
+                if (!$field->getRelationOrder()) {
+                    $field->setRelationOrder('{' . lcfirst($relationModelName) . 'Weight} ASC');
+                }
+
+                $isOrdered = true;
+            }
+
+            if (!$isOrdered && !$linkModel) {
                 if (!$numRelations) {
                     $belongsTo = null;
 
@@ -385,9 +395,9 @@ class ModelRegister {
             }
 
             if ($hasField) {
-                $linkModel = $this->registerManyToManyLinkModel($model, $fieldName, $hasField);
+                $linkModel = $this->registerManyToManyLinkModel($model, $fieldName, $hasField, $isOrdered);
             } else {
-                $linkModel = $this->registerLinkModel($model, $fieldName);
+                $linkModel = $this->registerLinkModel($model, $fieldName, $isOrdered);
             }
 
             $this->updateLinkModelGroup($model, $relationModel, $linkModel);
@@ -430,9 +440,10 @@ class ModelRegister {
      * Registeres a link model for the provided relation field
      * @param \ride\library\orm\model\Model $model
      * @param string $fieldName
+     * @param boolean $isOrdered Flag to see if the relation is ordered
      * @return \ride\library\orm\model\Model The registered model
      */
-    private function registerLinkModel(Model $model, $fieldName) {
+    private function registerLinkModel(Model $model, $fieldName, $isOrdered = false) {
         $modelName = $model->getName();
         $modelMeta = $model->getMeta();
 
@@ -452,16 +463,17 @@ class ModelRegister {
             return;
         }
 
-        return $this->createAndRegisterLinkModel($linkModelName, $modelName, $relationModelName);
+        return $this->createAndRegisterLinkModel($linkModelName, $modelName, $relationModelName, $isOrdered);
     }
 
     /**
      * Registeres a link model for a many to many relation
      * @param \ride\library\orm\definition\field\HasField $field1
      * @param \ride\library\orm\definition\field\HasField $field2
+     * @param boolean $isOrdered Flag to see if the relation is ordered
      * @return \ride\library\orm\model\Model The registered model
      */
-    private function registerManyToManyLinkModel(Model $model, $fieldName, HasField $field2) {
+    private function registerManyToManyLinkModel(Model $model, $fieldName, HasField $field2, $isOrdered = false) {
         $modelName = $model->getName();
         $modelMeta = $model->getMeta();
 
@@ -479,7 +491,7 @@ class ModelRegister {
             return;
         }
 
-        return $this->createAndRegisterLinkModel($linkModelName, $field1->getRelationModelName(), $field2->getRelationModelName());
+        return $this->createAndRegisterLinkModel($linkModelName, $field1->getRelationModelName(), $field2->getRelationModelName(), $isOrdered);
     }
 
     /**
@@ -487,17 +499,19 @@ class ModelRegister {
      * @param string $linkModelName Name of the new link model
      * @param string $modelName1 Name of the first model
      * @param string $modelName2 Name of the second model
+     * @param boolean $isOrdered Flag to see if the relation is ordered
      * @return \ride\library\orm\model\Model The registered model
      */
-    private function createAndRegisterLinkModel($linkModelName, $modelName1, $modelName2) {
+    private function createAndRegisterLinkModel($linkModelName, $modelName1, $modelName2, $isOrdered) {
         $table = new ModelTable($linkModelName);
 
         $indexName = lcfirst($this->generateLinkModelName($modelName1, $modelName2));
+        $isRelationWithSelf = $modelName1 == $modelName2;
 
         $fieldName1 = lcfirst($modelName1);
         $fieldName2 = lcfirst($modelName2);
 
-        if ($modelName1 == $modelName2) {
+        if ($isRelationWithSelf) {
             $field1 = new BelongsToField($fieldName1 . '1', $modelName1);
             $field2 = new BelongsToField($fieldName1 . '2', $modelName2);
         } else {
@@ -505,11 +519,16 @@ class ModelRegister {
             $field2 = new BelongsToField($fieldName2, $modelName2);
         }
 
-        $index = new Index($indexName, array($field1, $field2));
-
         $table->addField($field1);
         $table->addField($field2);
-        $table->addIndex($index);
+        $table->addIndex(new Index($indexName, array($field1, $field2)));
+
+        if ($isOrdered) {
+            $table->addField(new PropertyField($fieldName1 . 'Weight', 'integer'));
+            if (!$isRelationWithSelf) {
+                $table->addField(new PropertyField($fieldName2 . 'Weight', 'integer'));
+            }
+        }
 
         $entryClassName = $this->defaultNamespace . '\\' . $linkModelName . 'Entry';
         $proxyClassName = $this->defaultNamespace . '\\proxy\\' . $linkModelName . 'EntryProxy';
@@ -537,14 +556,8 @@ class ModelRegister {
         $linkModelName2 = $field2->getLinkModelName();
 
         if ($linkModelName1 && $linkModelName2) {
-            // if ($linkModelName1 != $linkModelName2) {
-            //     throw new ModelException('Link model names of ' . $field1->getName() . ' and ' . $field2->getName() . ' are not equal');
-            // }
-
             return $linkModelName1;
-        }
-
-        if ($linkModelName1) {
+        } elseif ($linkModelName1) {
             return $linkModelName1;
         } elseif ($linkModelName2) {
             return $linkModelName2;

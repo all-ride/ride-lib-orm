@@ -22,6 +22,12 @@ class HasManyField extends HasField {
     protected $indexOn;
 
     /**
+     * Flag to see if the related entries are ordered
+     * @var boolean
+     */
+    protected $isOrdered;
+
+    /**
      * Returns the fields to serialize
      * @return array Array with field names
      */
@@ -36,7 +42,28 @@ class HasManyField extends HasField {
             $fields[] = 'indexOn';
         }
 
+        if ($this->isOrdered) {
+            $fields[] = 'isOrdered';
+        }
+
         return $fields;
+    }
+
+    /**
+     * Sets whether this relation is ordered or not
+     * @param boolean $isLocalized
+     * @return null
+     */
+    public function setIsOrdered($isOrdered) {
+        $this->isOrdered = $isOrdered;
+    }
+
+    /**
+     * Gets whether this relation is ordered
+     * @return boolean
+     */
+    public function isOrdered() {
+        return $this->isOrdered;
     }
 
     /**
