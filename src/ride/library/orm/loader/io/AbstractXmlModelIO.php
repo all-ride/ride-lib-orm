@@ -216,6 +216,12 @@ abstract class AbstractXmlModelIO implements ModelIO {
     const ATTRIBUTE_INDEX_ON = 'indexOn';
 
     /**
+     * Name of the ordered attribute for a field tag
+     * @var string
+     */
+    const ATTRIBUTE_ORDER = 'order';
+
+    /**
      * Name of the link model attribute for a field tag
      * @var string
      */
@@ -620,10 +626,16 @@ abstract class AbstractXmlModelIO implements ModelIO {
                            null;
                 $field->setIndexOn($indexOn);
 
+                $isOrdered = $fieldElement->hasAttribute(self::ATTRIBUTE_ORDER) ?
+                             $fieldElement->getAttribute(self::ATTRIBUTE_ORDER) :
+                             null;
+                $field->setIsOrdered($isOrdered);
+
                 $linkModelName = $fieldElement->hasAttribute(self::ATTRIBUTE_LINK_MODEL) ?
                                  $fieldElement->getAttribute(self::ATTRIBUTE_LINK_MODEL) :
                                  null;
                 $field->setLinkModelName($linkModelName);
+
                 break;
             default:
                 throw new OrmException("{$fieldName} of {$modelName} has an invalid relation ({$relationType}) in {$file->getPath()}");
@@ -866,6 +878,10 @@ abstract class AbstractXmlModelIO implements ModelIO {
                 $indexOn = $field->getIndexOn();
                 if ($indexOn) {
                     $element->setAttribute(self::ATTRIBUTE_INDEX_ON, $indexOn);
+                }
+
+                if ($field->isOrdered()) {
+                    $element->setAttribute(self::ATTRIBUTE_ORDER, 'true');
                 }
             }
 

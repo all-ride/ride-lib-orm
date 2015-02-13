@@ -510,7 +510,7 @@ class GenericModel extends AbstractModel {
                 continue;
             }
 
-            $this->saveHasMany($value, $fieldName, $id, $isNew, $field->isDependant());
+            $this->saveHasMany($value, $fieldName, $id, $isNew, $field->isDependant(), $field->isOrdered());
             $newState[$fieldName] = $value;
         }
 
@@ -673,10 +673,11 @@ class GenericModel extends AbstractModel {
      * @param integer $id Primary key of the data which is being saved
      * @param boolean $isNew Flag to see if this is an insert or an update
      * @param boolean $isDependant Flag to see if the values of the field are
+     * @param boolean $isOrdered Flag to see whether this is an ordered relation
      * dependant on this model
      * @return null
      */
-    private function saveHasMany($relationEntries, $fieldName, $id, $isNew, $isDependant) {
+    private function saveHasMany($relationEntries, $fieldName, $id, $isNew, $isDependant, $isOrdered) {
         if (is_null($relationEntries)) {
             return;
         }
@@ -685,8 +686,8 @@ class GenericModel extends AbstractModel {
             throw new ModelException('Provided value for ' . $fieldName . ' should be an array');
         }
 
-        if ($this->meta->isHasManyAndBelongsToMany($fieldName)) {
-            $this->saveHasManyAndBelongsToMany($relationEntries, $fieldName, $id, $isNew);
+        if ($isOrdered || $this->meta->isHasManyAndBelongsToMany($fieldName)) {
+            $this->saveHasManyAndBelongsToMany($relationEntries, $fieldName, $id, $isNew, $isOrdered);
         } else {
             $this->saveHasManyAndBelongsTo($relationEntries, $fieldName, $id, $isNew, $isDependant);
         }
@@ -698,9 +699,10 @@ class GenericModel extends AbstractModel {
      * @param string $fieldName Name of the has many field
      * @param integer $id Primary key of the data which is being saved
      * @param boolean $isNew Flag to see whether this is an insert or an update
+     * @param boolean $isOrdered Flag to see whether this is an ordered relation
      * @return null
      */
-    private function saveHasManyAndBelongsToMany($relationEntries, $fieldName, $id, $isNew) {
+    private function saveHasManyAndBelongsToMany($relationEntries, $fieldName, $id, $isNew, $isOrdered) {
         $foreignKeys = $this->meta->getRelationForeignKey($fieldName);
 
         $foreignKeyToSelf = null;
@@ -728,7 +730,19 @@ class GenericModel extends AbstractModel {
         $foreignKey1 = new FieldExpression($foreignKeys[0]);
         $foreignKey2 = new FieldExpression($foreignKeys[1]);
 
+        if ($isOrdered) {
+            $weightFieldName = $foreignKeys[0];
+            if (!$foreignKeyToSelf) {
+                $weightFieldName = substr($weightFieldName, 0, -1);
+            }
+
+            $weightField = $weightFieldName . 'Weight';
+        }
+
+        $weight = 0;
         foreach ($relationEntries as $relationEntry) {
+            $weight++;
+
             if (!is_numeric($relationEntry)) {
                 $relationModel->save($relationEntry);
 
@@ -738,17 +752,34 @@ class GenericModel extends AbstractModel {
             }
 
             if (isset($oldHasMany[$relationEntryId])) {
-                unset($oldHasMany[$relationEntryId]);
+                if (!$isOrdered || ($isOrdered && $oldHasMany[$relationEntryId][$weightField] == $weight)) {
+                    unset($oldHasMany[$relationEntryId]);
 
-                continue;
+                    continue;
+                } else {
+                    $condition = new SimpleCondition(new FieldExpression(ModelTable::PRIMARY_KEY), new ScalarExpression($oldHasMany[$relationEntryId][ModelTable::PRIMARY_KEY]), Condition::OPERATOR_EQUALS);
+
+                    $statement = new UpdateStatement();
+                    $statement->addTable($linkTable);
+                    $statement->addValue(new FieldExpression($weightField), new ScalarExpression($weight));
+                    $statement->addCondition($condition);
+
+                    $this->executeStatement($statement);
+
+                    unset($oldHasMany[$relationEntryId]);
+                }
+            } else {
+                $statement = new InsertStatement();
+                $statement->addTable($linkTable);
+                $statement->addValue($foreignKey1, $relationEntryId);
+                $statement->addValue($foreignKey2, $id);
+
+                if ($isOrdered) {
+                    $statement->addValue(new FieldExpression($weightField), new ScalarExpression($weight));
+                }
+
+                $this->executeStatement($statement);
             }
-
-            $statement = new InsertStatement();
-            $statement->addTable($linkTable);
-            $statement->addValue($foreignKey1, $relationEntryId);
-            $statement->addValue($foreignKey2, $id);
-
-            $this->executeStatement($statement);
 
             $linkModel->clearCache();
         }
@@ -772,7 +803,7 @@ class GenericModel extends AbstractModel {
     private function findOldHasManyAndBelongsToMany($linkModel, $id, $foreignKeyToSelf, $foreignKey = null) {
         $statement = new SelectStatement();
         $statement->addTable(new TableExpression($linkModel->getName()));
-        $statement->addField(new FieldExpression(ModelTable::PRIMARY_KEY));
+        // $statement->addField(new FieldExpression(ModelTable::PRIMARY_KEY));
 
         if (is_array($foreignKeyToSelf)) {
             $statement->setOperator(Condition::OPERATOR_OR);
@@ -780,7 +811,7 @@ class GenericModel extends AbstractModel {
             foreach ($foreignKeyToSelf as $foreignKey) {
                 $condition = new SimpleCondition(new FieldExpression($foreignKey), new ScalarExpression($id), Condition::OPERATOR_EQUALS);
 
-                $statement->addField(new FieldExpression($foreignKey));
+                // $statement->addField(new FieldExpression($foreignKey));
                 $statement->addCondition($condition);
             }
 
@@ -788,8 +819,8 @@ class GenericModel extends AbstractModel {
         } else {
             $condition = new SimpleCondition(new FieldExpression($foreignKeyToSelf), new ScalarExpression($id), Condition::OPERATOR_EQUALS);
 
-            $statement->addField(new FieldExpression($foreignKeyToSelf));
-            $statement->addField(new FieldExpression($foreignKey));
+            // $statement->addField(new FieldExpression($foreignKeyToSelf));
+            // $statement->addField(new FieldExpression($foreignKey));
             $statement->addCondition($condition);
 
             $isRelationWithSelf = false;
@@ -802,14 +833,16 @@ class GenericModel extends AbstractModel {
         if ($isRelationWithSelf) {
             foreach ($result as $record) {
                 if ($record[$foreignKeyToSelf[0]] == $id) {
-                    $oldHasMany[$record[$foreignKeyToSelf[1]]] = $record[ModelTable::PRIMARY_KEY];
+                    $foreignKeyIndex = 1;
                 } else {
-                    $oldHasMany[$record[$foreignKeyToSelf[0]]] = $record[ModelTable::PRIMARY_KEY];
+                    $foreignKeyIndex = 0;
                 }
+
+                $oldHasMany[$record[$foreignKeyToSelf[$foreignKeyIndex]]] = $record;
             }
         } else {
             foreach ($result as $record) {
-                $oldHasMany[$record[$foreignKey]] = $record[ModelTable::PRIMARY_KEY];
+                $oldHasMany[$record[$foreignKey]] = $record;
             }
         }
 
@@ -824,8 +857,9 @@ class GenericModel extends AbstractModel {
      * @return null
      */
     private function deleteOldHasManyAndBelongsToMany($linkModel, $oldHasMany) {
-        foreach ($oldHasMany as $id) {
-            $linkEntry = $linkModel->createProxy($id);
+        foreach ($oldHasMany as $record) {
+            $linkEntry = $linkModel->createProxy($record[ModelTable::PRIMARY_KEY]);
+
             $linkModel->delete($linkEntry);
         }
     }
@@ -1078,7 +1112,15 @@ class GenericModel extends AbstractModel {
             $keepRecord = false;
         } else {
             $fields = $linkModelTable->getFields();
-            $keepRecord = count($fields) != 3;
+            if ($field->isOrdered()) {
+                if ($linkModelTable->getName() == $this->getName()) {
+                    $keepRecord = count($fields) != 4;
+                } else {
+                    $keepRecord = count($fields) != 5;
+                }
+            } else {
+                $keepRecord = count($fields) != 3;
+            }
         }
 
         $this->clearHasMany($linkModelTable, $entry->id, $keepRecord);
@@ -1198,7 +1240,6 @@ class GenericModel extends AbstractModel {
         foreach ($belongsTo as $field) {
             if ($field->getRelationModelName() == $this->getName()) {
                 $fields[] = $field->getName();
-                break;
             }
         }
 
@@ -1206,8 +1247,15 @@ class GenericModel extends AbstractModel {
             return;
         }
 
+        $properties = $meta->getProperties();
+        foreach ($properties as $propertyName => $property) {
+            if ($propertyName == ModelTable::PRIMARY_KEY || strpos($fieldName, 'Weight')) {
+                unset($properties[$propertyName]);
+            }
+        }
+
         $deleteData = false;
-        if (count($meta->getProperties()) == 1) {
+        if (!count($properties)) {
             if (count($belongsTo) == 2) {
                 $deleteData = true;
             }
