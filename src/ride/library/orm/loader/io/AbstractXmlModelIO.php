@@ -291,6 +291,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
             @$dom->load($file);
 
             $rootElement = $dom->documentElement;
+
             return $this->getModelsFromElement($rootElement, $file);
         } catch (Exception $exception) {
             throw new Exception('Could not read models from ' . $file, 0, $exception);
