@@ -566,7 +566,6 @@ class QueryParser {
         $this->tables[self::ALIAS_SELF]->addJoin($join);
 
         $foreignKey = $this->meta->getRelationForeignKey($fieldName);
-
         $expressionPrimaryKey = new FieldExpression(ModelTable::PRIMARY_KEY, $relationTable, $fieldName . self::ALIAS_SEPARATOR . ModelTable::PRIMARY_KEY);
         $expressionForeignKey = new FieldExpression($foreignKey, $linkTable, $linkTable->getAlias() . self::ALIAS_SEPARATOR . $foreignKey);
         $joinCondition = new SimpleCondition($expressionPrimaryKey, $expressionForeignKey, Condition::OPERATOR_EQUALS);

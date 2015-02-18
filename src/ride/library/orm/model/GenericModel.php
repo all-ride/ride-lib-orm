@@ -1249,7 +1249,7 @@ class GenericModel extends AbstractModel {
 
         $properties = $meta->getProperties();
         foreach ($properties as $propertyName => $property) {
-            if ($propertyName == ModelTable::PRIMARY_KEY || strpos($fieldName, 'Weight')) {
+            if ($propertyName == ModelTable::PRIMARY_KEY || strpos($propertyName, 'Weight')) {
                 unset($properties[$propertyName]);
             }
         }
