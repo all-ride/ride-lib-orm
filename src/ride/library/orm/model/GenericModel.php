@@ -146,9 +146,10 @@ class GenericModel extends AbstractModel {
      * @param boolean $fetchUnlocalized Flag to see if unlocalized entries
      * should be fetched
      * @param integer $recursiveDepth Recursive depth of the query
+     * @param string $indexOn Name of the field to use for the key in the result
      * @return array
      */
-    public function find(array $options = null, $locale = null, $fetchUnlocalized = false, $recursiveDepth = 0) {
+    public function find(array $options = null, $locale = null, $fetchUnlocalized = false, $recursiveDepth = 0, $indexOn = null) {
         $query = $this->createFindQuery($options, $locale, $fetchUnlocalized, $recursiveDepth);
 
         if (isset($options['limit'])) {
@@ -157,7 +158,7 @@ class GenericModel extends AbstractModel {
             $query->setLimit($options['limit'], $options['limit'] * ($page - 1));
         }
 
-        return $query->query();
+        return $query->query($indexOn);
     }
 
     /**

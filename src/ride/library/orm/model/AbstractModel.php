@@ -346,11 +346,74 @@ abstract class AbstractModel implements Model, Serializable {
     }
 
     /**
+     * Gets an entry based on an id or open structure
+     * @param string|array $value Id of the entry, an array of ids, a structure
+     * of values or an array of structures of values
+     * @param string $locale Code of the locale
+     * @return mixed|null Requested entry or null when the entry could not be
+     * found
+     */
+    public function getEntryFromValue($value, $locale) {
+        if ($value === '' || $value === null) {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            if ($value < 1) {
+                return null;
+            }
+
+            // numeric value, get entry proxy
+            return $this->createProxy($value, $locale);
+        }
+
+        if (!is_array($value)) {
+            // not numeric and not an array, invalid value
+            throw new OrmException('Could not get ' . $this->getName() . ' entry for ' . $value . ': invalid value provided');
+        }
+
+        if (isset($value[0])) {
+            // 0-index value set, assume array of entries
+            $result = array();
+
+            foreach ($value as $entry) {
+                $result[] = $this->getEntryFromValue($entry, $locale);
+            }
+
+            return $result;
+        }
+
+        // first value not set, assume value struct
+        if (isset($value[ModelTable::PRIMARY_KEY])) {
+            $entry = $this->getById($value[ModelTable::PRIMARY_KEY], $locale);
+        } else {
+            $entry = $this->createEntry();
+        }
+
+        $fields = $this->getMeta()->getFields();
+        foreach ($fields as $fieldName => $field) {
+            if (!isset($value[$fieldName])) {
+                continue;
+            }
+
+            if (!$field instanceof PropertyField) {
+                $relationModel = $this->orm->getModel($field->getRelationModelName());
+
+                $value[$fieldName] = $relationModel->getEntryFromValue($value[$fieldName], $locale);
+            }
+
+            $this->reflectionHelper->setProperty($entry, $fieldName, $value[$fieldName]);
+        }
+
+        return $entry;
+    }
+
+    /**
      * Converts a data instance to an array
      * @param mixed $data Primary key or a data instance
      * @return array|integer|null
      */
-    public function convertEntryToArray($data, array $omitFields = null, $level = 10) {
+    public function convertEntryToArray($data, array $omitFields = null, $level = 1) {
         if ($data === null || is_numeric($data)) {
             return $data;
         }
