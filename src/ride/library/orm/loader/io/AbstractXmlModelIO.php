@@ -14,12 +14,6 @@ use ride\library\orm\definition\FieldValidator;
 use ride\library\orm\definition\ModelTable;
 use ride\library\orm\exception\OrmException;
 use ride\library\orm\meta\ModelMeta;
-use ride\library\orm\model\behaviour\DateBehaviour;
-use ride\library\orm\model\behaviour\GeoBehaviour;
-use ride\library\orm\model\behaviour\LogBehaviour;
-use ride\library\orm\model\behaviour\SlugBehaviour;
-use ride\library\orm\model\behaviour\UniqueBehaviour;
-use ride\library\orm\model\behaviour\VersionBehaviour;
 use ride\library\orm\model\Model;
 use ride\library\orm\OrmManager;
 use ride\library\reflection\Boolean;
@@ -252,12 +246,27 @@ abstract class AbstractXmlModelIO implements ModelIO {
     protected $reflectionHelper;
 
     /**
+     * Array with the behaviour initializers to hook into the model setup
+     * @var array
+     */
+    protected $behaviourInitializers = array();
+
+    /**
      * Constructs a new XML model IO
      * @param \ride\library\reflection\ReflectionHelper $reflectionHelper
      * @return null
      */
     public function __construct(ReflectionHelper $reflectionHelper) {
         $this->reflectionHelper = $reflectionHelper;
+    }
+
+    /**
+     * Sets the behaviour initializers to hook into the model setup
+     * @param $behaviourInitializers
+     * @return null
+     */
+    public function setBehaviourInitializers(array $behaviourInitializers) {
+        $this->behaviourInitializers = array_reverse($behaviourInitializers);
     }
 
     /**
@@ -395,12 +404,10 @@ abstract class AbstractXmlModelIO implements ModelIO {
         $this->setFormatsFromElement($modelElement, $modelTable);
         $this->setOptionsFromElement($modelElement, $modelTable);
 
-        $behaviours = $this->getBehavioursFromModelTable($modelTable);
-
         $arguments = array(
         	'reflectionHelper' => $this->reflectionHelper,
             'meta' => new ModelMeta($modelTable, $entryClassName, $proxyClassName),
-            'behaviours' => $behaviours,
+            'behaviours' => $this->getBehavioursFromModelTable($modelTable),
         );
 
         return $this->reflectionHelper->createObject($modelClassName, $arguments, OrmManager::INTERFACE_MODEL);
@@ -415,74 +422,8 @@ abstract class AbstractXmlModelIO implements ModelIO {
     protected function getBehavioursFromModelTable(ModelTable $modelTable) {
         $behaviours = array();
 
-        if ($modelTable->getOption('behaviour.date')) {
-            $behaviours[] = new DateBehaviour();
-
-            if (!$modelTable->hasField('dateAdded')) {
-                $dateAddedField = new PropertyField('dateAdded', 'datetime');
-                $dateAddedField->setOptions(array(
-                    'label.name' => 'label.date.added',
-                    'scaffold.form.omit' => 'true',
-                    'scaffold.order' => 'true',
-                ));
-
-                $modelTable->addField($dateAddedField);
-            }
-            if (!$modelTable->hasField('dateModified')) {
-                $dateModifiedField = new PropertyField('dateModified', 'datetime');
-                $dateModifiedField->setOptions(array(
-                    'label.name' => 'label.date.modified',
-                    'scaffold.form.omit' => 'true',
-                    'scaffold.order' => 'true',
-                ));
-
-                $modelTable->addField($dateModifiedField);
-            }
-        }
-
-        if ($modelTable->getOption('behaviour.log')) {
-            $behaviours[] = new LogBehaviour();
-        }
-
-        if ($modelTable->getOption('behaviour.slug')) {
-            $behaviours[] = new SlugBehaviour();
-
-            if (!$modelTable->hasField('slug')) {
-                $slugField = new PropertyField('slug', 'string');
-                $slugField->setIsUnique(true);
-                $slugField->setOptions(array(
-                    'label.name' => 'label.slug',
-                    'scaffold.form.omit' => 'true',
-                ));
-                $slugField->addValidator('required', array());
-
-                $modelTable->addField($slugField);
-            }
-        }
-
-        if ($modelTable->getOption('behaviour.version')) {
-            $behaviours[] = new VersionBehaviour();
-
-            if (!$modelTable->hasField('version')) {
-                $versionField = new PropertyField('version', 'integer');
-                $versionField->setOptions(array(
-                    'label.name' => 'label.version',
-                    'scaffold.form.omit' => 'true',
-                ));
-
-                $modelTable->addField($versionField);
-            }
-        }
-
-        $fields = $modelTable->getFields();
-        foreach ($fields as $fieldName => $field) {
-            if ($fieldName == ModelTable::PRIMARY_KEY) {
-                continue;
-            }
-
-            if ($field->isUnique()) {
-                $behaviours[] = new UniqueBehaviour($fieldName);
-            }
+        foreach ($this->behaviourInitializers as $behaviourInitializer) {
+            $behaviours += $behaviourInitializer->getBehavioursForModel($modelTable);
         }
 
         return $behaviours;

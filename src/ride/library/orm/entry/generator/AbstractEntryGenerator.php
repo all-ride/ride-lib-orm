@@ -23,6 +23,11 @@ abstract class AbstractEntryGenerator implements EntryGenerator {
         $this->defaultNamespace = $defaultNamespace;
     }
 
+    /**
+     * Converts the provided ORM type to a documentation type
+     * @param string $type ORM type
+     * @return string DOC type
+     */
     protected function normalizeType($type) {
         switch ($type) {
             case 'binary':

@@ -12,21 +12,29 @@ use ride\library\orm\definition\field\PropertyField;
 use ride\library\orm\definition\ModelTable;
 use ride\library\orm\loader\ModelRegister;
 use ride\library\orm\meta\ModelMeta;
-use ride\library\orm\model\behaviour\DateBehaviour;
-use ride\library\orm\model\behaviour\GeoBehaviour;
-use ride\library\orm\model\behaviour\OwnerBehaviour;
-use ride\library\orm\model\behaviour\SlugBehaviour;
-use ride\library\orm\model\behaviour\VersionBehaviour;
 use ride\library\orm\model\Model;
 use ride\library\reflection\Boolean;
 use ride\library\system\file\File;
-
-use \InvalidArgumentException;
 
 /**
  * Entry generator for the generic entry class
  */
 class GenericEntryGenerator extends AbstractEntryGenerator {
+
+    /**
+     * Array with the behaviour initializers to hook into the entry generation
+     * @var array
+     */
+    protected $behaviourInitializers = array();
+
+    /**
+     * Sets the behaviour initializers to hook into the entry generation
+     * @param $behaviourInitializers
+     * @return null
+     */
+    public function setBehaviourInitializers(array $behaviourInitializers) {
+        $this->behaviourInitializers = $behaviourInitializers;
+    }
 
     /**
      * Generates an entry class for the provided model
@@ -57,91 +65,9 @@ class GenericEntryGenerator extends AbstractEntryGenerator {
             }
         }
 
-        $behaviours = $model->getBehaviours();
-        foreach ($behaviours as $behaviour) {
-            if ($behaviour instanceof DateBehaviour) {
-                $class->addImplements('ride\\library\\orm\\entry\\DatedEntry');
-
-                $timestampArgument = $this->generator->createVariable('timestamp', 'integer');
-                $timestampArgument->setDescription('UNIX timestamp of the date');
-
-                $setterCode =
-'if ($this->getDateAdded()) {
-    return;
-}
-
-$this->dateAdded = $timestamp;
-$this->dateModified = $timestamp;';
-
-                $setterMethod = $this->generator->createMethod('setDateAdded', array($timestampArgument), $setterCode);
-                $setterMethod->setDescription('Sets the add date');
-
-                $class->addMethod($setterMethod);
-            }
-            if ($behaviour instanceof GeoBehaviour) {
-                $class->addImplements('ride\\library\\orm\\entry\\GeoEntry');
-
-                $geoValue = $meta->getOption('behaviour.geo');
-                try {
-                    Boolean::getBoolean($geoValue);
-                } catch (InvalidArgumentException $exception) {
-                    $fields = explode(',', $geoValue);
-
-                    if (count($fields) == 1) {
-                        $field = array_pop($fields);
-
-                        $addressCode = 'return $this->get' . ucfirst($field) . '();';
-                    } else {
-                        $addressCode = "\$address = '';\n";
-                        foreach ($fields as $field) {
-                            $addressCode .= '$address .= \' \' . $this->get' . ucfirst(trim($field)) . "();\n";
-                        }
-                        $addressCode .= "\nreturn trim(\$address);";
-                    }
-
-                    $addressMethod = $this->generator->createMethod('getGeoAddress', array(), $addressCode);
-                    $addressMethod->setDescription('Gets the address to lookup the coordinates for');
-                    $addressMethod->setReturnValue($this->generator->createVariable('result', 'string'));
-
-                    $class->addMethod($addressMethod);
-                }
-            }
-            if ($behaviour instanceof OwnerBehaviour) {
-                $class->addImplements('ride\\library\\orm\\entry\\OwnedEntry');
-            }
-            if ($behaviour instanceof SlugBehaviour) {
-                $class->addImplements('ride\\library\\orm\\entry\\SluggedEntry');
-
-                $slugValue = $meta->getOption('behaviour.slug');
-                try {
-                    Boolean::getBoolean($slugValue);
-                } catch (InvalidArgumentException $exception) {
-                    $properties = explode(',', $slugValue);
-
-                    $slugCode = "\$slug = '';\n";
-                    foreach ($properties as $property) {
-                        $property = trim($property);
-                        $tokens = explode('.', $property);
-
-                        $var = '$this';
-                        foreach ($tokens as $token) {
-                            $var .= '->get' . ucfirst($token) . '()';
-                        }
-
-                        $slugCode .= '$slug .= \' \' . ' . $var . ";\n";
-                    }
-                    $slugCode .= "\nreturn trim(\$slug);";
-
-                    $slugMethod = $this->generator->createMethod('getSlugBase', array(), $slugCode);
-                    $slugMethod->setDescription('Gets the desired slug based on properties of the entry');
-                    $slugMethod->setReturnValue($this->generator->createVariable('result', 'string'));
-
-                    $class->addMethod($slugMethod);
-                }
-            }
-            if ($behaviour instanceof VersionBehaviour) {
-                $class->addImplements('ride\\library\\orm\\entry\\VersionedEntry');
-            }
+        $modelTable = $meta->getModelTable();
+        foreach ($this->behaviourInitializers as $behaviourInitializer) {
+            $behaviourInitializer->generateEntryClass($modelTable, $this->generator, $class);
         }
 
         if ($meta->isLocalized()) {

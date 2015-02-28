@@ -7,17 +7,16 @@ namespace ride\library\orm\entry;
  */
 interface OwnedEntry {
 
-    // /**
-    // * Sets the owner of the entry
-    // * @param integer $version
-    // * @return null
-    // */
-    // conflicts when owner should be a relation instead of username
-    // public function setOwner($owner);
+    /**
+     * Sets the owner of the entry
+     * @param string $owner
+     * @return null
+     */
+    public function setOwner($owner);
 
     /**
-     * Gets the current version of the entry
-     * @return integer
+     * Gets the owner of the entry
+     * @return string
      */
     public function getOwner();
 
