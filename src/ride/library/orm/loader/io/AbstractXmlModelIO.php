@@ -423,7 +423,10 @@ abstract class AbstractXmlModelIO implements ModelIO {
         $behaviours = array();
 
         foreach ($this->behaviourInitializers as $behaviourInitializer) {
-            $behaviours += $behaviourInitializer->getBehavioursForModel($modelTable);
+            $initializerBehaviours = $behaviourInitializer->getBehavioursForModel($modelTable);
+            foreach ($initializerBehaviours as $behaviour) {
+                $behaviours[] = $behaviour;
+            }
         }
 
         return $behaviours;
