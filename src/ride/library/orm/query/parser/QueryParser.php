@@ -250,9 +250,11 @@ class QueryParser {
                 $countField->addArgument($group->getExpression());
             }
         } else {
-            if ($modelQuery->isDistinct()) {
+            if ($modelQuery->isDistinct() || $this->statement->isDistinct()) {
                 $countField->addArgument(new FieldExpression(ModelTable::PRIMARY_KEY, $this->tables[self::ALIAS_SELF]));
                 $countField->setDistinct(true);
+
+                $this->statement->setDistinct(false);
             } else {
                 $countField->addArgument(new SqlExpression('*'));
             }
