@@ -30,7 +30,7 @@ class SlugBehaviour extends AbstractBehaviour {
             return;
         }
 
-        $slugBase = StringHelper::safeString($slugBase);
+        $slugBase = str_replace('.', '', StringHelper::safeString($slugBase));
         $slug = $slugBase;
         $index = 1;
 
