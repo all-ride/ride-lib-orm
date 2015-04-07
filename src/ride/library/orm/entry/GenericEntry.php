@@ -5,24 +5,14 @@ namespace ride\library\orm\entry;
 /**
  * Generic data container
  */
-class GenericEntry {
-
-    /**
-     * Id of the log data
-     * @var integer|string
-     */
-    protected $id;
+class GenericEntry extends AbstractEntry {
 
     /**
      * Gets a string representation of this data
      * @return string
      */
     public function __toString() {
-        if ($this->id) {
-            return 'Entry #' . $this->id;
-        } else {
-            return 'New Entry';
-        }
+        return 'Entry #' . $this->id;
     }
 
     /**
@@ -77,23 +67,6 @@ class GenericEntry {
         if (isset($this->$name)) {
             unset($this->$name);
         }
-    }
-
-    /**
-     * Sets the id of this entry
-     * @param integer|string $id
-     * @return null
-     */
-    public function setId($id) {
-        $this->id = $id;
-    }
-
-    /**
-     * Gets the id of this entry
-     * @return integer|string
-     */
-    public function getId() {
-        return $this->id;
     }
 
 }

@@ -435,9 +435,6 @@ class ModelQuery {
         $result = $this->queryRelations($result, $belongsToFields, $hasFields);
         $result = $this->queryUnlocalized($result);
 
-        $resultParser = $this->model->getResultParser();
-        $entry->setEntryState($resultParser->processState($entry->getEntryState()));
-
         return $entry;
     }
 
@@ -453,11 +450,6 @@ class ModelQuery {
         $result = $this->model->getResultParser()->parseResult($this->orm, $result, $indexField);
         $result = $this->queryRelations($result, $belongsToFields, $hasFields);
         $result = $this->queryUnlocalized($result, $indexField);
-
-        $resultParser = $this->model->getResultParser();
-        foreach ($result as $index => $entry) {
-            $result[$index]->setEntryState($resultParser->processState($entry->getEntryState()));
-        }
 
         return $result;
     }
@@ -586,7 +578,7 @@ class ModelQuery {
                     $value = $query->queryFirst();
 
                     $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
-                    $result[$index]->setFieldState($fieldName, $value);
+                    $result[$index]->setLoadedValues($fieldName, $value);
                 }
             }
         }
@@ -645,7 +637,7 @@ class ModelQuery {
                 $value = $this->reflectionHelper->getProperty($localizedData, $fieldName);
 
                 $this->reflectionHelper->setProperty($result[$id], $fieldName, $value);
-                $result[$id]->setFieldState($fieldName, $value);
+                $result[$id]->setLoadedValues($fieldName, $value);
             }
         }
 
@@ -680,7 +672,7 @@ class ModelQuery {
             $value = $query->queryFirst();
 
             $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
-            $result[$index]->setFieldState($fieldName, $value);
+            $result[$index]->setLoadedValues($fieldName, $value);
         }
 
         return $result;
@@ -748,7 +740,7 @@ class ModelQuery {
             }
 
             $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
-            $result[$index]->setFieldState($fieldName, $value);
+            $result[$index]->setLoadedValues($fieldName, $value);
         }
 
         return $result;
@@ -840,7 +832,7 @@ class ModelQuery {
             }
 
             $reflectionHelper->setProperty($result[$index], $fieldName, $value);
-            $result[$index]->setFieldState($fieldName, $value);
+            $result[$index]->setLoadedValues($fieldName, $value);
         }
 
         return $result;
@@ -934,7 +926,7 @@ class ModelQuery {
             }
 
             $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
-            $result[$index]->setFieldState($fieldName, $value);
+            $result[$index]->setLoadedValues($fieldName, $value);
         }
 
         return $result;

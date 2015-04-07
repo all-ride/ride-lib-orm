@@ -19,10 +19,12 @@ use ride\library\orm\definition\field\HasManyField;
 use ride\library\orm\definition\field\PropertyField;
 use ride\library\orm\definition\field\RelationField;
 use ride\library\orm\definition\ModelTable;
-use ride\library\orm\entry\proxy\EntryProxy;
 use ride\library\orm\entry\EntryCollection;
+use ride\library\orm\entry\EntryProxy;
+use ride\library\orm\entry\Entry;
 use ride\library\orm\entry\LocalizedEntry;
 use ride\library\orm\exception\ModelException;
+use ride\library\orm\meta\ModelMeta;
 use ride\library\orm\query\ModelQuery;
 use ride\library\validation\exception\ValidationException;
 use ride\library\validation\ValidationError;
@@ -374,29 +376,33 @@ class GenericModel extends AbstractModel {
      * @throws \Exception when the data could not be saved
      */
     protected function saveEntry($entry) {
-        if (!$this->willSave($entry)) {
+        $state = $this->willSave($entry);
+        if ($state === false) {
             return;
         }
 
         $this->validate($entry);
 
         $table = new TableExpression($this->meta->getName());
-        $idField = new FieldExpression(ModelTable::PRIMARY_KEY, $table);
 
-        $id = $this->reflectionHelper->getProperty($entry, ModelTable::PRIMARY_KEY);
-        if (!$id) {
+        if ($state === Entry::STATE_NEW) {
             $statement = new InsertStatement();
 
             $isNew = true;
+            $isProxy = false;
         } else {
+            $id = $entry->getId();
+
             $this->saveStack[$id] = $id;
 
+            $idField = new FieldExpression(ModelTable::PRIMARY_KEY, $table);
             $condition = new SimpleCondition($idField, new ScalarExpression($id), Condition::OPERATOR_EQUALS);
 
             $statement = new UpdateStatement();
             $statement->addCondition($condition);
 
             $isNew = false;
+            $isProxy = $entry instanceof EntryProxy;
         }
 
         foreach ($this->behaviours as $behaviour) {
@@ -407,20 +413,22 @@ class GenericModel extends AbstractModel {
             }
         }
 
-        $isProxy = $entry instanceof EntryProxy;
-        $newState = array();
+        $loadedValues = array();
 
         $statement->addTable($table);
 
+        // add the properties to the statement
         $properties = $this->meta->getProperties();
         foreach ($properties as $fieldName => $field) {
-            if ($fieldName == ModelTable::PRIMARY_KEY || $field->isLocalized() || ($isProxy && !$isNew && !$entry->isFieldLoaded($fieldName))) {
+            if ($fieldName == ModelTable::PRIMARY_KEY || $field->isLocalized() || ($isProxy && !$entry->isFieldSet($fieldName))) {
+                // don't add localized or unloaded proxy properties
                 continue;
             }
 
             $value = $this->reflectionHelper->getProperty($entry, $fieldName);
 
-            if ($isProxy && !$isNew && $entry->hasFieldState($fieldName) && $entry->getFieldState($fieldName) === $value) {
+            if ($isProxy && $entry->isValueLoaded($fieldName) && $entry->getLoadedValues($fieldName) === $value) {
+                // don't add values which are the same as the current value
                 continue;
             }
 
@@ -429,48 +437,54 @@ class GenericModel extends AbstractModel {
             }
 
             $statement->addValue(new FieldExpression($fieldName), new ScalarExpression($value));
-            $newState[$fieldName] = $value;
+            $loadedValues[$fieldName] = $value;
         }
 
+        // add the belongsTo relations to the statement
         $belongsTo = $this->meta->getBelongsTo();
         foreach ($belongsTo as $fieldName => $field) {
-            if ($field->isLocalized() || ($isProxy && !$isNew && !$entry->isFieldLoaded($fieldName))) {
+            if ($field->isLocalized() || ($isProxy && !$entry->isFieldSet($fieldName))) {
+                // don't add localized or unloaded proxy relations
                 continue;
             }
 
             $value = $this->reflectionHelper->getProperty($entry, $fieldName);
 
-            if ($isProxy && !$isNew && $entry->hasFieldState($fieldName)) {
-                $fieldState = $entry->getFieldState($fieldName);
-                if ($fieldState === $value) {
+            if ($isProxy && $entry->isValueLoaded($fieldName)) {
+                $loadedValue = $entry->getLoadedValues($fieldName);
+                if (($value === null && $loadedValue === null) || ($value->getId() === $loadedValue->getId() && $value->getEntryState() === Entry::STATE_CLEAN)) {
+                    // don't add values which are the same as the current value
                     continue;
                 }
 
-                $hasFieldState = true;
+                $isValueLoaded = true;
             } else {
-                $hasFieldState = false;
+                $isValueLoaded = false;
             }
 
             $foreignKey = $this->saveBelongsTo($value, $fieldName);
 
-            if ($hasFieldState && $foreignKey === $this->reflectionHelper->getProperty($fieldState, ModelTable::PRIMARY_KEY)) {
+            if ($isValueLoaded && $foreignKey === $loadedValue->getId()) {
+                // don't add values which are the same as the current value
                 continue;
             }
 
             $statement->addValue(new FieldExpression($fieldName), new ScalarExpression($foreignKey));
-            $newState[$fieldName] = $value;
+            $loadedValues[$fieldName] = $value;
         }
 
         $fields = $statement->getValues();
 
         $executeStatement = !empty($fields);
         if (!$executeStatement && $isNew && $this->meta->isLocalized()) {
+            // make sure a new entry with only localized fields is inserted
             $statement->addValue(new FieldExpression(ModelTable::PRIMARY_KEY), new ScalarExpression(0));
 
             $executeStatement = true;
         }
 
         if ($executeStatement) {
+            // executes the insert or update for the entry
             $connection = $this->orm->getConnection();
             $connection->executeStatement($statement);
 
@@ -483,41 +497,89 @@ class GenericModel extends AbstractModel {
             $this->clearCache();
         }
 
+        // save the hasOne relations
         $hasOne = $this->meta->getHasOne();
         foreach ($hasOne as $fieldName => $field) {
-            if ($field->isLocalized() || ($isProxy && !$isNew && !$entry->isFieldLoaded($fieldName))) {
+            if ($field->isLocalized() || ($isProxy && !$entry->isFieldSet($fieldName))) {
+                // don't add localized or unloaded proxy relations
                 continue;
             }
 
             $value = $this->reflectionHelper->getProperty($entry, $fieldName);
 
-            if ($isProxy && !$isNew && $entry->hasFieldState($fieldName) && $entry->getFieldState($fieldName) === $value) {
-                continue;
+            if ($isProxy && $entry->isValueLoaded($fieldName)) {
+                $loadedValue = $entry->getLoadedValues($fieldName);
+                if ($value->getId() === $loadedValue->getId() && $value->getEntryState() === Entry::STATE_CLEAN) {
+                    // don't add values which are the same as the current value
+                    continue;
+                }
             }
 
             $this->saveHasOne($value, $fieldName, $id);
-            $newState[$fieldName] = $value;
+            $loadedValues[$fieldName] = $value;
         }
 
+        // save the hasMany relations
         $hasMany = $this->meta->getHasMany();
         foreach ($hasMany as $fieldName => $field) {
-            if ($field->isLocalized() || ($isProxy && !$isNew && !$entry->isFieldLoaded($fieldName))) {
+            if ($field->isLocalized() || ($isProxy && !$entry->isFieldSet($fieldName))) {
+                // don't add localized or unloaded proxy relations
                 continue;
             }
 
             $value = $this->reflectionHelper->getProperty($entry, $fieldName);
 
-            if ($isProxy && !$isNew && $entry->hasFieldState($fieldName) && $entry->getFieldState($fieldName) === $value) {
-                continue;
+            if ($isProxy && $entry->isValueLoaded($fieldName)) {
+                $loadedValue = $entry->getLoadedValues($fieldName);
+                $isClean = true;
+
+                foreach ($value as $valueEntry) {
+                    $hasFoundEntry = false;
+                    foreach ($loadedValue as $loadedValueEntry) {
+                        if ($valueEntry->getId() !== $loadedValueEntry->getId()) {
+                            // not the entry we're looking for
+                            continue;
+                        }
+
+                        $hasFoundEntry = true;
+
+                        if ($valueEntry->getEntryState() !== Entry::STATE_CLEAN) {
+                            // it's not clean, get out of the check
+                            $isClean = false;
+
+                            break 2;
+                        }
+
+                        break;
+                    }
+
+                    if (!$hasFoundEntry) {
+                        // entry not found in the loaded values, unclean, get out of the check
+                        $isClean = false;
+
+                        break;
+                    }
+                }
+
+                if ($isClean) {
+                    continue;
+                }
             }
 
             $this->saveHasMany($value, $fieldName, $id, $isNew, $field->isDependant(), $field->isOrdered());
-            $newState[$fieldName] = $value;
+            $loadedValues[$fieldName] = $value;
         }
 
         if ($this->meta->isLocalized()) {
-            $this->saveLocalizedEntry($entry, $isProxy, $isNew, $newState);
+            $this->saveLocalizedEntry($entry, $isProxy, $isNew, $loadedValues);
         }
+
+        if ($isProxy) {
+            $entry->setLoadedValues($loadedValues);
+        }
+        $entry->setEntryState(Entry::STATE_CLEAN);
+
+        unset($this->saveStack[$id]);
 
         foreach ($this->behaviours as $behaviour) {
             if ($isNew) {
@@ -526,21 +588,13 @@ class GenericModel extends AbstractModel {
                 $behaviour->postUpdate($this, $entry);
             }
         }
-
-        if ($isProxy) {
-            $newState = $this->getResultParser()->processState($newState);
-            foreach ($newState as $fieldName => $value) {
-                $entry->setFieldState($fieldName, $value);
-            }
-        }
-
-        unset($this->saveStack[$id]);
     }
 
     /**
      * Checks if the provided entry needs a save
      * @param mixed $entry
-     * @return boolean
+     * @return boolean|integer False when there is no need for a save, the state
+     * of the entry otherwise
      */
     protected function willSave($entry) {
         if (is_null($entry)) {
@@ -549,16 +603,16 @@ class GenericModel extends AbstractModel {
 
         $this->meta->isValidEntry($entry);
 
-        $id = $this->reflectionHelper->getProperty($entry, ModelTable::PRIMARY_KEY);
-        if (isset($this->saveStack[$id])) {
+        if (isset($this->saveStack[$entry->getId()])) {
             return false;
         }
 
-        if ($entry instanceof EntryProxy && $entry->hasCleanState()) {
+        $state = $entry->getEntryState();
+        if ($state === Entry::STATE_CLEAN || $state === Entry::STATE_DELETED) {
             return false;
         }
 
-        return true;
+        return $state;
     }
 
     /**
@@ -566,10 +620,10 @@ class GenericModel extends AbstractModel {
      * @param mixed $entry Entry instance
      * @param boolean $isProxy Flag to see if the entry is an entry proxy
      * @param boolean $isNew Flag to see if the entry is a new one
-     * @param array $newState Updated state of the entry
+     * @param array $loadedValues Updated loaded values of the entry
      * @return null
      */
-    private function saveLocalizedEntry($entry, $isProxy, $isNew, array &$newState) {
+    private function saveLocalizedEntry($entry, $isProxy, $isNew, array &$loadedValues) {
         $entryLocale = null;
         if ($entry instanceof LocalizedEntry) {
             $entryLocale = $entry->getLocale();
@@ -591,16 +645,17 @@ class GenericModel extends AbstractModel {
             $localizedEntry = $localizedModel->createProxy(0, $entryLocale, $properties);
 
             if ($isProxy) {
-                $state = $entry->getEntryState();
-                $state[LocalizedModel::FIELD_ENTRY] = $properties[LocalizedModel::FIELD_ENTRY];
+                $localizedLoadedValues = $entry->getLoadedValues();
+                $localizedLoadedValues[LocalizedModel::FIELD_ENTRY] = $properties[LocalizedModel::FIELD_ENTRY];
+                $localizedLoadedValues[LocalizedModel::FIELD_LOCALE] = $properties[LocalizedModel::FIELD_LOCALE];
 
-                $localizedEntry->setEntryState($state);
+                $localizedEntry->setLoadedValues($localizedLoadedValues);
             }
         }
 
         $fields = $this->meta->getLocalizedFields();
         foreach ($fields as $fieldName => $field) {
-            if (!$isNew && $isProxy && !$entry->isFieldLoaded($fieldName)) {
+            if ($isProxy && !$entry->isValueLoaded($fieldName)) {
                 continue;
             }
 
@@ -611,11 +666,11 @@ class GenericModel extends AbstractModel {
 
         foreach ($fields as $fieldName => $field) {
             if ($isProxy) {
-                if (!$entry->isFieldLoaded($fieldName)) {
+                if (!$entry->isValueLoaded($fieldName)) {
                     continue;
                 }
 
-                $newState[$fieldName] = $localizedEntry->getFieldState($fieldName);
+                $loadedValues[$fieldName] = $localizedEntry->getLoadedValues($fieldName);
             }
 
             $this->reflectionHelper->setProperty($entry, $fieldName, $this->reflectionHelper->getProperty($localizedEntry, $fieldName));
@@ -633,18 +688,10 @@ class GenericModel extends AbstractModel {
             return null;
         }
 
-        if (is_numeric($relationEntry)) {
-            if ($relationEntry == 0) {
-                return null;
-            }
-
-            return $relationEntry;
-        }
-
         $relationModel = $this->getRelationModel($fieldName);
         $relationModel->save($relationEntry);
 
-        return $this->reflectionHelper->getProperty($relationEntry, ModelTable::PRIMARY_KEY);
+        return $relationEntry->getId();
     }
 
     /**
@@ -659,7 +706,7 @@ class GenericModel extends AbstractModel {
             return;
         }
 
-        $relationModel = $this->meta->getRelationModel($fieldName);
+        $relationModel = $this->getRelationModel($fieldName);
         $relationForeignKey = $this->meta->getRelationForeignKey($fieldName);
 
         $this->reflectionHelper->setProperty($relationEntry, $relationForeignKey, $this->createProxy($id));
@@ -684,7 +731,7 @@ class GenericModel extends AbstractModel {
         }
 
         if (!is_array($relationEntries)) {
-            throw new ModelException('Provided value for ' . $fieldName . ' should be an array');
+            throw new ModelException('Could not save the hasMany value of ' . $fieldName . ': provided value should be an array');
         }
 
         if ($isOrdered || $this->meta->isHasManyAndBelongsToMany($fieldName)) {
@@ -744,13 +791,9 @@ class GenericModel extends AbstractModel {
         foreach ($relationEntries as $relationEntry) {
             $weight++;
 
-            if (!is_numeric($relationEntry)) {
-                $relationModel->save($relationEntry);
+            $relationModel->save($relationEntry);
 
-                $relationEntryId = $this->reflectionHelper->getProperty($relationEntry, ModelTable::PRIMARY_KEY);
-            } else {
-                $relationEntryId = $relationEntry;
-            }
+            $relationEntryId = $relationEntry->getId();
 
             if (isset($oldHasMany[$relationEntryId])) {
                 if (!$isOrdered || ($isOrdered && $oldHasMany[$relationEntryId][$weightField] == $weight)) {
@@ -886,16 +929,8 @@ class GenericModel extends AbstractModel {
         }
 
         foreach ($relationEntries as $relationEntry) {
-            if (is_numeric($relationEntry)) {
-                if (!$isNew && array_key_exists($relationEntry, $oldHasMany)) {
-                    unset($oldHasMany[$record]);
-                }
-
-                continue;
-            }
-
             $skipSave = false;
-            if ($relationEntry instanceof EntryProxy && $relationEntry->hasCleanState()) {
+            if ($relationEntry instanceof EntryProxy && $relationEntry->getEntryState() === Entry::STATE_CLEAN) {
                 $skipSave = true;
             }
 
@@ -978,11 +1013,11 @@ class GenericModel extends AbstractModel {
         $query->addCondition('{id} = %1%', $id);
 
         $entry = $query->queryFirst();
-
-        if ($entry == null) {
+        if (!$entry) {
             return;
         }
 
+        // check for delete blocking
         if ($this->meta->willBlockDeleteWhenUsed() && $this->isDataReferencedInUnlinkedModels($entry)) {
             $validationError = new ValidationError('orm.error.data.used', '%data% is still in use by another record', array('data' => $this->meta->formatData($entry)));
 
@@ -992,6 +1027,7 @@ class GenericModel extends AbstractModel {
             throw $validationException;
         }
 
+        // handle pre delete behaviour
         foreach ($this->behaviours as $behaviour) {
             $behaviour->preDelete($this, $entry);
         }
@@ -1012,6 +1048,7 @@ class GenericModel extends AbstractModel {
 
         $this->clearCache();
 
+        // delete the related entries
         $belongsTo = $this->meta->getBelongsTo();
         foreach ($belongsTo as $fieldName => $field) {
             $this->deleteBelongsTo($fieldName, $field, $entry);
@@ -1027,10 +1064,15 @@ class GenericModel extends AbstractModel {
             $this->deleteHasMany($fieldName, $field, $entry);
         }
 
+        // updates the state of the entry
+        $entry->setEntryState(Entry::STATE_DELETED);
+
+        // handle post delete behaviour
         foreach ($this->behaviours as $behaviour) {
             $behaviour->postDelete($this, $entry);
         }
 
+        // go back
         return $entry;
     }
 
@@ -1114,12 +1156,15 @@ class GenericModel extends AbstractModel {
         } else {
             $fields = $linkModelTable->getFields();
             if ($field->isOrdered()) {
-                if ($linkModelTable->getName() == $this->getName()) {
+                if ($field->getRelationModelName() == $this->getName()) {
+                    // id, model entry 1, model entry 2, model order
                     $keepRecord = count($fields) != 4;
                 } else {
+                    // id, model entry, relation entry, model order, relation order
                     $keepRecord = count($fields) != 5;
                 }
             } else {
+                // id, model entry, relation entry
                 $keepRecord = count($fields) != 3;
             }
         }
@@ -1263,6 +1308,7 @@ class GenericModel extends AbstractModel {
         }
 
         $table = new TableExpression($unlinkedModelName);
+        $localizedTable = new TableExpression($unlinkedModelName . ModelMeta::SUFFIX_LOCALIZED);
         $id = new SqlExpression($entry->id);
 
         if ($deleteData) {
@@ -1282,7 +1328,11 @@ class GenericModel extends AbstractModel {
                 $condition = new SimpleCondition($field, $id, Condition::OPERATOR_EQUALS);
 
                 $statement = new UpdateStatement();
-                $statement->addTable($table);
+                if ($belongsTo[$fieldName]->isLocalized()) {
+                    $statement->addTable($localizedTable);
+                } else {
+                    $statement->addTable($table);
+                }
                 $statement->addValue($field, null);
                 $statement->addCondition($condition);
 

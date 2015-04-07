@@ -204,25 +204,11 @@ class ResultParser {
 
         // create entry
         $entry = $this->model->createProxy($properties[ModelTable::PRIMARY_KEY], $locale, $properties);
-        $entry->setEntryState($this->processState($properties));
-
         if ($entry instanceof LocalizedEntry) {
             $entry->setLocale($locale);
         }
 
         return $entry;
-    }
-
-    public function processState(array $data) {
-        foreach ($data as $field => $fieldValue) {
-            if (is_object($fieldValue)) {
-                $data[$field] = clone $fieldValue;
-            } elseif (is_array($fieldValue)) {
-                $data[$field] = $this->processState($fieldValue);
-            }
-        }
-
-        return $data;
     }
 
 }

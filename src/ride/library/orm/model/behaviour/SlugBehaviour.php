@@ -9,7 +9,7 @@ use ride\library\validation\exception\ValidationException;
 use ride\library\StringHelper;
 
 /**
- * Interface to add extra behaviour to a model
+ * Behaviour to generate a unique slug for your entry
  */
 class SlugBehaviour extends AbstractBehaviour {
 
@@ -30,7 +30,7 @@ class SlugBehaviour extends AbstractBehaviour {
             return;
         }
 
-        $slugBase = StringHelper::safeString($slugBase);
+        $slugBase = str_replace('.', '', StringHelper::safeString($slugBase));
         $slug = $slugBase;
         $index = 1;
 

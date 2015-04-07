@@ -11,6 +11,7 @@ use ride\library\orm\definition\ModelTable;
 use ride\library\orm\exception\ModelException;
 use ride\library\orm\exception\OrmException;
 use ride\library\orm\entry\format\EntryFormatter;
+use ride\library\orm\entry\Entry;
 use ride\library\orm\meta\ModelMeta;
 use ride\library\orm\model\behaviour\Behaviour;
 use ride\library\orm\model\data\validator\GenericDataValidator;
@@ -266,8 +267,12 @@ abstract class AbstractModel implements Model, Serializable {
 
         $locale = $this->getLocale($locale);
 
-        if (!isset($this->saveStack[$id]) && !$properties && isset($this->proxies[$id][$locale]) && $this->proxies[$id][$locale]->hasCleanState()) {
+        if (!isset($this->saveStack[$id]) && !$properties && isset($this->proxies[$id][$locale]) && $this->proxies[$id][$locale]->getEntryState() === Entry::STATE_CLEAN) {
             return $this->proxies[$id][$locale];
+        }
+
+        if ($this->meta->isLocalized()) {
+            $properties['locale'] = $locale;
         }
 
         $properties = array(
@@ -276,13 +281,11 @@ abstract class AbstractModel implements Model, Serializable {
             'properties' => $properties,
         );
 
-        if ($this->meta->isLocalized()) {
-            $properties['locale'] = $locale;
-        }
-
         $proxy = $this->reflectionHelper->createData($this->meta->getProxyClassName(), $properties);
 
-        $this->proxies[$id][$locale] = $proxy;
+        if ($id) {
+            $this->proxies[$id][$locale] = $proxy;
+        }
 
         return $proxy;
     }
