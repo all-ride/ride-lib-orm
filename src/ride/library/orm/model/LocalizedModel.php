@@ -3,6 +3,7 @@
 namespace ride\library\orm\model;
 
 use ride\library\orm\entry\proxy\EntryProxy;
+use ride\library\orm\entry\Entry;
 use ride\library\orm\entry\LocalizedEntry;
 use ride\library\orm\exception\OrmException;
 
@@ -29,19 +30,24 @@ class LocalizedModel extends GenericModel {
      * @return null
      */
     protected function saveEntry($entry) {
-        if ($entry->getId()) {
+        if ($entry->getEntryState() !== Entry::STATE_NEW) {
             parent::saveEntry($entry);
 
             return;
         }
 
-        $locale = $this->reflectionHelper->getProperty($entry, self::FIELD_LOCALE);
-        $entry->setId($this->getLocalizedId($entry->getEntry()->getId(), $locale));
+        $locale = $entry->getLocale();
+        $id = $this->getLocalizedId($entry->getEntry()->getId(), $locale);
+
+        if ($id) {
+            $entry->setId($id);
+            $entry->setEntryState(Entry::STATE_DIRTY);
+        }
 
         if ($entry instanceof EntryProxy) {
-            $stateLocale = $entry->getFieldState('locale');
-            if ($locale && $stateLocale && $locale != $stateLocale) {
-                $entry->setEntryState(array());
+            $loadedLocale = $entry->getLoadedValues('locale');
+            if ($locale && $loadedLocale && $locale != $loadedLocale) {
+                $entry->setLoadedValues(array());
             }
         }
 

@@ -53,8 +53,12 @@ class GenericEntryGenerator extends AbstractEntryGenerator {
 
         $class = $this->generator->createClass($entryClassName, ModelMeta::CLASS_ENTRY);
         $class->setDescription("Generated entry for the " . $modelName . " model\n\nNOTE: Do not edit this class directly, define your own and extend from this one.");
+        $class->addMethod($this->generator->createMethod('__toString', array(), 'return \'' . $modelName . ' #\' . $this->getId();'));
 
         $fields = $meta->getFields();
+
+        $this->generateState($class, $fields);
+
         foreach ($fields as $field) {
             if ($field instanceof PropertyField) {
                 $this->generateProperty($class, $field);
@@ -78,6 +82,45 @@ class GenericEntryGenerator extends AbstractEntryGenerator {
         $sourceFile->write($this->generator->generateClass($class));
     }
 
+    protected function generateState(CodeClass $class, array $fields) {
+        // entry state
+        $getEntryStateCode =
+'$entryState = parent::getEntryState();
+if ($entryState !== self::STATE_CLEAN) {
+    return $entryState;
+}
+
+';
+        foreach ($fields as $fieldName => $field) {
+            if ($field instanceof BelongsToField || $field instanceof HasOneField) {
+                $getEntryStateCode .=
+'if ($this->' . $fieldName . ' && $this->' . $fieldName . '->getEntryState() !== self::STATE_CLEAN) {
+    return self::STATE_DIRTY;
+}
+
+';
+            } elseif ($field instanceof HasManyField) {
+                $getEntryStateCode .=
+'if ($this->' . $fieldName . ') {
+    foreach ($this->' . $fieldName . ' as $value) {
+        if ($value->getEntryState() !== self::STATE_CLEAN) {
+            return self::STATE_DIRTY;
+        }
+    }
+}
+
+';
+            }
+        }
+
+        $getEntryStateCode .= 'return self::STATE_CLEAN;';
+
+        $getEntryStateMethod = $this->generator->createMethod('getEntryState', array(), $getEntryStateCode);
+        $getEntryStateMethod->setDescription('Gets the state of the entry');
+
+        $class->addMethod($getEntryStateMethod);
+    }
+
     protected function generateProperty(CodeClass $class, PropertyField $field) {
         $name = $field->getName();
         if ($name == ModelTable::PRIMARY_KEY) {
@@ -95,7 +138,18 @@ class GenericEntryGenerator extends AbstractEntryGenerator {
             $property->setDefaultValue($defaultValue);
         }
 
-        $setter = $this->generator->createMethod('set' . ucfirst($name), array($property), '$this->' . $name . ' = $' . $name . ';');
+        $setterCode =
+'if ($this->' . $name . ' === $' . $name . ') {
+    return;
+}
+
+$this->' . $name . ' = $' . $name . ';
+
+if ($this->entryState === self::STATE_CLEAN) {
+    $this->entryState = self::STATE_DIRTY;
+}';
+
+        $setter = $this->generator->createMethod('set' . ucfirst($name), array($property), $setterCode);
         if ($type == 'boolean' && substr($name, 0, 2) == 'is') {
             $getter = $this->generator->createMethod($name, array(), 'return $this->' . $name . ';');
         } else {
@@ -132,7 +186,19 @@ class GenericEntryGenerator extends AbstractEntryGenerator {
         $property->setDefaultValue(null);
         $property->setDescription($description);
 
-        $setter = $this->generator->createMethod('set' . ucfirst($name), array($property), '$this->' . $name . ' = $' . $name . ';');
+        $setterCode =
+'$isClean = false;
+if ((!$this->' . $name . ' && !$' . $name . ') || ($this->' . $name . ' && $' . $name . ' && $this->' . $name . '->getId() === $' . $name . '->getId())) {
+    $isClean = true;
+}
+
+$this->' . $name . ' = $' . $name . ';
+
+if (!$isClean && $this->entryState === self::STATE_CLEAN) {
+    $this->entryState = self::STATE_DIRTY;
+}';
+
+        $setter = $this->generator->createMethod('set' . ucfirst($name), array($property), $setterCode);
         $setter->addUse($type, $typeAlias);
         $getter = $this->generator->createMethod('get' . ucfirst($name), array(), 'return $this->' . $name . ';');
         $getter->setReturnValue($property);
@@ -173,7 +239,11 @@ class GenericEntryGenerator extends AbstractEntryGenerator {
         $adderCode =
 '$this->get' . ucfirst($name) . '();
 
-$this->' . $name . '[] = $entry;';
+$this->' . $name . '[] = $entry;
+
+if ($this->entryState === self::STATE_CLEAN) {
+    $this->entryState = self::STATE_DIRTY;
+}';
 
         $setterCode =
 'foreach ($' . $name . ' as $' . $name . 'Index => $' . $name . 'Value) {
@@ -182,20 +252,32 @@ $this->' . $name . '[] = $entry;';
     }
 }
 
-$this->' . $name . ' = $' . $name . ';';
+$this->' . $name . ' = $' . $name . ';
+
+if ($this->entryState === self::STATE_CLEAN) {
+    $this->entryState = self::STATE_DIRTY;
+}';
 
         $removerCode =
 '$this->get' . ucfirst($name) . '();
 
+$status = false;
+
 foreach ($this->' . $name . ' as $' . $name . 'Index => $' . $name . 'Value) {
-    if ($' . $name . 'Value === $entry) {
+    if ($' . $name . 'Value === $entry || $' . $name . 'Value->getId() === $entry->getId()) {
         unset($this->' . $name . '[$' . $name . 'Index]);
 
-        return true;
+        $status = true;
+
+        break;
     }
 }
 
-return false;';
+if ($status && $this->entryState === self::STATE_CLEAN) {
+    $this->entryState = self::STATE_DIRTY;
+}
+
+return $status;';
 
         $argument = $this->generator->createVariable('entry', $type);
 
@@ -251,6 +333,5 @@ return false;';
 
         $class->addImplements('ride\\library\\orm\\entry\\LocalizedEntry');
     }
-
 
 }

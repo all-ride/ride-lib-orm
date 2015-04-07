@@ -9,7 +9,7 @@ use ride\library\validation\exception\ValidationException;
 use ride\library\StringHelper;
 
 /**
- * Interface to add extra behaviour to a model
+ * Behaviour to generate a unique slug for your entry
  */
 class SlugBehaviour extends AbstractBehaviour {
 

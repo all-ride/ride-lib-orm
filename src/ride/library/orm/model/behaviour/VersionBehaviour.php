@@ -2,13 +2,8 @@
 
 namespace ride\library\orm\model\behaviour;
 
-use ride\library\database\manipulation\condition\SimpleCondition;
-use ride\library\database\manipulation\expression\FieldExpression;
-use ride\library\database\manipulation\expression\MathematicalExpression;
-use ride\library\database\manipulation\expression\ScalarExpression;
-use ride\library\database\manipulation\expression\TableExpression;
-use ride\library\database\manipulation\statement\UpdateStatement;
 use ride\library\orm\definition\ModelTable;
+use ride\library\orm\entry\Entry;
 use ride\library\orm\entry\VersionedEntry;
 use ride\library\orm\model\Model;
 use ride\library\validation\exception\ValidationException;
@@ -41,14 +36,12 @@ class VersionBehaviour extends AbstractBehaviour {
      * @return null
      */
     public function postValidate(Model $model, $entry, ValidationException $exception) {
-        if (!$entry instanceof VersionedEntry || !$entry->getId()) {
+        if (!$entry instanceof VersionedEntry || $entry->getEntryState() != Entry::STATE_DIRTY) {
             return;
         }
 
         $currentVersion = $this->findVersionById($model, $entry->getId());
         if ($entry->getVersion() == $currentVersion) {
-            $entry->setVersion($currentVersion + 1);
-
             return;
         }
 
@@ -59,20 +52,6 @@ class VersionBehaviour extends AbstractBehaviour {
         );
 
         $exception->addErrors('version', array($error));
-    }
-
-    /**
-     * Hook before inserting an entry
-     * @param \ride\library\orm\model\Model $model
-     * @param mixed $entry
-     * @return null
-     */
-    public function preInsert(Model $model, $entry) {
-        if (!$entry instanceof VersionedEntry || $entry->getVersion()) {
-            return;
-        }
-
-        $entry->setVersion(1);
     }
 
     /**
@@ -93,6 +72,39 @@ class VersionBehaviour extends AbstractBehaviour {
         }
 
         return $entry->getVersion();
+    }
+
+    /**
+     * Hook before inserting an entry
+     * @param \ride\library\orm\model\Model $model
+     * @param mixed $entry
+     * @return null
+     */
+    public function preInsert(Model $model, $entry) {
+        $this->handleEntry($entry);
+    }
+
+    /**
+     * Hook before inserting an entry
+     * @param \ride\library\orm\model\Model $model
+     * @param mixed $entry
+     * @return null
+     */
+    public function preUpdate(Model $model, $entry) {
+        $this->handleEntry($entry);
+    }
+
+    /**
+     * Updates the entry to a new version
+     * @param mixed $entry
+     * @return null
+     */
+    private function handleEntry($entry) {
+        if (!$entry instanceof VersionedEntry) {
+            return;
+        }
+
+        $entry->setVersion($entry->getVersion() + 1);
     }
 
 }

@@ -41,13 +41,14 @@ class ProxyEntryGenerator extends AbstractEntryGenerator {
 
         $proxyClassName = $this->defaultNamespace . '\\proxy\\' . $modelName . 'EntryProxy';
 
-        $class = $this->generator->createClass($proxyClassName, $entryClassName, array('ride\\library\\orm\\entry\\proxy\\EntryProxy'));
+        $class = $this->generator->createClass($proxyClassName, $entryClassName, array('ride\\library\\orm\\entry\\EntryProxy'));
         $class->setDescription("Generated proxy for an entry of the " . $modelName . " model\n\nNOTE: Do not edit this class");
 
         $isLocalized = $meta->isLocalized();
-
         $fields = $meta->getFields();
+
         $this->generateProxy($class, $fields, $modelName, $isLocalized);
+
         foreach ($fields as $field) {
             if ($field instanceof PropertyField || $field instanceof BelongsToField) {
                 $this->generateProperty($class, $field, $modelRegister);
@@ -69,29 +70,30 @@ class ProxyEntryGenerator extends AbstractEntryGenerator {
     protected function generateProxy(CodeClass $class, array $fields, $modelName, $isLocalized) {
         // constructor
         $constructorCode =
-'$this->id = $id;
-$this->_model = $model;
-$this->_isClean = true;
-$this->_state = array(\'id\' => $id);
-$this->_loaded = array();
+'$this->_model = $model;
+$this->loadedValues = array();
+$this->loadedFields = array();
+$this->id = $id;
 
-foreach ($properties as $propertyName => $propertyValue) {
-    $this->$propertyName = $propertyValue;
-    $this->_state[$propertyName] = $propertyValue;
-    $this->_loaded[$propertyName] = true;
-}';
+if ($id) {
+    $this->entryState = self::STATE_CLEAN;
+} else {
+    $this->entryState = self::STATE_NEW;
+}
+
+$this->setLoadedValues($properties);';
 
         $modelProperty = $this->generator->createProperty('_model', 'ride\\library\\orm\\model\\Model', Code::SCOPE_PROTECTED);
         $modelProperty->setDescription('Instance of the ' . $modelName . ' model');
 
-        $cleanProperty = $this->generator->createProperty('_isClean', 'boolean', Code::SCOPE_PRIVATE);
-        $cleanProperty->setDescription('Flag to see if this entry is clean and not modified');
+        $entryStateProperty = $this->generator->createProperty('entryState', 'integer', Code::SCOPE_PRIVATE);
+        $entryStateProperty->setDescription('Array with the name of the field as key and the state as value');
 
-        $stateProperty = $this->generator->createProperty('_state', 'array', Code::SCOPE_PRIVATE);
-        $stateProperty->setDescription('Array with the name of the field as key and the state as value');
+        $loadedFieldsProperty = $this->generator->createProperty('loadedFields', 'array', Code::SCOPE_PRIVATE);
+        $loadedFieldsProperty->setDescription('Array with the load status of the fields');
 
-        $loadProperty = $this->generator->createProperty('_loaded', 'array', Code::SCOPE_PRIVATE);
-        $loadProperty->setDescription('Array with the load state of the entry');
+        $loadedValuesProperty = $this->generator->createProperty('loadedValues', 'array', Code::SCOPE_PRIVATE);
+        $loadedValuesProperty->setDescription('Array with the loaded values of the fields');
 
         $modelArgument = $this->generator->createVariable('model', 'ride\\library\\orm\\model\\Model');
         $modelArgument->setDescription('Instance of the ' . $modelName . ' model');
@@ -103,25 +105,33 @@ foreach ($properties as $propertyName => $propertyValue) {
         $propertiesArgument->setDescription('Values of the known properties');
         $propertiesArgument->setDefaultValue(array());
 
-        $arguments = array(
+        $constructorArguments = array(
             $modelArgument,
             $idArgument,
             $propertiesArgument,
         );
 
-        $constructor = $this->generator->createMethod('__construct', $arguments, $constructorCode);
-        $constructor->setDescription('Construct a new ' . $modelName . ' entry proxy');
+        $constructorMethod = $this->generator->createMethod('__construct', $constructorArguments, $constructorCode);
+        $constructorMethod->setDescription('Construct a new ' . $modelName . ' entry proxy');
 
         // unlink
         $unlinkCode =
 '$this->_model = null;
 
-foreach ($this->_loaded as $property => $loadState) {
+foreach ($this->loadedFields as $property => $loadState) {
     if ($this->$property instanceof EntryProxy) {
         $this->$property->unlink();
     }
-    if (isset($this->_state[$property]) && $this->_state[$property] instanceof EntryProxy) {
-        $this->_state[$property]->unlink();
+    if (isset($this->loadedValues[$property])) {
+        if ($this->loadedValues[$property] instanceof EntryProxy) {
+            $this->loadedValues[$property]->unlink();
+        } elseif (is_array($this->loadedValues[$property])) {
+            foreach ($this->loadedValues[$property] as $key => $value) {
+                if ($value instanceof EntryProxy) {
+                    $value->unlink();
+                }
+            }
+        }
     }
 
     if (is_array($this->$property)) {
@@ -136,68 +146,96 @@ foreach ($this->_loaded as $property => $loadState) {
         $unlink = $this->generator->createMethod('unlink', array(), $unlinkCode);
         $unlink->setDescription('Removes the link with the ORM');
 
-        // entry state
-        $fieldStateGetterCode =
-'if (!$this->hasFieldState($fieldName)) {
-    return null;
-}
-
-return $this->_state[$fieldName];';
-
-        $stateArgument = $this->generator->createVariable('state', 'array');
-        $stateArgument->setDescription('Array with the name of the field as key and the state as value');
-
-        $cleanChecker = $this->generator->createMethod('hasCleanState', array(), 'return $this->_isClean;');
-        $cleanChecker->setDescription('Gets whether this entry is clean and not modified');
-
-        $entryStateSetter = $this->generator->createMethod('setEntryState', array($stateArgument), '$this->_state = $state;');
-        $entryStateSetter->setDescription('Sets the state of this entry');
-        $entryStateGetter = $this->generator->createMethod('getEntryState', array(), 'return $this->_state;');
-        $entryStateGetter->setDescription('Gets the state of this entry');
-        $entryStateGetter->setReturnValue($stateArgument);
-
-        $fieldArgument = $this->generator->createVariable('fieldName', 'string');
-        $fieldArgument->setDescription('Name of the field');
 
         $valueArgument = $this->generator->createVariable('value', 'mixed');
-        $valueArgument->setDescription('State value of the provided field');
+        $valueArgument->setDescription('Value to process');
 
-        $arguments = array(
-            $fieldArgument,
-            $valueArgument,
-        );
-        $fieldStateSetter = $this->generator->createMethod('setFieldState', $arguments, '$this->_state[$fieldName] = $value;');
-        $fieldStateSetter->setDescription('Sets the state of a field of this entry');
-        $fieldStateChecker = $this->generator->createMethod('hasFieldState', array($fieldArgument), 'return isset($this->_state[$fieldName]);');
-        $fieldStateChecker->setDescription('Checks if the state of a field is set');
-        $fieldStateChecker->setReturnValue($this->generator->createVariable('result', 'boolean'));
-        $fieldStateGetter = $this->generator->createMethod('getFieldState', array($fieldArgument), $fieldStateGetterCode);
-        $fieldStateGetter->setDescription('Gets the state of a field of this entry');
-        $fieldStateGetter->setReturnValue($valueArgument);
+        $processLoadedValueCode =
+'if (is_object($value)) {
+    return clone $value;
+} elseif (is_array($value)) {
+    foreach ($value as $i => $iValue) {
+        $value[$i] = $this->processLoadedValue($iValue);
+    }
+}
 
-        $fieldLoadedChecker = $this->generator->createMethod('isFieldLoaded', array($fieldArgument), 'return isset($this->_loaded[$fieldName]);');
-        $fieldLoadedChecker->setDescription('Checks if a field has been loaded');
-        $fieldLoadedChecker->setReturnValue($this->generator->createVariable('result', 'boolean'));
+return $value;';
+
+        $processLoadedValueMethod = $this->generator->createMethod('processLoadedValue', array($valueArgument), $processLoadedValueCode, Code::SCOPE_PROTECTED);
+        $processLoadedValueMethod->setDescription('Processes the value for the state, clones all instances');
+
+        $fieldNameArgument = $this->generator->createVariable('fieldName', 'string|array');
+        $fieldNameArgument->setDescription('Field name of the provided value or an array with values of multiple fields');
+
+        $valueArgument = $this->generator->createVariable('value', 'mixed');
+        $valueArgument->setDescription('Value of the provided field');
+        $valueArgument->setDefaultValue(null);
+
+        $setLoadedValuesCode =
+'if (!is_array($fieldName)) {
+    $values = array($fieldName => $value);
+} else {
+    $values = $fieldName;
+
+    $this->loadedValues = array();
+}
+
+foreach ($values as $fieldName => $value) {
+    if (!isset($this->loadedValues[$fieldName])) {
+        $this->$fieldName = $value;
+    }
+
+    $this->loadedValues[$fieldName] = $this->processLoadedValue($value);
+    $this->loadedFields[$fieldName] = true;
+}';
+
+        $setLoadedValuesMethod = $this->generator->createMethod('setLoadedValues', array($fieldNameArgument, $valueArgument), $setLoadedValuesCode);
+        $setLoadedValuesMethod->setDescription('Sets the loaded value of the data source');
+
+        $fieldNameArgument = $this->generator->createVariable('fieldName', 'string');
+        $fieldNameArgument->setDescription('Name of the field');
+        $fieldNameArgument->setDefaultValue(null);
+
+        $getLoadedValuesCode =
+'if (!$fieldName) {
+    return $this->loadedValues;
+} elseif (isset($this->loadedValues[$fieldName])) {
+    return $this->loadedValues[$fieldName];
+} else {
+    return null;
+}';
+
+        $getLoadedValuesMethod = $this->generator->createMethod('getLoadedValues', array($fieldNameArgument), $getLoadedValuesCode);
+        $getLoadedValuesMethod->setDescription('Sets the loaded value of the data source');
+
+        $fieldNameArgument = $this->generator->createVariable('fieldName', 'string');
+        $fieldNameArgument->setDescription('Name of the field');
+
+        $isValueLoadedMethod = $this->generator->createMethod('isValueLoaded', array($fieldNameArgument), 'return array_key_exists($fieldName, $this->loadedValues);');
+        $isValueLoadedMethod->setDescription('Checks if a the value of a field is loaded');
+        $isValueLoadedMethod->setReturnValue($this->generator->createVariable('result', 'boolean'));
+
+        $isFieldSetMethod = $this->generator->createMethod('isFieldSet', array($fieldNameArgument), 'return isset($this->loadedFields[$fieldName]);');
+        $isFieldSetMethod->setDescription('Checks if a field is set');
+        $isFieldSetMethod->setReturnValue($this->generator->createVariable('result', 'boolean'));
 
         // property loader
-        $propertyLoaderCode = '
+        $loadPropertiesCode = '
 $id = $this->getId();
 if (!$id) {
     return;
 }
 
-$this->_isClean = false;
-
 ';
         if ($isLocalized) {
-            $propertyLoaderCode .=
+            $loadPropertiesCode .=
 '$query = $this->_model->createQuery(parent::getLocale());
 $query->setFetchUnlocalized(true);';
         } else {
-            $propertyLoaderCode .= '$query = $this->_model->createQuery();';
+            $loadPropertiesCode .= '$query = $this->_model->createQuery();';
         }
 
-        $propertyLoaderCode .= '
+        $loadPropertiesCode .= '
 $query->setRecursiveDepth(0);
 $query->addCondition(\'{' . ModelTable::PRIMARY_KEY . '} = %1%\', $id);
 $entry = $query->queryFirst();
@@ -211,14 +249,16 @@ if (!$entry) {
                 continue;
             }
 
-            $propertyLoaderCode .= '    $this->_loaded[\'' . $fieldName . '\'] = true;' . "\n";
+            $loadPropertiesCode .= '    $this->loadedFields[\'' . $fieldName . '\'] = true;' . "\n";
         }
 
         if ($isLocalized) {
-            $propertyLoaderCode .= '    $this->_loaded[\'locale\'] = true;' . "\n";
+            $loadPropertiesCode .= '    $this->loadedFields[\'locale\'] = true;' . "\n";
         }
 
-        $propertyLoaderCode .= '
+        $loadPropertiesCode .= '
+    $this->entryState = self::STATE_NEW;
+
     return;
 }
 
@@ -235,78 +275,72 @@ if (!$entry) {
                 $getterMethodName = 'get' . ucfirst($fieldName);
             }
 
-            $propertyLoaderCode .=
-'if (!isset($this->_loaded[\'' . $fieldName . '\'])) {
+            $loadPropertiesCode .=
+'if (!isset($this->loadedFields[\'' . $fieldName . '\'])) {
     $this->' . $fieldName . ' = $entry->' . $getterMethodName . '();
-    $this->_state[\'' . $fieldName . '\'] = $entry->_state[\'' . $fieldName . '\'];
-    $this->_loaded[\'' . $fieldName . '\'] = true;
+    $this->loadedValues[\'' . $fieldName . '\'] = $entry->loadedValues[\'' . $fieldName . '\'];
+    $this->loadedFields[\'' . $fieldName . '\'] = true;
 }
 ';
         }
 
         if ($isLocalized) {
-            $propertyLoaderCode .=
+            $loadPropertiesCode .=
 '
 $this->setLocale($entry->getLocale());
 $this->setIslocalized($entry->isLocalized());
-$this->_loaded[\'locale\'] = true;
+$this->loadedFields[\'locale\'] = true;
 ';
         }
 
-        $propertyLoader = $this->generator->createMethod('loadProperties', array(), trim($propertyLoaderCode), Code::SCOPE_PRIVATE);
-        $propertyLoader->setDescription('Loads the values of the properties of this ' . $modelName . ' entry');        // property loader
+        $loadPropertiesMethod = $this->generator->createMethod('loadProperties', array(), trim($loadPropertiesCode), Code::SCOPE_PRIVATE);
+        $loadPropertiesMethod->setDescription('Loads the values of the properties of this ' . $modelName . ' entry');
 
         // relation loader
-        $fieldArgument = $this->generator->createVariable('field', 'string');
-        $fieldArgument->setDescription('Name of the relation field');
+        $fieldNameArgument = $this->generator->createVariable('fieldName', 'string');
+        $fieldNameArgument->setDescription('Name of the relation field');
 
-$relationLoaderCode =
+        $loadRelationCode =
 '$id = $this->getId();
 if (!$id) {
     return;
 }
 
-$this->_isClean = false;
-
 ';
 
         if ($isLocalized) {
-            $relationLoaderCode .=
+            $loadRelationCode .=
 '$query = $this->_model->createQuery($this->getLocale());
 $query->setFetchUnlocalized(true);';
-
         } else {
-            $relationLoaderCode .= '$query = $this->_model->createQuery();';
+            $loadRelationCode .= '$query = $this->_model->createQuery();';
         }
 
-        $relationLoaderCode .= '
-$entry = $query->queryRelation($this->getId(), $field);
+        $loadRelationCode .= '
+$entry = $query->queryRelation($this->getId(), $fieldName);
 
-$getterMethodName = \'get\' . ucfirst($field);
-$this->$field = $entry->$getterMethodName();
-$this->_state[$field] = $entry->_state[$field];
-$this->_loaded[$field] = true;
+$getterMethodName = \'get\' . ucfirst($fieldName);
+$this->$fieldName = $entry->$getterMethodName();
+$this->loadedValues[$fieldName] = $entry->loadedValues[$fieldName];
+$this->loadedFields[$fieldName] = true;
 ';
 
-        $relationLoader = $this->generator->createMethod('loadRelation', array($fieldArgument), trim($relationLoaderCode), Code::SCOPE_PRIVATE);
-        $relationLoader->setDescription('Loads the value of a relation field of this ' . $modelName . ' entry');
+        $loadRelationMethod = $this->generator->createMethod('loadRelation', array($fieldNameArgument), trim($loadRelationCode), Code::SCOPE_PRIVATE);
+        $loadRelationMethod->setDescription('Loads the value of a relation field of this ' . $modelName . ' entry');
 
         // add everything to the class
         $class->addProperty($modelProperty);
-        $class->addProperty($cleanProperty);
-        $class->addProperty($stateProperty);
-        $class->addProperty($loadProperty);
-        $class->addMethod($constructor);
+        $class->addProperty($loadedValuesProperty);
+        $class->addProperty($loadedFieldsProperty);
+        $class->addMethod($constructorMethod);
         $class->addMethod($unlink);
-        $class->addMethod($cleanChecker);
-        $class->addMethod($entryStateSetter);
-        $class->addMethod($entryStateGetter);
-        $class->addMethod($fieldStateSetter);
-        $class->addMethod($fieldStateChecker);
-        $class->addMethod($fieldStateGetter);
-        $class->addMethod($fieldLoadedChecker);
-        $class->addMethod($propertyLoader);
-        $class->addMethod($relationLoader);
+        $class->addMethod($processLoadedValueMethod);
+        $class->addMethod($setLoadedValuesMethod);
+        $class->addMethod($getLoadedValuesMethod);
+        $class->addMethod($isValueLoadedMethod);
+        $class->addMethod($isFieldSetMethod);
+        $class->addMethod($loadPropertiesMethod);
+        $class->addMethod($loadRelationMethod);
     }
 
     protected function generateProperty(CodeClass $class, ModelField $field, ModelRegister $modelRegister) {
@@ -317,8 +351,10 @@ $this->_loaded[$field] = true;
         $ucName = ucfirst($name);
 
         if ($field instanceof PropertyField) {
+            $isProperty = true;
             $type = $this->normalizeType($field->getType());
         } else {
+            $isProperty = false;
             $relationModelName = $field->getRelationModelName();
             $relationModel = $modelRegister->getModel($relationModelName);
             $relationModelMeta = $relationModel->getMeta();
@@ -344,14 +380,36 @@ $this->_loaded[$field] = true;
             $getterMethodName = 'get' . $ucName;
         }
 
-        $setterCode =
-'$this->_isClean = false;
-$this->_loaded[\'' . $name  . '\'] = true;
+        $setterCode = '$hasOldValue = false;
+$oldValue = null;
+if (array_key_exists(\'' . $name . '\', $this->loadedValues)) {
+    $oldValue = $this->loadedValues[\'' . $name . '\'];
+    $hasOldValue = true;
+} elseif ($this->id && !isset($this->loadedFields[\'' . $name . '\'])) {
+    $oldValue = $this->get' . $ucName . '();
+    $hasOldValue = true;
+}';
+        if ($isProperty) {
+            $setterCode .= '
+if ($hasOldValue && $oldValue === $' . $name . ')  {
+    return;
+}
+';
+        } else {
+            $setterCode .= '
+if ($hasOldValue && ((!$oldValue && !$' . $name . ') || ($oldValue && $' . $name . ' && $oldValue->getId() === $' . $name . '->getId())))  {
+    return;
+}
+';
+        }
+
+        $setterCode .= '
+$this->loadedFields[\'' . $name  . '\'] = true;
 
 return parent::set' . $ucName . '($' . $name . ');';
 
         $getterCode =
-'if (!isset($this->_loaded[\'' . $name  . '\'])) {
+'if (!isset($this->loadedFields[\'' . $name  . '\'])) {
     $this->loadProperties();
 }
 
@@ -395,13 +453,12 @@ return parent::' . $getterMethodName . '();';
         }
 
         $setterCode =
-'$this->_isClean = false;
-$this->_loaded[\'' . $name  . '\'] = true;
+'$this->loadedFields[\'' . $name  . '\'] = true;
 
 return parent::set' . $ucName . '($' . $name . ');';
 
         $getterCode =
-'if (!isset($this->_loaded[\'' . $name  . '\'])) {
+'if (!isset($this->loadedFields[\'' . $name  . '\'])) {
     $this->loadRelation(\'' . $name . '\');
 }
 
@@ -427,7 +484,7 @@ return parent::get' . $ucName . '();';
         $return->setDescription('Code of the locale');
 
         $getterCode =
-'if (!isset($this->_loaded[\'locale\'])) {
+'if (!isset($this->loadedFields[\'locale\'])) {
     $this->loadProperties();
 }
 
@@ -444,7 +501,7 @@ return parent::getLocale();';
         $return->setDescription('Flag to see if the entry is localized in the requested locale');
 
         $getterCode =
-'if (!isset($this->_loaded[\'locale\'])) {
+'if (!isset($this->loadedFields[\'locale\'])) {
     $this->loadProperties();
 }
 
