@@ -390,6 +390,7 @@ class GenericModel extends AbstractModel {
 
             $isNew = true;
             $isProxy = false;
+            $loadedValues = array();
         } else {
             $id = $entry->getId();
 
@@ -403,6 +404,7 @@ class GenericModel extends AbstractModel {
 
             $isNew = false;
             $isProxy = $entry instanceof EntryProxy;
+            $loadedValues = $entry->getLoadedValues();
         }
 
         foreach ($this->behaviours as $behaviour) {
@@ -412,8 +414,6 @@ class GenericModel extends AbstractModel {
                 $behaviour->preUpdate($this, $entry);
             }
         }
-
-        $loadedValues = array();
 
         $statement->addTable($table);
 
@@ -656,6 +656,8 @@ class GenericModel extends AbstractModel {
         $fields = $this->meta->getLocalizedFields();
         foreach ($fields as $fieldName => $field) {
             if ($isProxy && !$entry->isValueLoaded($fieldName)) {
+                unset($fields[$fieldName]);
+
                 continue;
             }
 
@@ -666,10 +668,6 @@ class GenericModel extends AbstractModel {
 
         foreach ($fields as $fieldName => $field) {
             if ($isProxy) {
-                if (!$entry->isValueLoaded($fieldName)) {
-                    continue;
-                }
-
                 $loadedValues[$fieldName] = $localizedEntry->getLoadedValues($fieldName);
             }
 
