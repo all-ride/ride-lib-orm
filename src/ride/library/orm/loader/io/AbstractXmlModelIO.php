@@ -561,11 +561,6 @@ abstract class AbstractXmlModelIO implements ModelIO {
             case self::RELATION_HAS_MANY:
                 $field = new HasManyField($fieldName, $relationModelName);
 
-                $relationOrder = $fieldElement->hasAttribute(self::ATTRIBUTE_RELATION_ORDER) ?
-                                 $fieldElement->getAttribute(self::ATTRIBUTE_RELATION_ORDER) :
-                                 null;
-                $field->setRelationOrder($relationOrder);
-
                 $indexOn = $fieldElement->hasAttribute(self::ATTRIBUTE_INDEX_ON) ?
                            $fieldElement->getAttribute(self::ATTRIBUTE_INDEX_ON) :
                            null;
@@ -575,6 +570,11 @@ abstract class AbstractXmlModelIO implements ModelIO {
                              $fieldElement->getAttribute(self::ATTRIBUTE_ORDER) :
                              null;
                 $field->setIsOrdered($isOrdered);
+
+                $relationOrder = $fieldElement->hasAttribute(self::ATTRIBUTE_RELATION_ORDER) ?
+                                 $fieldElement->getAttribute(self::ATTRIBUTE_RELATION_ORDER) :
+                                 ($isOrdered ? '{' . lcfirst($relationModelName) . 'Weight} ASC' : null);
+                $field->setRelationOrder($relationOrder);
 
                 $linkModelName = $fieldElement->hasAttribute(self::ATTRIBUTE_LINK_MODEL) ?
                                  $fieldElement->getAttribute(self::ATTRIBUTE_LINK_MODEL) :
