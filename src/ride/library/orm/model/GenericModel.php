@@ -534,27 +534,16 @@ class GenericModel extends AbstractModel {
                 $isClean = true;
 
                 foreach ($value as $valueEntry) {
-                    $hasFoundEntry = false;
-                    foreach ($loadedValue as $loadedValueEntry) {
-                        if ($valueEntry->getId() !== $loadedValueEntry->getId()) {
-                            // not the entry we're looking for
-                            continue;
-                        }
-
-                        $hasFoundEntry = true;
-
-                        if ($valueEntry->getEntryState() !== Entry::STATE_CLEAN) {
-                            // it's not clean, get out of the check
-                            $isClean = false;
-
-                            break 2;
-                        }
+                    $loadedValueEntry = array_shift($loadedValue);
+                    if (!$loadedValueEntry || $valueEntry->getId() !== $loadedValueEntry->getId()) {
+                        // not the entry we're looking for
+                        $isClean = false;
 
                         break;
                     }
 
-                    if (!$hasFoundEntry) {
-                        // entry not found in the loaded values, unclean, get out of the check
+                    if ($valueEntry->getEntryState() !== Entry::STATE_CLEAN) {
+                        // it's not clean, get out of the check
                         $isClean = false;
 
                         break;
