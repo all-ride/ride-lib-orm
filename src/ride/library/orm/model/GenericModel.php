@@ -448,18 +448,18 @@ class GenericModel extends AbstractModel {
                 continue;
             }
 
+            $isValueLoaded = false;
             $value = $this->reflectionHelper->getProperty($entry, $fieldName);
-
             if ($isProxy && $entry->isValueLoaded($fieldName)) {
                 $loadedValue = $entry->getLoadedValues($fieldName);
-                if (($value === null && $loadedValue === null) || ($value->getId() === $loadedValue->getId() && $value->getEntryState() === Entry::STATE_CLEAN)) {
+                if (($value === null && $loadedValue === null) || ($value && $loadedValue && $value->getId() === $loadedValue->getId() && $value->getEntryState() === Entry::STATE_CLEAN)) {
                     // don't add values which are the same as the current value
                     continue;
                 }
 
-                $isValueLoaded = true;
-            } else {
-                $isValueLoaded = false;
+                if ($loadedValue) {
+                    $isValueLoaded = true;
+                }
             }
 
             $foreignKey = $this->saveBelongsTo($value, $fieldName);
