@@ -531,22 +531,26 @@ class GenericModel extends AbstractModel {
 
             if ($isProxy && $entry->isValueLoaded($fieldName)) {
                 $loadedValue = $entry->getLoadedValues($fieldName);
-                $isClean = true;
+                if (!$value && $loadedValue) {
+                    $isClean = false;
+                } else {
+                    $isClean = true;
 
-                foreach ($value as $valueEntry) {
-                    $loadedValueEntry = array_shift($loadedValue);
-                    if (!$loadedValueEntry || $valueEntry->getId() !== $loadedValueEntry->getId()) {
-                        // not the entry we're looking for
-                        $isClean = false;
+                    foreach ($value as $valueEntry) {
+                        $loadedValueEntry = array_shift($loadedValue);
+                        if (!$loadedValueEntry || $valueEntry->getId() !== $loadedValueEntry->getId()) {
+                            // not the entry we're looking for
+                            $isClean = false;
 
-                        break;
-                    }
+                            break;
+                        }
 
-                    if ($valueEntry->getEntryState() !== Entry::STATE_CLEAN) {
-                        // it's not clean, get out of the check
-                        $isClean = false;
+                        if ($valueEntry->getEntryState() !== Entry::STATE_CLEAN) {
+                            // it's not clean, get out of the check
+                            $isClean = false;
 
-                        break;
+                            break;
+                        }
                     }
                 }
 
