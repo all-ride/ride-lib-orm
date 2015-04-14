@@ -531,7 +531,7 @@ class GenericModel extends AbstractModel {
 
             if ($isProxy && $entry->isValueLoaded($fieldName)) {
                 $loadedValue = $entry->getLoadedValues($fieldName);
-                if (!$value && $loadedValue) {
+                if (count($value) != count($loadedValue)) {
                     $isClean = false;
                 } else {
                     $isClean = true;
