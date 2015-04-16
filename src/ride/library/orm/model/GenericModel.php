@@ -404,7 +404,11 @@ class GenericModel extends AbstractModel {
 
             $isNew = false;
             $isProxy = $entry instanceof EntryProxy;
-            $loadedValues = $entry->getLoadedValues();
+            if ($isProxy) {
+                $loadedValues = $entry->getLoadedValues();
+            } else {
+                $loadedValues = array();
+            }
         }
 
         foreach ($this->behaviours as $behaviour) {
