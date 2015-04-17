@@ -171,7 +171,11 @@ class ResultParser {
                     if (isset($value[$relationPropertyName])) {
                         $belongsToModel = $this->orm->getModel($relationModel->getMeta()->getRelationModelName($relationPropertyName));
 
-                        $value[$relationPropertyName] = $belongsToModel->createProxy($value[$relationPropertyName], $locale);
+                        if ($value[$relationPropertyName]) {
+                            $value[$relationPropertyName] = $belongsToModel->createProxy($value[$relationPropertyName], $locale);
+                        } else {
+                            $value[$relationPropertyName] = null;
+                        }
                     }
                 }
 
@@ -196,9 +200,15 @@ class ResultParser {
             $relationModel = $this->orm->getModel($field->getRelationModelName());
 
             if (is_array($properties[$fieldName])) {
-                $properties[$fieldName] = $relationModel->createProxy(0, $locale, $properties[$fieldName]);
-            } else {
+                if (!isset($properties[$fieldName][ModelTable::PRIMARY_KEY])) {
+                    $properties[$fieldName] = null;
+                } else {
+                    $properties[$fieldName] = $relationModel->createProxy(0, $locale, $properties[$fieldName]);
+                }
+            } elseif ($properties[$fieldName]) {
                 $properties[$fieldName] = $relationModel->createProxy($properties[$fieldName], $locale);
+            } else {
+                $properties[$fieldName] = null;
             }
         }
 
