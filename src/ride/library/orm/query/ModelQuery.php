@@ -828,7 +828,7 @@ class ModelQuery {
             if ($isHasOne) {
                 $value = $this->queryHasOneWithLinkModel($query, $foreignKey);
             } else {
-                $value = $this->queryHasManyWithLinkModel($query, $meta, $fieldName, $foreignKey);
+                $value = $this->queryHasManyWithLinkModel($query, $meta, $fieldName, $foreignKey, $field->isOrdered());
             }
 
             $reflectionHelper->setProperty($result[$index], $fieldName, $value);
@@ -857,8 +857,8 @@ class ModelQuery {
      * @param string $foreignKey Name of the foreign key
      * @return array Model query result for the has many field
      */
-    private function queryHasManyWithLinkModel(ModelQuery $query, ModelMeta $meta, $fieldName, $foreignKey) {
-        if ($query->getRecursiveDepth() == 1) {
+    private function queryHasManyWithLinkModel(ModelQuery $query, ModelMeta $meta, $fieldName, $foreignKey, $isOrdered) {
+        if ($isOrdered || $query->getRecursiveDepth() == 1) {
             $order = $meta->getRelationOrder($fieldName);
             if ($order != null) {
                 $query->addOrderBy($order);
