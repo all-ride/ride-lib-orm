@@ -48,7 +48,7 @@ class FirstLastEntryFormatModifier implements EntryFormatModifier {
         }
 
         if (!$arguments) {
-            return (string) $value;
+            return $value;
         }
 
         foreach ($arguments as $argument) {
