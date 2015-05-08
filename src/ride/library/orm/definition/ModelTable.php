@@ -674,6 +674,20 @@ class ModelTable {
     }
 
     /**
+     * Gets the filters of all the fields
+     * @return array Array with the field name as key and an array with
+     * filter definitions as value
+     */
+    public function getFilters() {
+        $filters = array();
+        foreach ($this->fields as $fieldName => $field) {
+            $filters[$fieldName] = $field->getFilters();
+        }
+
+        return $filters;
+    }
+
+    /**
      * Gets the validators of all the fields
      * @return array Array with the field name as key and an array with
      * validator definitions as value

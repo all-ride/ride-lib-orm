@@ -78,10 +78,22 @@ abstract class AbstractXmlModelIO implements ModelIO {
     const TAG_FIELD = 'field';
 
     /**
-     * Name of the validation tag
+     * Name of the validation tag (deprecated)
      * @var string
      */
     const TAG_VALIDATION = 'validation';
+
+    /**
+     * Name of the validator tag
+     * @var string
+     */
+    const TAG_VALIDATOR = 'validator';
+
+    /**
+     * Name of the filter tag
+     * @var string
+     */
+    const TAG_FILTER = 'filter';
 
     /**
      * Name of the parameter tag
@@ -296,8 +308,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
         try {
             $dom = new DOMDocument('1.0', 'utf-8');
             $dom->preserveWhiteSpace = false;
-
-            @$dom->load($file);
+            $dom->load($file);
 
             $rootElement = $dom->documentElement;
 
@@ -493,6 +504,11 @@ abstract class AbstractXmlModelIO implements ModelIO {
                      false;
         $field->setIsLocalized($localized);
 
+        $filters = $this->getFiltersFromFieldElement($fieldElement, $file, $modelName, $fieldName);
+        foreach ($filters as $filterName => $filterOptions) {
+            $field->addFilter($filterName, $filterOptions);
+        }
+
         $validators = $this->getValidatorsFromFieldElement($fieldElement, $file, $modelName, $fieldName);
         foreach ($validators as $validatorName => $validatorOptions) {
             $field->addValidator($validatorName, $validatorOptions);
@@ -601,6 +617,36 @@ abstract class AbstractXmlModelIO implements ModelIO {
         return $field;
     }
 
+
+    /**
+     * Get the filters for a field
+     * @param DOMElement $fieldElement field element in the model element
+     * @param \ride\library\system\file\File $file the file which is being read
+     * @param string $modelName the model which is currently being processed
+     * @param string $fieldName the field which is currently being processed
+     * @return array Array with filter definitions
+     * @throws \ride\library\orm\exception\OrmException when no name attribute is found in a validation tag
+     */
+    protected function getFiltersFromFieldElement(DOMElement $fieldElement, File $file, $modelName, $fieldName) {
+        $tagFilter = self::TAG_FILTER;
+        $filterElements = $fieldElement->getElementsByTagName($tagFilter);
+
+        $filters = array();
+        $attributeName = self::ATTRIBUTE_NAME;
+        foreach ($filterElements as $filterElement) {
+            $name = $filterElement->getAttribute($attributeName);
+            if ($name == null) {
+                throw new OrmException("No {$attributeName} attribute found for {$tagFilter} tag in {$fieldName} of {$modelName} in {$file->getPath()}");
+            }
+
+            $options = $this->getParametersFromElement($filterElement, $file, $modelName, $fieldName);
+
+            $filters[$name] = $options;
+        }
+
+        return $filters;
+    }
+
     /**
      * Get the validators for a field
      * @param DOMElement $fieldElement field element in the model element
@@ -611,10 +657,26 @@ abstract class AbstractXmlModelIO implements ModelIO {
      * @throws \ride\library\orm\exception\OrmException when no name attribute is found in a validation tag
      */
     protected function getValidatorsFromFieldElement(DOMElement $fieldElement, File $file, $modelName, $fieldName) {
+        $tagValidator = self::TAG_VALIDATOR;
+        $validatorElements = $fieldElement->getElementsByTagName($tagValidator);
+
+        $validators = array();
+        $attributeName = self::ATTRIBUTE_NAME;
+        foreach ($validatorElements as $validatorElement) {
+            $name = $validatorElement->getAttribute($attributeName);
+            if ($name == null) {
+                throw new OrmException("No {$attributeName} attribute found for {$tagValidator} tag in {$fieldName} of {$modelName} in {$file->getPath()}");
+            }
+
+            $options = $this->getParametersFromElement($validatorElement, $file, $modelName, $fieldName);
+
+            $validators[$name] = $options;
+        }
+
+        // deprecated validation tag
         $tagValidation = self::TAG_VALIDATION;
         $validatorElements = $fieldElement->getElementsByTagName($tagValidation);
 
-        $validators = array();
         $attributeName = self::ATTRIBUTE_NAME;
         foreach ($validatorElements as $validatorElement) {
             $name = $validatorElement->getAttribute($attributeName);
@@ -622,10 +684,11 @@ abstract class AbstractXmlModelIO implements ModelIO {
                 throw new OrmException("No {$attributeName} attribute found for {$tagValidation} tag in {$fieldName} of {$modelName} in {$file->getPath()}");
             }
 
-            $options = $this->getValidationParametersFromValidationElement($validatorElement, $file, $modelName, $fieldName);
+            $options = $this->getParametersFromElement($validatorElement, $file, $modelName, $fieldName);
 
             $validators[$name] = $options;
         }
+        // end deprecated
 
         return $validators;
     }
@@ -647,7 +710,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
      * @return array Array with validator parameters
      * @throws \ride\library\orm\exception\OrmException when no name or value attribute is found in a parameter tag
      */
-    protected function getValidationParametersFromValidationElement(DOMElement $element, File $file, $modelName, $fieldName) {
+    protected function getParametersFromElement(DOMElement $element, File $file, $modelName, $fieldName) {
         $parameterElements = $element->getElementsByTagName(self::TAG_PARAMETER);
 
         $parameters = array();
@@ -658,7 +721,7 @@ abstract class AbstractXmlModelIO implements ModelIO {
             }
 
             $value = $parameterElement->getAttribute('value');
-            if ($value == null) {
+            if ($value === null) {
                 throw new OrmException('No ' . self::ATTRIBUTE_VALUE . ' attribute found for ' . self::TAG_PARAMETER . ' tag for validation ' . $name . ' in ' . $fieldName . ' of ' . $modelName . ' in ' . $file->getPath());
             }
 

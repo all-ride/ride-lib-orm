@@ -29,6 +29,12 @@ abstract class ModelField extends Field {
     protected $options = array();
 
     /**
+     * Filters for this field
+     * @var array
+     */
+    protected $filters = array();
+
+    /**
      * Validators for this field
      * @var array
      */
@@ -47,6 +53,10 @@ abstract class ModelField extends Field {
 
         if ($this->options) {
             $fields[] = 'options';
+        }
+
+        if ($this->filters) {
+            $fields[] = 'filters';
         }
 
         if ($this->validators) {
@@ -74,9 +84,28 @@ abstract class ModelField extends Field {
     }
 
     /**
+     * Adds a filter definition
+     * @param string $name Name of the filter
+     * @param array $options Options for the filter
+     * @return null
+     */
+    public function addFilter($name, array $options) {
+        $this->filters[$name] = $options;
+    }
+
+    /**
+     * Gets the filter definitions
+     * @return array Array with the name of the filter as key and the
+     * filter options as value
+     */
+    public function getFilters() {
+        return $this->filters;
+    }
+
+    /**
      * Adds a validator definition
      * @param string $name Name of the validator
-     * @param array $options Options for the validator
+          * @param array $options Options for the validator
      * @return null
      */
     public function addValidator($name, array $options) {
@@ -86,7 +115,7 @@ abstract class ModelField extends Field {
     /**
      * Gets the validator definitions
      * @return array Array with the name of the validator as key and the
-     * validator options as value
+          * validator options as value
      */
     public function getValidators() {
         return $this->validators;
