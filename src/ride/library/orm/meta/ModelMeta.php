@@ -349,6 +349,15 @@ class ModelMeta {
 
         $this->validationConstraint = new GenericConstraint();
 
+        $filters = $this->table->getFilters();
+        foreach ($filters as $fieldName => $fieldFilters) {
+            foreach ($fieldFilters as $filterName => $filterOptions) {
+                $filter = $validationFactory->createFilter($filterName, $filterOptions);
+
+                $this->validationConstraint->addFilter($filter, $fieldName);
+            }
+        }
+
         $validators = $this->table->getValidators();
         foreach ($validators as $fieldName => $fieldValidators) {
             foreach ($fieldValidators as $validatorName => $validatorOptions) {
