@@ -33,10 +33,11 @@ class ResultParser {
     /**
      * Parses a database result into a ORM result
      * @param \ride\library\database\result\DatabaseResult $databaseResult
+     * @param string $locale Code of the requested locale
      * @param string $indexFieldName Name of the field to index the result on
      * @return array Array with entry objects
      */
-    public function parseResult(OrmManager $orm, DatabaseResult $databaseResult, $indexFieldName = null) {
+    public function parseResult(OrmManager $orm, DatabaseResult $databaseResult, $locale = null, $indexFieldName = null) {
         $this->orm = $orm;
         $this->meta = $this->model->getMeta();
         $this->isLocalized = $this->meta->isLocalized();
@@ -49,7 +50,7 @@ class ResultParser {
         }
 
         foreach ($databaseResult as $row) {
-            $entry = $this->getEntryFromRow($row);
+            $entry = $this->getEntryFromRow($row, $locale);
 
             if ($indexFieldName && isset($row[$indexFieldName])) {
                 $result[$row[$indexFieldName]] = $entry;
@@ -66,12 +67,12 @@ class ResultParser {
     /**
      * Gets an entry for the provided database result row
      * @param array $row Database result row
+     * @param string $locale Code of the requested locale
      * @return mixed Instance of an entry
      */
-    protected function getEntryFromRow($row) {
+    protected function getEntryFromRow($row, $locale) {
         $aliasses = array();
         $properties = array();
-        $locale = null;
 
         // extract aliasses and process values
         foreach ($row as $column => $value) {
@@ -122,8 +123,6 @@ class ResultParser {
 
         if ($this->isLocalized && isset($properties[LocalizedModel::FIELD_LOCALE])) {
             $locale = $properties[LocalizedModel::FIELD_LOCALE];
-        } else {
-            $locale = $this->orm->getLocale();
         }
 
         // handle relation entries
