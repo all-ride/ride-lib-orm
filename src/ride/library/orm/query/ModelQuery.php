@@ -447,7 +447,7 @@ class ModelQuery {
      * @return array Result
      */
     protected function parseResult($result, $belongsToFields, $hasFields, $indexField = null) {
-        $result = $this->model->getResultParser()->parseResult($this->orm, $result, $indexField);
+        $result = $this->model->getResultParser()->parseResult($this->orm, $result, $this->locale, $indexField);
         $result = $this->queryRelations($result, $belongsToFields, $hasFields);
         $result = $this->queryUnlocalized($result, $indexField);
 
@@ -472,7 +472,7 @@ class ModelQuery {
             }
 
             $id = $this->reflectionHelper->getProperty($entry, DefinitionModelTable::PRIMARY_KEY);
-            if ($entry->isLocalized() || !$id) {
+            if ($entry->getLocale() == $this->locale || !$id) {
                 continue;
             }
 
