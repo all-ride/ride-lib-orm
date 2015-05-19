@@ -697,7 +697,7 @@ class GenericModel extends AbstractModel {
      * @return null
      */
     private function saveHasOne($relationEntry, $fieldName, $id) {
-        if (is_null($entry)) {
+        if (is_null($relationEntry)) {
             return;
         }
 
