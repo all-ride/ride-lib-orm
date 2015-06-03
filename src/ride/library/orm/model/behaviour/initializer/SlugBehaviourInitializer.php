@@ -36,6 +36,10 @@ class SlugBehaviourInitializer implements BehaviourInitializer {
             ));
             $slugField->addValidator('required', array());
 
+            if ($modelTable->isLocalized()) {
+                $slugField->setIsLocalized(true);
+            }
+
             $modelTable->addField($slugField);
         }
 

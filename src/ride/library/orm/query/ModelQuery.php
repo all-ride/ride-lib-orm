@@ -8,6 +8,7 @@ use ride\library\orm\definition\field\HasField;
 use ride\library\orm\definition\field\HasOneField;
 use ride\library\orm\definition\ModelTable as DefinitionModelTable;
 use ride\library\orm\entry\LocalizedEntry;
+use ride\library\orm\entry\EntryProxy;
 use ride\library\orm\exception\OrmException;
 use ride\library\orm\meta\ModelMeta;
 use ride\library\orm\model\LocalizedModel;
@@ -412,27 +413,27 @@ class ModelQuery {
      * Queries a relation field
      * @param string|integer $id Primary key of the entry
      * @param string $fieldName Name of the relation field
-     * @return mixed Instance of an entry proxie with the relation field queried
+     * @return mixed Instance of an entry proxy with the relation field queried
      */
     public function queryRelation($id, $fieldName) {
         $entry = $this->model->createProxy($id);
+        if ($entry->isValueLoaded($fieldName)) {
+            return $entry;
+        }
 
-        $belongsToFields = array();
-        $hasFields = array();
+        $meta = $this->model->getMeta();
+        $field = $meta->getField($fieldName);
 
-        $field = $this->model->getMeta()->getField($fieldName);
+        $result = array($id => $entry);
+
         if ($field instanceof HasField) {
-            $hasFields[$fieldName] = $field;
+            $result = $this->queryHasRelations($result, array($fieldName => $field), $meta, 1);
         } elseif ($field instanceof BelongsToField) {
-            $belongsToFields[$fieldName] = $field;
+            $result = $this->queryBelongsToRelations($result, array($fieldName => $field), $meta, 1);
         } else {
             throw new OrmException('Could not query field: ' . $fieldName . ' is not a relation field');
         }
 
-        $this->setRecursiveDepth(1);
-
-        $result = array($id => $entry);
-        $result = $this->queryRelations($result, $belongsToFields, $hasFields);
         $result = $this->queryUnlocalized($result);
 
         return $entry;
@@ -472,7 +473,7 @@ class ModelQuery {
             }
 
             $id = $this->reflectionHelper->getProperty($entry, DefinitionModelTable::PRIMARY_KEY);
-            if ($entry->getLocale() == $this->locale || !$id) {
+            if ($entry->isLocalized() || !$id) {
                 continue;
             }
 
@@ -503,7 +504,8 @@ class ModelQuery {
             foreach ($localeResult as $index => $localeEntry) {
                 $id = $this->reflectionHelper->getProperty($localeEntry, DefinitionModelTable::PRIMARY_KEY);
 
-                $this->reflectionHelper->setProperty($localeEntry, LocalizedModel::FIELD_LOCALE, $locale);
+                $localeEntry->setLocale($locale);
+                $localeEntry->setIsLocalized(false);
 
                 $result[$index] = $localeEntry;
 
@@ -535,8 +537,14 @@ class ModelQuery {
         }
 
         $meta = $this->model->getMeta();
-        $localizedFields = array();
 
+        $result = $this->queryBelongsToRelations($result, $belongsToFields, $meta, $recursiveDepth);
+        $result = $this->queryHasRelations($result, $hasFields, $meta, $recursiveDepth);
+
+        return $result;
+    }
+
+    protected function queryBelongsToRelations(array $result, array $belongsToFields, $meta, $recursiveDepth) {
         if ($belongsToFields) {
             foreach ($belongsToFields as $fieldName => $field) {
                 $result = $this->queryBelongsTo($result, $meta, $recursiveDepth, $fieldName, $field);
@@ -577,12 +585,17 @@ class ModelQuery {
                     $query->addCondition('{id} = %1%', $fieldId);
                     $value = $query->queryFirst();
 
-                    $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
+                    $this->reflectionHelper->setProperty($result[$index], $fieldName, $value, true);
                     $result[$index]->setLoadedValues($fieldName, $value);
                 }
             }
         }
 
+        return $result;
+    }
+
+    protected function queryHasRelations(array $result, array $hasFields, $meta, $recursiveDepth) {
+        $localizedFields = array();
         foreach ($hasFields as $field) {
             if (is_string($field)) {
                 $fieldName = $field;
@@ -636,7 +649,7 @@ class ModelQuery {
 
                 $value = $this->reflectionHelper->getProperty($localizedData, $fieldName);
 
-                $this->reflectionHelper->setProperty($result[$id], $fieldName, $value);
+                $this->reflectionHelper->setProperty($result[$id], $fieldName, $value, true);
                 $result[$id]->setLoadedValues($fieldName, $value);
             }
         }
@@ -671,7 +684,7 @@ class ModelQuery {
             $query->addCondition('{id} = %1%', $value);
             $value = $query->queryFirst();
 
-            $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
+            $this->reflectionHelper->setProperty($result[$index], $fieldName, $value, true);
             $result[$index]->setLoadedValues($fieldName, $value);
         }
 
@@ -739,7 +752,7 @@ class ModelQuery {
                 $value = $this->queryHasManyWithoutLinkModel($query, $meta, $fieldName, $foreignKey, $data, $indexOn);
             }
 
-            $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
+            $this->reflectionHelper->setProperty($result[$index], $fieldName, $value, true);
             $result[$index]->setLoadedValues($fieldName, $value);
         }
 
@@ -785,11 +798,8 @@ class ModelQuery {
 
         $queryResult = $query->query($indexOn);
         foreach ($queryResult as $queryIndex => $queryData) {
-            if ($recursiveDepth === 0) {
-                $this->reflectionHelper->setProperty($queryData, $foreignKey, $data);
-            } else {
-                $this->reflectionHelper->setProperty($queryData, $foreignKey, $data);
-            }
+            $this->reflectionHelper->setProperty($queryData, $foreignKey, $data, true);
+            $queryData->setLoadedValues($foreignKey, $data);
         }
 
         return $queryResult;
@@ -818,7 +828,8 @@ class ModelQuery {
 
         foreach ($result as $index => $data) {
             $query = $linkModel->createQuery($locale);
-            $query->setRecursiveDepth($recursiveDepth);
+            // $query->setRecursiveDepth($recursiveDepth);
+            $query->setRecursiveDepth(1);
             $query->setIncludeUnlocalized($this->includeUnlocalized);
             $query->setFetchUnlocalized($this->fetchUnlocalized);
             $query->setOperator(Condition::OPERATOR_OR);
@@ -831,7 +842,7 @@ class ModelQuery {
                 $value = $this->queryHasManyWithLinkModel($query, $meta, $fieldName, $foreignKey, $field->isOrdered());
             }
 
-            $reflectionHelper->setProperty($result[$index], $fieldName, $value);
+            $reflectionHelper->setProperty($result[$index], $fieldName, $value, true);
             $result[$index]->setLoadedValues($fieldName, $value);
         }
 
@@ -925,7 +936,7 @@ class ModelQuery {
                 $value = $this->queryHasManyWithLinkModelToSelf($query, $meta, $fieldName, $foreignKeys, $id);
             }
 
-            $this->reflectionHelper->setProperty($result[$index], $fieldName, $value);
+            $this->reflectionHelper->setProperty($result[$index], $fieldName, $value, true);
             $result[$index]->setLoadedValues($fieldName, $value);
         }
 

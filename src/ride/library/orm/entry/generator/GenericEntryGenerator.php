@@ -86,25 +86,29 @@ class GenericEntryGenerator extends AbstractEntryGenerator {
         // entry state
         $getEntryStateCode =
 '$entryState = parent::getEntryState();
-if ($entryState !== self::STATE_CLEAN) {
+if ($entryState !== self::STATE_CLEAN || isset($this->checkEntryState)) {
     return $entryState;
 }
 
+$this->checkEntryState = true;
+$entryState = null;
 ';
         foreach ($fields as $fieldName => $field) {
             if ($field instanceof BelongsToField || $field instanceof HasOneField) {
                 $getEntryStateCode .=
-'if ($this->' . $fieldName . ' && $this->' . $fieldName . '->getEntryState() !== self::STATE_CLEAN) {
-    return self::STATE_DIRTY;
+'if (!$entryState && $this->' . $fieldName . ' && $this->' . $fieldName . '->getEntryState() !== self::STATE_CLEAN) {
+    $entryState = self::STATE_DIRTY;
 }
 
 ';
             } elseif ($field instanceof HasManyField) {
                 $getEntryStateCode .=
-'if ($this->' . $fieldName . ') {
+'if (!$entryState && $this->' . $fieldName . ') {
     foreach ($this->' . $fieldName . ' as $value) {
         if ($value->getEntryState() !== self::STATE_CLEAN) {
-            return self::STATE_DIRTY;
+            $entryState = self::STATE_DIRTY;
+
+            break;
         }
     }
 }
@@ -113,7 +117,14 @@ if ($entryState !== self::STATE_CLEAN) {
             }
         }
 
-        $getEntryStateCode .= 'return self::STATE_CLEAN;';
+        $getEntryStateCode .= '
+if (!$entryState) {
+    $entryState = self::STATE_CLEAN;
+}
+
+unset($this->checkEntryState);
+
+return $entryState;';
 
         $getEntryStateMethod = $this->generator->createMethod('getEntryState', array(), $getEntryStateCode);
         $getEntryStateMethod->setDescription('Gets the state of the entry');
