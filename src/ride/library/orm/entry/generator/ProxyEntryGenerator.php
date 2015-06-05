@@ -392,6 +392,8 @@ if (array_key_exists(\'' . $name . '\', $this->loadedValues)) {
         if ($isProperty) {
             $setterCode .= '
 if ($hasOldValue && $oldValue === $' . $name . ')  {
+    $this->' . $name . ' = $' . $name . ';
+
     return;
 }
 ';
