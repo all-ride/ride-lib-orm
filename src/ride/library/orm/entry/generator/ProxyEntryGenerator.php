@@ -295,8 +295,10 @@ if (!$entry) {
         if ($isLocalized) {
             $loadPropertiesCode .=
 '
-$this->setLocale($entry->getLocale());
-$this->setIslocalized($entry->isLocalized());
+if (!$this->locale) {
+    $this->setLocale($entry->getLocale());
+    $this->setIslocalized($entry->isLocalized());
+}
 $this->loadedFields[\'locale\'] = true;
 ';
         }
