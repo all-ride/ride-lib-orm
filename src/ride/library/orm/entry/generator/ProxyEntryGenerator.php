@@ -116,7 +116,13 @@ $this->setLoadedValues($properties);';
 
         // unlink
         $unlinkCode =
-'$this->_model = null;
+
+'if (isset($this->checkUnlink)) {
+    return;
+}
+
+$this->_model = null;
+$this->checkUnlink = true;
 
 foreach ($this->loadedFields as $property => $loadState) {
     if ($this->$property instanceof EntryProxy) {
@@ -141,7 +147,9 @@ foreach ($this->loadedFields as $property => $loadState) {
             }
         }
     }
-}';
+}
+
+unset($this->checkUnlink);';
 
         $unlink = $this->generator->createMethod('unlink', array(), $unlinkCode);
         $unlink->setDescription('Removes the link with the ORM');
@@ -322,8 +330,7 @@ $entry = $query->queryRelation($this->getId(), $fieldName);
 $getterMethodName = \'get\' . ucfirst($fieldName);
 $this->$fieldName = $entry->$getterMethodName();
 $this->loadedValues[$fieldName] = $entry->loadedValues[$fieldName];
-$this->loadedFields[$fieldName] = true;
-';
+$this->loadedFields[$fieldName] = true;';
 
         $loadRelationMethod = $this->generator->createMethod('loadRelation', array($fieldNameArgument), trim($loadRelationCode), Code::SCOPE_PRIVATE);
         $loadRelationMethod->setDescription('Loads the value of a relation field of this ' . $modelName . ' entry');
@@ -380,33 +387,34 @@ $this->loadedFields[$fieldName] = true;
             $getterMethodName = 'get' . $ucName;
         }
 
-        $setterCode = '$hasOldValue = false;
+        $setterCode =
+'if (!isset($this->loadedFields[\'' . $name  . '\'])) {
+    $this->loadProperties();
+}
+
 $oldValue = null;
 if (array_key_exists(\'' . $name . '\', $this->loadedValues)) {
     $oldValue = $this->loadedValues[\'' . $name . '\'];
-    $hasOldValue = true;
-} elseif ($this->id && !isset($this->loadedFields[\'' . $name . '\'])) {
-    $oldValue = $this->get' . $ucName . '();
-    $hasOldValue = true;
-}';
+}
+';
+
         if ($isProperty) {
             $setterCode .= '
-if ($hasOldValue && $oldValue === $' . $name . ')  {
+if ($oldValue === $' . $name . ')  {
     $this->' . $name . ' = $' . $name . ';
 
     return;
-}
-';
+}';
         } else {
             $setterCode .= '
-if ($hasOldValue && ((!$oldValue && !$' . $name . ') || ($oldValue && $' . $name . ' && $oldValue->getId() === $' . $name . '->getId())))  {
+if ((!$oldValue && !$' . $name . ') || ($oldValue && $' . $name . ' && $oldValue->getId() === $' . $name . '->getId()))  {
+    $this->' . $name . ' = $' . $name . ';
+
     return;
-}
-';
+}';
         }
 
         $setterCode .= '
-$this->loadedFields[\'' . $name  . '\'] = true;
 
 return parent::set' . $ucName . '($' . $name . ');';
 
@@ -455,7 +463,9 @@ return parent::' . $getterMethodName . '();';
         }
 
         $setterCode =
-'$this->loadedFields[\'' . $name  . '\'] = true;
+'if (!isset($this->loadedFields[\'' . $name  . '\'])) {
+    $this->loadRelation(\'' . $name . '\');
+}
 
 return parent::set' . $ucName . '($' . $name . ');';
 

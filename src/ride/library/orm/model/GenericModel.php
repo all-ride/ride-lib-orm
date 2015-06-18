@@ -514,7 +514,7 @@ class GenericModel extends AbstractModel {
             if ($isProxy && $entry->isValueLoaded($fieldName)) {
                 $loadedValue = $entry->getLoadedValues($fieldName);
                 if ($value->getId() === $loadedValue->getId() && $value->getEntryState() === Entry::STATE_CLEAN) {
-                    // don't add values which are the same as the current value
+                    // don't process values which are the same as the current value
                     continue;
                 }
             }
@@ -527,7 +527,7 @@ class GenericModel extends AbstractModel {
         $hasMany = $this->meta->getHasMany();
         foreach ($hasMany as $fieldName => $field) {
             if ($field->isLocalized() || ($isProxy && !$entry->isFieldSet($fieldName))) {
-                // don't add localized or unloaded proxy relations
+                // don't process localized or unloaded proxy relations
                 continue;
             }
 
@@ -646,13 +646,15 @@ class GenericModel extends AbstractModel {
                 $localizedLoadedValues[LocalizedModel::FIELD_ENTRY] = $properties[LocalizedModel::FIELD_ENTRY];
                 $localizedLoadedValues[LocalizedModel::FIELD_LOCALE] = $properties[LocalizedModel::FIELD_LOCALE];
 
+                unset($localizedLoadedValues[ModelTable::PRIMARY_KEY]);
+
                 $localizedEntry->setLoadedValues($localizedLoadedValues);
             }
         }
 
         $fields = $this->meta->getLocalizedFields();
         foreach ($fields as $fieldName => $field) {
-            if ($isProxy && !$entry->isValueLoaded($fieldName)) {
+            if ($fieldName === ModelTable::PRIMARY_KEY || ($isProxy && !$entry->isValueLoaded($fieldName))) {
                 unset($fields[$fieldName]);
 
                 continue;
