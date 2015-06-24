@@ -21,7 +21,8 @@
     },
     "autoload": {
         "psr-0": {
-            "ride\\library\\orm\\": ["src/"]
+            "ride\\library\\orm\\": ["src/"],
+            "ride\\library\\decorator\\": ["src/"]
         }
     }
 }
