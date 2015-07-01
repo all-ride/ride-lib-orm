@@ -9,6 +9,7 @@ use ride\library\orm\definition\field\HasOneField;
 use ride\library\orm\definition\field\PropertyField;
 use ride\library\orm\definition\field\RelationField;
 use ride\library\orm\definition\ModelTable;
+use ride\library\orm\entry\constraint\EntryConstraint;
 use ride\library\orm\entry\format\EntryFormatter;
 use ride\library\orm\exception\ModelException;
 use ride\library\orm\exception\OrmException;
@@ -347,7 +348,7 @@ class ModelMeta {
             return $this->validationConstraint;
         }
 
-        $this->validationConstraint = new GenericConstraint();
+        $this->validationConstraint = new EntryConstraint();
 
         $filters = $this->table->getFilters();
         foreach ($filters as $fieldName => $fieldFilters) {

@@ -427,9 +427,9 @@ class ModelQuery {
         $result = array($id => $entry);
 
         if ($field instanceof HasField) {
-            $result = $this->queryHasRelations($result, array($fieldName => $field), $meta, 1);
+            $result = $this->queryHasRelations($result, array($fieldName => $field), $meta, 0);
         } elseif ($field instanceof BelongsToField) {
-            $result = $this->queryBelongsToRelations($result, array($fieldName => $field), $meta, 1);
+            $result = $this->queryBelongsToRelations($result, array($fieldName => $field), $meta, 0);
         } else {
             throw new OrmException('Could not query field: ' . $fieldName . ' is not a relation field');
         }

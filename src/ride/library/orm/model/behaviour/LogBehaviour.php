@@ -16,7 +16,7 @@ class LogBehaviour extends AbstractBehaviour {
      * Data container of the pre save entry states
      * @var array
      */
-    private $oldEntry;
+    private $preUpdateFields;
 
     /**
      * Hook after inserting data
@@ -25,10 +25,8 @@ class LogBehaviour extends AbstractBehaviour {
      * @return null
      */
     public function postInsert(Model $model, $entry) {
-        $logFields = $this->getLogFields($model, $entry);
-
         $logModel = $model->getOrmManager()->getModel(EntryLogModel::NAME);
-        $logModel->logInsert($model->getName(), $logFields, $entry);
+        $logModel->logInsert($model, $entry);
     }
 
     /**
@@ -38,28 +36,9 @@ class LogBehaviour extends AbstractBehaviour {
      * @return null
      */
     public function preUpdate(Model $model, $entry) {
-        $localeField = LocalizedModel::FIELD_LOCALE;
+        $logModel = $model->getOrmManager()->getModel(EntryLogModel::NAME);
 
-        $locale = null;
-        if (isset($entry->$localeField)) {
-            $locale = $entry->$localeField;
-        }
-
-        $modelName = $model->getName();
-
-        if (!isset($this->oldEntry)) {
-            $this->oldEntry = array($modelName => array());
-        } elseif (!isset($this->oldEntry[$modelName])) {
-            $this->oldEntry[$modelName] = array();
-        }
-
-        $id = $entry->getId();
-
-        $query = $model->createQuery($locale);
-        $query->setIncludeUnlocalized(true);
-        $query->addCondition('{id} = %1%', $id);
-
-        $this->oldEntry[$modelName][$id] = $query->queryFirst();
+        $this->preUpdateFields[$model->getName()][$entry->getId()] = $logModel->prepareLogUpdate($model, $entry);
     }
 
     /**
@@ -69,26 +48,25 @@ class LogBehaviour extends AbstractBehaviour {
      * @return null
      */
     public function postUpdate(Model $model, $entry) {
-        $logFields = $this->getLogFields($model, $entry);
-
         $modelName = $model->getName();
         $id = $entry->getId();
 
-        $oldEntry = null;
-        if (isset($this->oldEntry[$modelName][$id])) {
-            $oldEntry = $this->oldEntry[$modelName][$id];
+        if (isset($this->preUpdateFields[$modelName][$id])) {
+            $preUpdateFields = $this->preUpdateFields[$modelName][$id];
 
-            unset($this->oldEntry[$modelName][$id]);
-            if (!$this->oldEntry[$modelName]) {
-                unset($this->oldEntry[$modelName]);
+            unset($this->preUpdateFields[$modelName][$id]);
+            if (!$this->preUpdateFields[$modelName]) {
+                unset($this->preUpdateFields[$modelName]);
             }
-            if (!$this->oldEntry) {
-                unset($this->oldEntry);
+            if (!$this->preUpdateFields) {
+                unset($this->preUpdateFields);
             }
+        } else {
+            $preUpdateFields = null;
         }
 
         $logModel = $model->getOrmManager()->getModel(EntryLogModel::NAME);
-        $logModel->logUpdate($modelName, $logFields, $entry, $oldEntry);
+        $logModel->logUpdate($model, $entry, $preUpdateFields);
     }
 
     /**
@@ -99,30 +77,7 @@ class LogBehaviour extends AbstractBehaviour {
      */
     public function preDelete(Model $model, $entry) {
         $logModel = $model->getOrmManager()->getModel(EntryLogModel::NAME);
-        $logModel->logDelete($model->getName(), $entry);
-    }
-
-    /**
-     * Gets the fields which need to be logged
-     * @param \ride\library\orm\model\Model $model
-     * @param mixed $entry
-     * @return null
-     */
-    protected function getLogFields(Model $model, $entry) {
-        $reflectionHelper = $model->getReflectionHelper();
-
-        $logFields = array();
-
-        $fields = $model->getMeta()->getFields();
-        foreach ($fields as $fieldName => $field) {
-            if ($fieldName == ModelTable::PRIMARY_KEY || $field->isLocalized()) {
-                continue;
-            }
-
-            $logFields[$fieldName] = $reflectionHelper->getProperty($entry, $fieldName);
-        }
-
-        return $logFields;
+        $logModel->logDelete($model, $entry);
     }
 
 }

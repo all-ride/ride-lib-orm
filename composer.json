@@ -1,7 +1,7 @@
 {
     "name": "ride/lib-orm",
     "description": "ORM library of the Ride framework.",
-    "version": "0.9.1",
+    "version": "0.10.0",
     "authors": [
         {
             "name": "Joris Vandeweerd",
@@ -21,7 +21,8 @@
     },
     "autoload": {
         "psr-0": {
-            "ride\\library\\orm\\": ["src/"]
+            "ride\\library\\orm\\": ["src/"],
+            "ride\\library\\decorator\\": ["src/"]
         }
     }
 }

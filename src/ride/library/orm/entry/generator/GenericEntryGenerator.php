@@ -319,7 +319,14 @@ return $status;';
         $localeProperty = $this->generator->createProperty('locale', 'string', Code::SCOPE_PROTECTED);
         $localeProperty->setDescription('Code of the locale');
 
-        $setter = $this->generator->createMethod('setLocale', array($localeProperty), '$this->locale = $locale;');
+        $setLocale =
+'if ($locale != $this->locale && $this->entryState === self::STATE_CLEAN) {
+    $this->entryState = self::STATE_DIRTY;
+}
+
+$this->locale = $locale;';
+
+        $setter = $this->generator->createMethod('setLocale', array($localeProperty), $setLocale);
         $setter->setDescription('Sets the locale of the localized entry fields');
         $getter = $this->generator->createMethod('getLocale', array(), 'return $this->locale;');
         $getter->setDescription('Gets the locale of the localized entry fields');

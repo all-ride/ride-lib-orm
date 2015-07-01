@@ -5,6 +5,7 @@ namespace ride\library\orm\model;
 use ride\library\orm\definition\field\HasManyField;
 use ride\library\orm\definition\field\RelationField;
 use ride\library\orm\definition\ModelTable;
+use ride\library\orm\entry\EntryProxy;
 use ride\library\orm\exception\OrmException;
 use ride\library\orm\model\behaviour\DateBehaviour;
 use ride\library\orm\query\ModelQuery;
@@ -316,57 +317,67 @@ class EntryLogModel extends GenericModel {
     }
 
     /**
-     * Logs a insert action for the provided entry
-     * @param string $modelName Name of the model
-     * @param array $fields Array with the field name as key
-     * @param mixed $entry New entry
+     * Logs an insert action for the provided entry
+     * @param Model $model Instance of the model of the entry
+     * @param mixed $entry New entry to log
      * @return null
      */
-    public function logInsert($modelName, array $fields, $entry) {
+    public function logInsert(Model $model, $entry) {
+        $changeModel = $this->getModel(EntryLogChangeModel::NAME);
         $changes = array();
 
-        $changeModel = $this->getModel(EntryLogChangeModel::NAME);
-
-        foreach ($fields as $fieldName => $null) {
+        $fields = $this->getLogFields($model, $entry, false);
+        foreach ($fields as $fieldName => $value) {
             $change = $changeModel->createEntry();
-
-            $this->reflectionHelper->setProperty($change, 'fieldName', $fieldName);
-            $this->reflectionHelper->setProperty($change, 'newValue', $this->createLogValue($this->reflectionHelper->getProperty($entry, $fieldName)));
+            $change->setFieldName($fieldName);
+            $change->setNewValue($value);
 
             $changes[] = $change;
         }
 
-        $log = $this->createEntryLog($modelName, $entry, true);
-        $this->reflectionHelper->setProperty($log, 'action', self::ACTION_INSERT);
-        $this->reflectionHelper->setProperty($log, 'changes', $changes);
+        $log = $this->createEntryLog($model->getName(), $entry, true);
+        $log->setAction(self::ACTION_INSERT);
+        $log->setChanges($changes);
 
         $this->save($log);
     }
 
     /**
-     * Logs a update action for the provided entry
-     * @param string $modelName Name of the model
-     * @param array $fields Array with the field name as key
-     * @param mixed $entry Updated entry
-     * @param array $oldEntry Current entry from the model
-     * @return null
+     * Retrieves the log fields of the entry before update
+     * @return array Array with the field name as key and the log value as value
      */
-    public function logUpdate($modelName, array $fields, $entry, $oldEntry) {
-        $changes = array();
+    public function prepareLogUpdate(Model $model, $entry) {
+        return $this->getLogFields($model, $entry, true);
+    }
+
+    /**
+     * Logs an update action for the provided entry
+     * @param Model $model Instance of the model of the entry
+     * @param mixed $entry Updated entry to log
+     * @param array $preUpdateFields Array with the potential field before
+     * update, basicly the output of prepareLogUpdate
+     * @return null
+     * @see prepareLogUpdate
+     */
+    public function logUpdate(Model $model, $entry, array $preUpdateFields) {
         $changeModel = $this->getModel(EntryLogChangeModel::NAME);
+        $changes = array();
 
-        foreach ($fields as $fieldName => $null) {
-            $oldValue = $this->createLogValue($this->reflectionHelper->getProperty($oldEntry, $fieldName));
-            $newValue = $this->createLogValue($this->reflectionHelper->getProperty($entry, $fieldName));
-
-            if ($oldValue === $newValue) {
+        $fields = $this->getLogFields($model, $entry, false);
+        foreach ($fields as $fieldName => $value) {
+            $isOldValueSet = array_key_exists($fieldName, $preUpdateFields);
+            if ($isOldValueSet && $preUpdateFields[$fieldName] == $value) {
                 continue;
+            } elseif (!$isOldValueSet) {
+                $oldValue = null;
+            } else {
+                $oldValue = $preUpdateFields[$fieldName];
             }
 
             $change = $changeModel->createEntry();
-            $this->reflectionHelper->setProperty($change, 'fieldName', $fieldName);
-            $this->reflectionHelper->setProperty($change, 'oldValue', $oldValue);
-            $this->reflectionHelper->setProperty($change, 'newValue', $newValue);
+            $change->setFieldName($fieldName);
+            $change->setOldValue($oldValue);
+            $change->setNewValue($value);
 
             $changes[] = $change;
         }
@@ -375,24 +386,86 @@ class EntryLogModel extends GenericModel {
             return;
         }
 
-        $log = $this->createEntryLog($modelName, $entry, false);
-        $this->reflectionHelper->setProperty($log, 'action', self::ACTION_UPDATE);
-        $this->reflectionHelper->setProperty($log, 'changes', $changes);
+        $log = $this->createEntryLog($model->getName(), $entry, false);
+        $log->setAction(self::ACTION_UPDATE);
+        $log->setChanges($changes);
 
         $this->save($log);
     }
 
     /**
      * Logs a delete action for the provided entry
-     * @param string $modelName Name of the model
-     * @param mixed $entry Entry
+     * @param Model $model Instance of the model of the entry
+     * @param mixed $entry Deleted entry to log
      * @return null
      */
-    public function logDelete($modelName, $entry) {
-        $log = $this->createEntryLog($modelName, $entry);
-        $this->reflectionHelper->setProperty($log, 'action', self::ACTION_DELETE);
+    public function logDelete(Model $model, $entry) {
+        $log = $this->createEntryLog($model->getName(), $entry);
+        $log->setAction(self::ACTION_DELETE);
 
         $this->save($log);
+    }
+
+    /**
+     * Gets the fields which need to be logged
+     * @param \ride\library\orm\model\Model $model
+     * @param mixed $entry
+     * @return null
+     */
+    private function getLogFields(Model $model, $entry, $loadedFields = false) {
+        $isProxy = $entry instanceof EntryProxy;
+        $logFields = array();
+
+        $fields = $model->getMeta()->getFields();
+        foreach ($fields as $fieldName => $field) {
+            if ($fieldName == ModelTable::PRIMARY_KEY || $field->isLocalized() || ($isProxy && !$entry->isFieldSet($fieldName))) {
+                continue;
+            }
+
+            if ($loadedFields) {
+                if ($isProxy) {
+                    $value = $entry->getLoadedValues($fieldName);
+                } else {
+                    $value = null;
+                }
+            } else {
+                $value = $this->reflectionHelper->getProperty($entry, $fieldName);
+            }
+
+            $logFields[$fieldName] = $this->getLogValue($value);
+        }
+
+        return $logFields;
+    }
+
+    /**
+     * Creates a log value from a model value.
+     *
+     * Related data objects will be replaced by their id's. A hasMany relation
+     * will be translated into a string with the related object id's separated
+     * by the VALUE_SEPARATOR constant.
+     * @param mixed $value
+     * @return string Provided value in a string format
+     */
+    private function getLogValue($value) {
+        if (is_null($value)) {
+            return $value;
+        }
+
+        if (is_scalar($value)) {
+            return $value;
+        }
+
+        if (is_object($value)) {
+            return $this->reflectionHelper->getProperty($value, ModelTable::PRIMARY_KEY);
+        }
+
+        $logValues = array();
+        foreach ($value as $v) {
+            $logValues[] = $this->getLogValue($v);
+        }
+
+        return implode(self::VALUE_SEPARATOR, $logValues);
     }
 
     /**
@@ -415,44 +488,12 @@ class EntryLogModel extends GenericModel {
         }
 
         $log = $this->createEntry();
-        $this->reflectionHelper->setProperty($log, 'model', $modelName);
-        $this->reflectionHelper->setProperty($log, 'entry', $id);
-        $this->reflectionHelper->setProperty($log, 'version', $version);
-        $this->reflectionHelper->setProperty($log, 'user', $this->orm->getUserName());
+        $log->setModel($modelName);
+        $log->setEntry($id);
+        $log->setVersion($version);
+        $log->setUser($this->orm->getUserName());
 
         return $log;
-    }
-
-    /**
-     * Creates a log value from a model value.
-     *
-     * Related data objects will be replaced by their id's. A hasMany relation
-     * will be translated into a string with the related object id's separated
-     * by the VALUE_SEPARATOR constant.
-     * @param mixed $value
-     * @return string Provided value in a string format
-     */
-    private function createLogValue($value) {
-        if (is_null($value)) {
-            return $value;
-        }
-
-        if (is_scalar($value)) {
-            return $value;
-        }
-
-        if (is_object($value)) {
-            return $this->reflectionHelper->getProperty($value, ModelTable::PRIMARY_KEY);
-        }
-
-        $logValues = array();
-        foreach ($value as $v) {
-            $logValues[] = $this->createLogValue($v);
-        }
-
-        sort($logValues);
-
-        return implode(self::VALUE_SEPARATOR, $logValues);
     }
 
     /**

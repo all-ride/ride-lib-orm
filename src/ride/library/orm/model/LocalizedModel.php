@@ -37,8 +37,8 @@ class LocalizedModel extends GenericModel {
         }
 
         $locale = $entry->getLocale();
-        $id = $this->getLocalizedId($entry->getEntry()->getId(), $locale);
 
+        $id = $this->getLocalizedId($entry->getEntry()->getId(), $locale);
         if ($id) {
             $entry->setId($id);
             $entry->setEntryState(Entry::STATE_DIRTY);
