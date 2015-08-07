@@ -946,14 +946,9 @@ class GenericModel extends AbstractModel {
         }
 
         foreach ($relationEntries as $relationEntry) {
-            $skipSave = false;
-            if ($relationEntry instanceof EntryProxy && $relationEntry->getEntryState() === Entry::STATE_CLEAN) {
-                $skipSave = true;
-            }
+            $this->reflectionHelper->setProperty($relationEntry, $foreignKey, $this->createProxy($id));
 
-            if (!$skipSave) {
-                $this->reflectionHelper->setProperty($relationEntry, $foreignKey, $this->createProxy($id));
-
+            if (!($relationEntry instanceof EntryProxy && $relationEntry->getEntryState() === Entry::STATE_CLEAN)) {
                 $relationModel->save($relationEntry);
             }
 
