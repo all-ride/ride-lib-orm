@@ -302,10 +302,12 @@ abstract class AbstractModel implements Model, Serializable {
     /**
      * Gets an entry list as a flat list
      * @param string $locale Code of the locale
+     * @param boolean $fetchUnlocalized Flag to see if unlocalized entries
+     * should be fetched
      * @return array Array with the id of the entry as key and the title format
      * as value
      */
-    public function getEntryList($locale = null) {
+    public function getEntryList($locale = null, $fetchUnlocalized = false) {
         $locale = $this->getLocale($locale);
 
         if (isset($this->list[$locale])) {
@@ -320,7 +322,7 @@ abstract class AbstractModel implements Model, Serializable {
             $entries = $this->find(array(
                 'limit' => $limit,
                 'page' => $page,
-            ), $locale);
+            ), $locale, $fetchUnlocalized);
 
             $this->list[$locale] += $this->getOptionsFromEntries($entries);
 
