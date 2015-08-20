@@ -275,6 +275,10 @@ class GenericModel extends AbstractModel {
 
                 $condition = '';
                 foreach ($filterValue as $index => $value) {
+                    if ($value === 'null') {
+                        $value = null;
+                    }
+
                     if ($value === null) {
                         $condition .= ($condition ? ' OR ' : '') . '{' . $fieldName . '} IS NULL';
                     } else {
