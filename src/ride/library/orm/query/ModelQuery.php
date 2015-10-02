@@ -772,11 +772,7 @@ class ModelQuery {
             return null;
         }
 
-        if ($query->getRecursiveDepth() === 0) {
-            $this->reflectionHelper->setProperty($queryResult, $foreignKey, $this->reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY));
-        } else {
-            $this->reflectionHelper->setProperty($queryResult, $foreignKey, $data);
-        }
+        $this->reflectionHelper->setProperty($queryResult, $foreignKey, $data);
 
         return $queryResult;
     }
