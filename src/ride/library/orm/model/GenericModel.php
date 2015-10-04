@@ -265,15 +265,16 @@ class GenericModel extends AbstractModel {
         // handle filters
         $filter = isset($options['filter']) ? $options['filter'] : array();
         foreach ($filter as $fieldName => $filterValue) {
+            if (!is_array($filterValue)) {
+                $filterValue = array($filterValue);
+            }
+
+            $condition = '';
+
             $fieldTokens = explode('.', $fieldName);
             $field = $this->meta->getField($fieldTokens[0]);
 
             if (!$field instanceof HasField) {
-                if (!is_array($filterValue)) {
-                    $filterValue = array($filterValue);
-                }
-
-                $condition = '';
                 foreach ($filterValue as $index => $value) {
                     if ($value === 'null') {
                         $value = null;
@@ -285,9 +286,19 @@ class GenericModel extends AbstractModel {
                         $condition .= ($condition ? ' OR ' : '') . '{' . $fieldName . '} = %' . $index . '%';
                     }
                 }
+            } else {
+                foreach ($filterValue as $index => $value) {
+                    if ($value === 'null') {
+                        $value = null;
+                    }
 
-                $query->addConditionWithVariables($condition, $filterValue);
+                    if ($value !== null) {
+                        $condition .= ($condition ? ' OR ' : '') . '{' . $fieldName . '.id} = %' . $index . '%';
+                    }
+                }
             }
+
+            $query->addConditionWithVariables($condition, $filterValue);
         }
 
         // handle match
