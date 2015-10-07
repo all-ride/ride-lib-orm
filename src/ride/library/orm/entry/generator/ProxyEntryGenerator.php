@@ -462,6 +462,8 @@ return parent::' . $getterMethodName . '();';
         $property->setDescription($description);
         if ($type == 'array') {
             $property->setDefaultValue(array());
+        } else {
+            $property->setDefaultValue(null);
         }
 
         $setterCode =
