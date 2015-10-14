@@ -231,7 +231,7 @@ class QueryParser {
         $this->setModelQuery($modelQuery);
         $this->statement->setLimit(1);
 
-        if ($this->includeUnlocalized && $this->meta->isLocalized()) {
+        if ($this->meta->isLocalized()) {
             $this->localize = true;
         }
 
