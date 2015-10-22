@@ -408,7 +408,12 @@ abstract class AbstractXmlModelIO implements ModelIO {
 
         $fields = $this->getFieldsFromElement($modelElement, $file, $modelName);
         foreach ($fields as $field) {
-            $modelTable->addField($field);
+            if ($field->getName() === ModelTable::PRIMARY_KEY) {
+                $idField = $modelTable->getField(ModelTable::PRIMARY_KEY);
+                $idField->setOptions($field->getOptions());
+            } else {
+                $modelTable->addField($field);
+            }
         }
 
         $this->setIndexesFromElement($modelElement, $modelTable);
