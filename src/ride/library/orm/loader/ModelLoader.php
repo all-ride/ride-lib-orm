@@ -3,6 +3,7 @@
 namespace ride\library\orm\loader;
 
 use ride\library\cache\pool\CachePool;
+use ride\library\event\EventManager;
 use ride\library\orm\exception\OrmException;
 use ride\library\orm\loader\io\ModelIO;
 use ride\library\orm\OrmManager;
@@ -48,9 +49,10 @@ class ModelLoader {
      * @param \ride\library\orm\loader\io\ModelIO $io I/O to read the models
      * @return null
      */
-    public function __construct(ModelIO $io, ReflectionHelper $reflectionHelper) {
+    public function __construct(ModelIO $io, ReflectionHelper $reflectionHelper, EventManager $eventManager) {
         $this->io = $io;
         $this->reflectionHelper = $reflectionHelper;
+        $this->eventManager = $eventManager;
         $this->models = array();
         $this->modelRegister = null;
         $this->orm = null;
@@ -140,6 +142,7 @@ class ModelLoader {
             if ($cacheItem->isValid()) {
                 $model = $cacheItem->getValue();
                 $model->setOrmManager($this->orm);
+                $model->setEventManager($this->eventManager);
 
                 $this->models[$modelName] = $model;
 
@@ -263,6 +266,7 @@ class ModelLoader {
             }
 
             $model->setOrmManager($this->orm);
+            $model->setEventManager($this->eventManager);
         }
 
         if ($this->cache && $cachedModels) {

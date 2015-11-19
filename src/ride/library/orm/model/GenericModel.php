@@ -12,6 +12,7 @@ use ride\library\database\manipulation\statement\DeleteStatement;
 use ride\library\database\manipulation\statement\InsertStatement;
 use ride\library\database\manipulation\statement\UpdateStatement;
 use ride\library\database\manipulation\statement\SelectStatement;
+use ride\library\event\EventManager;
 use ride\library\orm\definition\field\BelongsToField;
 use ride\library\orm\definition\field\HasField;
 use ride\library\orm\definition\field\HasOneField;
@@ -35,6 +36,48 @@ use \Exception;
  * Basic implementation of a data model
  */
 class GenericModel extends AbstractModel {
+
+    /**
+     * Event triggered before an insert action
+     * @var string
+     */
+    const EVENT_INSERT_PRE = 'orm.insert.pre';
+
+    /**
+     * Event triggered after an insert action
+     * @var string
+     */
+    const EVENT_INSERT_POST = 'orm.insert.post';
+
+    /**
+     * Event triggered before an update action
+     * @var string
+     */
+    const EVENT_UPDATE_PRE = 'orm.update.pre';
+
+    /**
+     * Event triggered after an update action
+     * @var string
+     */
+    const EVENT_UPDATE_POST = 'orm.update.post';
+
+    /**
+     * Event triggered before a delete action
+     * @var string
+     */
+    const EVENT_DELETE_PRE = 'orm.delete.pre';
+
+    /**
+     * Event triggered after a delete action
+     * @var string
+     */
+    const EVENT_DELETE_POST = 'orm.delete.post';
+
+    /**
+     * Instance of the event manager
+     * @var \ride\library\event\EventManager
+     */
+    protected $eventManager;
 
     /**
      * Fieldname to order the data list
@@ -85,6 +128,15 @@ class GenericModel extends AbstractModel {
         $this->findOrderField = $unserialized['orderField'];
         $this->findOrderDirection = $unserialized['orderDirection'];
         $this->saveStack = array();
+    }
+
+    /**
+     * Sets an instance of the event manager to this model
+     * @param \ride\library\event\EventManager $eventManager
+     * @return null
+     */
+    public function setEventManager(EventManager $eventManager) {
+        $this->eventManager = $eventManager;
     }
 
     /**
@@ -439,6 +491,14 @@ class GenericModel extends AbstractModel {
             }
         }
 
+        if ($this->eventManager) {
+            if ($isNew) {
+                $this->eventManager->triggerEvent(self::EVENT_INSERT_PRE, array('model' => $this, 'entry' => $entry));
+            } else {
+                $this->eventManager->triggerEvent(self::EVENT_UPDATE_PRE, array('model' => $this, 'entry' => $entry));
+            }
+        }
+
         $statement->addTable($table);
 
         // $log->logDebug('properties');
@@ -618,6 +678,14 @@ class GenericModel extends AbstractModel {
             } else {
                 // $log->logDebug('post update ' . get_class($behaviour));
                 $behaviour->postUpdate($this, $entry);
+            }
+        }
+
+        if ($this->eventManager) {
+            if ($isNew) {
+                $this->eventManager->triggerEvent(self::EVENT_INSERT_POST, array('model' => $this, 'entry' => $entry));
+            } else {
+                $this->eventManager->triggerEvent(self::EVENT_UPDATE_POST, array('model' => $this, 'entry' => $entry));
             }
         }
     }
@@ -1058,6 +1126,9 @@ class GenericModel extends AbstractModel {
         foreach ($this->behaviours as $behaviour) {
             $behaviour->preDelete($this, $entry);
         }
+        if ($this->eventManager) {
+            $this->eventManager->triggerEvent(self::EVENT_DELETE_PRE, array('model' => $this, 'entry' => $entry));
+        }
 
         if ($this->meta->isLocalized()) {
             $this->getLocalizedModel()->deleteEntryLocalization($id);
@@ -1097,6 +1168,9 @@ class GenericModel extends AbstractModel {
         // handle post delete behaviour
         foreach ($this->behaviours as $behaviour) {
             $behaviour->postDelete($this, $entry);
+        }
+        if ($this->eventManager) {
+            $this->eventManager->triggerEvent(self::EVENT_DELETE_POST, array('model' => $this, 'entry' => $entry));
         }
 
         // go back
