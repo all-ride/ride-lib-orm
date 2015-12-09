@@ -36,6 +36,7 @@ abstract class AbstractEntryGenerator implements EntryGenerator {
             case 'email':
             case 'website':
             case 'text':
+            case 'richcontent':
             case 'wysiwyg':
             case 'file':
             case 'image':
