@@ -414,9 +414,10 @@ class OrmManager {
 
     /**
      * Gets an array with the available locales
+     * @param string $locale Locale to get the relative locales prioritied
      * @return array Array with the locale code as key
      */
-    public function getLocales() {
+    public function getLocales($locale = null) {
         return array('en' => true);
     }
 
