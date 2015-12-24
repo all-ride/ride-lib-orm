@@ -1114,7 +1114,10 @@ class GenericModel extends AbstractModel {
 
         // check for delete blocking
         if ($this->meta->willBlockDeleteWhenUsed() && $this->isDataReferencedInUnlinkedModels($entry)) {
-            $validationError = new ValidationError('orm.error.data.used', '%data% is still in use by another record', array('data' => $this->meta->formatData($entry)));
+            $format = $this->meta->getFormat('title');
+            $entryFormatter = $this->orm->getEntryFormatter();
+
+            $validationError = new ValidationError('orm.error.data.used', '%data% is still in use by another record', array('data' => $entryFormatter->formatEntry($entry, $format)));
 
             $validationException = new ValidationException();
             $validationException->addErrors('id', array($validationError));
@@ -1350,7 +1353,7 @@ class GenericModel extends AbstractModel {
             return false;
         }
 
-        $query = $model->createQuery(0, null, false);
+        $query = $model->createQuery();
         $query->setOperator('OR');
         foreach ($fields as $fieldName) {
             $query->addCondition('{' . $fieldName . '} = %1%', $entry->id);

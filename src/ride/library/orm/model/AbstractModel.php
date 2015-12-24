@@ -340,11 +340,14 @@ abstract class AbstractModel implements Model, Serializable {
      */
     public function getOptionsFromEntries(array $entries) {
         $entryFormatter = $this->orm->getEntryFormatter();
-        $titleFormat = $this->meta->getFormat(EntryFormatter::FORMAT_TITLE);
+        $format = $this->meta->getFormat(EntryFormatter::FORMAT_LIST, false);
+        if (!$format) {
+            $format = $this->meta->getFormat(EntryFormatter::FORMAT_TITLE);
+        }
 
         $options = array();
         foreach ($entries as $entry) {
-            $options[$this->reflectionHelper->getProperty($entry, ModelTable::PRIMARY_KEY)] = $entryFormatter->formatEntry($entry, $titleFormat);
+            $options[$this->reflectionHelper->getProperty($entry, ModelTable::PRIMARY_KEY)] = $entryFormatter->formatEntry($entry, $format);
         }
 
         return $options;
