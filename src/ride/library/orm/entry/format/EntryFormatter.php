@@ -32,6 +32,12 @@ interface EntryFormatter {
     const FORMAT_DATE = 'date';
 
     /**
+     * Name of the list format
+     * @var string
+     */
+    const FORMAT_LIST = 'list';
+
+    /**
      * Formats the entry
      * @param mixed $entry Entry instance
      * @param string $format Format string
