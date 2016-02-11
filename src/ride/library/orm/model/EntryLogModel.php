@@ -2,6 +2,7 @@
 
 namespace ride\library\orm\model;
 
+use ride\library\orm\definition\field\BelongsToField;
 use ride\library\orm\definition\field\HasManyField;
 use ride\library\orm\definition\field\RelationField;
 use ride\library\orm\definition\ModelTable;
@@ -107,7 +108,7 @@ class EntryLogModel extends GenericModel {
 
         if (!$entryMeta->getOption('behaviour.log')) {
             // not a logged model, just return the current value
-            $query = $dataModel->createQuery($locale);
+            $query = $entryModel->createQuery($locale);
             $query->addCondition('{id} = %1%', $id);
 
             return $query->queryFirst();
@@ -136,11 +137,7 @@ class EntryLogModel extends GenericModel {
 
                 continue;
             }
-        }
 
-        $entry = $entryModel->createProxy($id, $locale, $properties);
-
-        foreach ($properties as $fieldName => $value) {
             $field = $entryMeta->getField($fieldName);
 
             if ($field instanceof BelongsToField || $field instanceof HasOneField) {
@@ -148,16 +145,16 @@ class EntryLogModel extends GenericModel {
                     if ($recursiveDepth) {
                         $fieldModel = $field->getRelationModelName();
 
-                        $this->reflectionHelper->setProperty($entry, $fieldName, $this->getEntryByDate($fieldModel, $value, $recursiveDepth - 1, $locale));
+                        $properties[$fieldName] = $this->getEntryByDate($fieldModel, $value, $recursiveDepth - 1, $locale);
                     }
                 } else {
-                    $this->reflectionHelper->setProperty($entry, $fieldName, null);
+                    $properties[$fieldName] = null;
                 }
             } elseif ($field instanceof HasManyField) {
                 $fieldModel = $field->getRelationModelName();
 
                 if (!$value) {
-                    $this->reflectionHelper->setProperty($entry, $fieldName, array());
+                    $properties[$fieldName] = array();
                 } else {
                     $ids = explode(self::VALUE_SEPARATOR, $value);
 
@@ -175,10 +172,12 @@ class EntryLogModel extends GenericModel {
                         }
                     }
 
-                    $this->reflectionHelper->setProperty($entry, $fieldName, $values);
+                    $properties[$fieldName] = $values;
                 }
             }
         }
+
+        $entry = $entryModel->createProxy($id, $locale, $properties);
 
         if ($entryMeta->isLocalized()) {
             $localizedModel = $dataMeta->getLocalizedModel();
