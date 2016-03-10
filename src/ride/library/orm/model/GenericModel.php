@@ -15,7 +15,6 @@ use ride\library\database\manipulation\statement\SelectStatement;
 use ride\library\event\EventManager;
 use ride\library\orm\definition\field\BelongsToField;
 use ride\library\orm\definition\field\HasField;
-use ride\library\orm\definition\field\HasOneField;
 use ride\library\orm\definition\field\HasManyField;
 use ride\library\orm\definition\field\PropertyField;
 use ride\library\orm\definition\field\RelationField;
