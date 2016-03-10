@@ -604,7 +604,7 @@ class ModelQuery {
             }
 
             if ($field->isLocalized()) {
-                $localizedFields[] = $fieldName;
+                $localizedFields[$fieldName] = $field;
             } else {
                 $result = $this->queryHas($result, $meta, $recursiveDepth, $fieldName, $field);
             }
@@ -632,22 +632,26 @@ class ModelQuery {
         $locale = $this->getLocale();
 
         $fields = '{id}';
-        foreach ($localizedFields as $fieldName) {
+        foreach ($localizedFields as $fieldName => $field) {
             $fields .= ', {' . $fieldName . '}';
         }
 
-        foreach ($result as $id => $data) {
-            $localizedModelName = $this->model->getMeta()->getLocalizedModelName();
-            $localizedModel = $this->orm->getModel($localizedModelName);
+        $localizedModelName = $this->model->getMeta()->getLocalizedModelName();
+        $localizedModel = $this->orm->getModel($localizedModelName);
 
+        foreach ($result as $id => $data) {
             $localizedData = $localizedModel->getLocalizedEntry($id, $locale, $recursiveDepth, $fields);
 
-            foreach ($localizedFields as $fieldName) {
-                if (!isset($localizedData->$fieldName)) {
-                    continue;
+            foreach ($localizedFields as $fieldName => $field) {
+                if ($localizedData === null) {
+                    if ($field instanceof HasManyField) {
+                        $value = array();
+                    } else {
+                        $value = null;
+                    }
+                } else {
+                    $value = $this->reflectionHelper->getProperty($localizedData, $fieldName);
                 }
-
-                $value = $this->reflectionHelper->getProperty($localizedData, $fieldName);
 
                 $this->reflectionHelper->setProperty($result[$id], $fieldName, $value, true);
                 $result[$id]->setLoadedValues($fieldName, $value);
