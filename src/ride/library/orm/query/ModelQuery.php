@@ -5,6 +5,7 @@ namespace ride\library\orm\query;
 use ride\library\database\manipulation\condition\Condition;
 use ride\library\orm\definition\field\BelongsToField;
 use ride\library\orm\definition\field\HasField;
+use ride\library\orm\definition\field\HasManyField;
 use ride\library\orm\definition\field\HasOneField;
 use ride\library\orm\definition\ModelTable as DefinitionModelTable;
 use ride\library\orm\entry\LocalizedEntry;
