@@ -29,7 +29,6 @@ class SlugBehaviourInitializer implements BehaviourInitializer {
 
         if (!$modelTable->hasField('slug')) {
             $slugField = new PropertyField('slug', 'string');
-            $slugField->setIsUnique(true);
             $slugField->setOptions(array(
                 'label.name' => 'label.slug',
                 'scaffold.form.omit' => 'true',
@@ -38,6 +37,8 @@ class SlugBehaviourInitializer implements BehaviourInitializer {
 
             if ($modelTable->isLocalized()) {
                 $slugField->setIsLocalized(true);
+            } else {
+                $slugField->setIsUnique(true);
             }
 
             $modelTable->addField($slugField);

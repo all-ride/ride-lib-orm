@@ -44,7 +44,8 @@ class SlugBehaviour extends AbstractBehaviour {
             $locale = $model->getOrmManager()->getLocale();
         }
 
-        if ($model->getMeta()->getField('slug')->isLocalized()) {
+        $isLocalized = $model->getMeta()->getField('slug')->isLocalized();
+        if ($isLocalized) {
             $queryModel = $model->getLocalizedModel();
 
             if ($entryId) {
@@ -63,6 +64,10 @@ class SlugBehaviour extends AbstractBehaviour {
 
             if ($queryId) {
                 $query->addCondition('{id} <> %1%', $queryId);
+            }
+
+            if ($isLocalized) {
+                $query->addCondition('{locale} = %1%', $locale);
             }
 
             $count = $query->count();
