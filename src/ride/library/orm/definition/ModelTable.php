@@ -301,7 +301,7 @@ class ModelTable {
         foreach ($this->indexes as $index) {
             $fields = $index->getFields();
             foreach ($fields as $field) {
-                if ($field->isLocalized()) {
+                if ($this->isLocalized() && $field->isLocalized()) {
                     continue 2;
                 }
             }
