@@ -261,7 +261,9 @@ class ModelRegister {
                 }
             }
 
-            $localizedModelTable->addIndex($index);
+            if (!$localizedModelTable->hasIndex($index->getName())) {
+                $localizedModelTable->addIndex($index);
+            }
         }
 
         $entryClassName = $this->defaultNamespace . '\\' . $localizedModelName . 'Entry';
