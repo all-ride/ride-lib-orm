@@ -291,6 +291,14 @@ abstract class AbstractModel implements Model, Serializable {
     }
 
     /**
+     * Clears the proxy cache of this model
+     * @return null
+     */
+    public function clearProxies() {
+        $this->proxies = array();
+    }
+
+    /**
      * Creates a model query for this model
      * @param string $locale Locale code of the data
      * @return \ride\library\orm\query\ModelQuery
