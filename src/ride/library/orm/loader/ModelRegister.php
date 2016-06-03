@@ -253,6 +253,19 @@ class ModelRegister {
             $localizedModelTable->addField($field);
         }
 
+        foreach ($modelTable->getIndexes() as $index) {
+            $fields = $index->getFields();
+            foreach ($fields as $field) {
+                if (!$field->isLocalized()) {
+                    continue 2;
+                }
+            }
+
+            if (!$localizedModelTable->hasIndex($index->getName())) {
+                $localizedModelTable->addIndex($index);
+            }
+        }
+
         $entryClassName = $this->defaultNamespace . '\\' . $localizedModelName . 'Entry';
         $proxyClassName = $this->defaultNamespace . '\\proxy\\' . $localizedModelName . 'EntryProxy';
 
