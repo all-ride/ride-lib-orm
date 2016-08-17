@@ -854,10 +854,29 @@ class GenericModel extends AbstractModel {
 
         $foreignKeyToSelf = null;
         if (!is_array($foreignKeys)) {
+            // relation to other model
             $foreignKeyToSelf = $this->meta->getRelationForeignKeyToSelf($fieldName);
             $foreignKeys = array($foreignKeys, $foreignKeyToSelf);
+            $isRelationToSelf = false;
         } else {
+            // relation to self
+            $field = $this->meta->getField($fieldName);
+            $foreignKeyToSelf = $field->getForeignKeyName();
+
             $foreignKeys = array_values($foreignKeys);
+
+            // force the defined foreign key to the back
+            foreach ($foreignKeys as $foreignKeyIndex => $foreignKey) {
+                if ($foreignKey == $foreignKeyToSelf) {
+                    unset($foreignKeys[$foreignKeyIndex]);
+                    $foreignKeys[] = $foreignKeyToSelf;
+
+                    break;
+                }
+            }
+
+            $foreignKeys = array_values($foreignKeys);
+            $isRelationToSelf = true;
         }
 
         $relationModel = $this->getRelationModel($fieldName);
@@ -865,7 +884,7 @@ class GenericModel extends AbstractModel {
 
         if (!$isNew) {
             if ($foreignKeyToSelf) {
-                // relation with other model
+                // relation with other model or one-direction with self
                 $oldHasMany = $this->findOldHasManyAndBelongsToMany($linkModel, $id, $foreignKeyToSelf, $foreignKeys[0]);
             } else {
                 // relation with self
@@ -878,9 +897,10 @@ class GenericModel extends AbstractModel {
         $foreignKey2 = new FieldExpression($foreignKeys[1]);
 
         if ($isOrdered) {
-            $weightFieldName = $foreignKeys[0];
-            if (!$foreignKeyToSelf) {
-                $weightFieldName = substr($weightFieldName, 0, -1);
+            if ($isRelationToSelf) {
+                $weightFieldName = substr($foreignKeys[0], 0, -1);
+            } else {
+                $weightFieldName = $foreignKeys[0];
             }
 
             $weightField = $weightFieldName . 'Weight';
