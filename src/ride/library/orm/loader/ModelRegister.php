@@ -493,18 +493,22 @@ class ModelRegister {
         $field1 = $modelMeta->getField($fieldName);
 
         $linkModelName = $this->getManyToManyLinkModelName($field1, $field2, $modelMeta, $fieldName);
+        $modelName1 = $field1->getRelationModelName();
+        $modelName2 = $field2->getRelationModelName();
+
+        if ($modelName1 != $modelName2) {
+            $field1->setForeignKeyName($field2->getName());
+            $field2->setForeignKeyName($field1->getName());
+        }
 
         $field1->setLinkModelName($linkModelName);
         $field2->setLinkModelName($linkModelName);
-
-        $field1->setForeignKeyName($field2->getName());
-        $field2->setForeignKeyName($field1->getName());
 
         if ($this->hasModel($linkModelName)) {
             return;
         }
 
-        return $this->createAndRegisterLinkModel($linkModelName, $field1->getRelationModelName(), $field2->getRelationModelName(), $isOrdered);
+        return $this->createAndRegisterLinkModel($linkModelName, $modelName1, $modelName2, $isOrdered);
     }
 
     /**
@@ -537,9 +541,11 @@ class ModelRegister {
         $table->addIndex(new Index($indexName, array($field1, $field2)));
 
         if ($isOrdered) {
-            $table->addField(new PropertyField($fieldName1 . 'Weight', 'integer'));
-            if (!$isRelationWithSelf) {
-                $table->addField(new PropertyField($fieldName2 . 'Weight', 'integer'));
+            if ($isRelationWithSelf) {
+                $table->addField(new PropertyField($fieldName1 . 'Weight', 'integer'));
+            } else {
+                $table->addField(new PropertyField($field1->getName() . 'Weight', 'integer'));
+                $table->addField(new PropertyField($field2->getName() . 'Weight', 'integer'));
             }
         }
 

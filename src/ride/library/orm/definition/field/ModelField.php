@@ -131,6 +131,16 @@ abstract class ModelField extends Field {
     }
 
     /**
+     * Sets an extra option to this model
+     * @param string $name Name of the option
+     * @param mixed $value Value for the option
+     * @return null
+     */
+    public function setOption($name, $value) {
+        $this->options[$name] = $value;
+    }
+
+    /**
      * Gets the extra options of this model
      * @return array
      */

@@ -909,6 +909,12 @@ class ModelQuery {
         $locale = $this->getLocale();
 
         $foreignKeys = $meta->getRelationForeignKey($fieldName);
+        $foreignKeysFetch = $foreignKeys;
+
+        $foreignKey = $field->getForeignKeyName();
+        if ($foreignKey) {
+            $foreignKeys = array($foreignKey => null);
+        }
 
         $linkModelName = $meta->getRelationLinkModelName($fieldName);
         $linkModel = $this->orm->getModel($linkModelName);
@@ -926,15 +932,13 @@ class ModelQuery {
             $id = $this->reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY);
 
             foreach ($foreignKeys as $foreignKey => $null) {
-                $foreignKey = $linkModelMeta->getField($foreignKey);
-
-                $query->addCondition('{' . $foreignKey->getName() . '} = %1%', $id);
+                $query->addCondition('{' . $foreignKey . '} = %1%', $id);
             }
 
             if ($isHasOne) {
-                $value = $this->queryHasOneWithLinkModelToSelf($query, $foreignKeys, $id);
+                $value = $this->queryHasOneWithLinkModelToSelf($query, $foreignKeysFetch, $id);
             } else {
-                $value = $this->queryHasManyWithLinkModelToSelf($query, $meta, $fieldName, $foreignKeys, $id);
+                $value = $this->queryHasManyWithLinkModelToSelf($query, $meta, $fieldName, $foreignKeysFetch, $id);
             }
 
             $this->reflectionHelper->setProperty($result[$index], $fieldName, $value, true);
@@ -958,7 +962,7 @@ class ModelQuery {
             return null;
         }
 
-        foreach ($foreignKeys as $foreignKey) {
+        foreach ($foreignKeys as $foreignKey => $null) {
             $foreignData = $this->reflectionHelper->getProperty($data, $foreignKey);
             if ($foreignData && $foreignData != $id) {
                 return $foreignData;
@@ -986,7 +990,7 @@ class ModelQuery {
 
         $queryResult = $query->query();
         foreach ($queryResult as $data) {
-            foreach ($foreignKeys as $foreignKey) {
+            foreach ($foreignKeys as $foreignKey => $null) {
                 $foreignValue = $this->reflectionHelper->getProperty($data, $foreignKey);
                 $foreignValueId = $this->reflectionHelper->getProperty($foreignValue, DefinitionModelTable::PRIMARY_KEY);
                 if ($foreignValueId != $id) {
@@ -994,7 +998,6 @@ class ModelQuery {
                 }
             }
 
-//             $result[$foreignValueId] = $this->reflectionHelper->getProperty($data, $key);
             $result[$foreignValueId] = $foreignValue;
          }
 
