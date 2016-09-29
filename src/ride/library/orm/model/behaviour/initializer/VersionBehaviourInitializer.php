@@ -28,7 +28,7 @@ class VersionBehaviourInitializer implements BehaviourInitializer {
             $versionField = new PropertyField('version', 'integer');
             $versionField->setOptions(array(
                 'label.name' => 'label.version',
-                'scaffold.form.omit' => 'true',
+                'scaffold.form.type' => 'hidden',
             ));
 
             $modelTable->addField($versionField);
