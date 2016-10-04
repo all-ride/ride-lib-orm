@@ -448,7 +448,7 @@ class GenericModel extends AbstractModel {
         }
 
         // $log = $this->orm->getLog();
-        // $log->logDebug('validate');
+        // $log->logDebug('validate ' . $this->getName());
 
         $this->validate($entry);
 
@@ -581,6 +581,8 @@ class GenericModel extends AbstractModel {
                 $id = $connection->getLastInsertId();
 
                 $entry->setId($id);
+
+                $this->saveStack[$id] = $id;
             }
 
             $this->clearCache();
@@ -729,7 +731,7 @@ class GenericModel extends AbstractModel {
         }
 
         $properties = array(
-            LocalizedModel::FIELD_ENTRY => $this->createProxy($entry->getId(), $entryLocale),
+            LocalizedModel::FIELD_ENTRY => $this->createProxy($entry->getId(), $entryLocale, array(ModelTable::PRIMARY_KEY => $entry->getId())),
             LocalizedModel::FIELD_LOCALE => $this->getLocale($entryLocale),
         );
 
