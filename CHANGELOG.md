@@ -1,3 +1,7 @@
+# [1.0.2]
+## Updated
+- force insert of entries with only has relations and no properties or belongs to
+
 # [1.0.1]
 ## Updated
 - id value from 0 to null when inserting an entry with only localized models
