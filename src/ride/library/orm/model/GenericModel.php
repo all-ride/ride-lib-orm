@@ -567,7 +567,7 @@ class GenericModel extends AbstractModel {
         $executeStatement = !empty($fields);
         if (!$executeStatement && $isNew && $this->meta->isLocalized()) {
             // make sure a new entry with only localized fields is inserted
-            $statement->addValue(new FieldExpression(ModelTable::PRIMARY_KEY), new ScalarExpression(0));
+            $statement->addValue(new FieldExpression(ModelTable::PRIMARY_KEY), new ScalarExpression(null));
 
             $executeStatement = true;
         }
