@@ -157,7 +157,7 @@ class ExpressionParser {
      * @return \ride\library\database\manipulation\condition\NestedCondition
      */
     private function parseNestedCondition(array $conditionTokens) {
-        $nestedCondition = new NestedCondition($operator);
+        $nestedCondition = new NestedCondition();
 
         $operator = null;
         foreach ($conditionTokens as $token) {
