@@ -311,11 +311,11 @@ $this->loadedFields[\'locale\'] = true;
         $fieldNameArgument->setDescription('Name of the relation field');
 
         $loadRelationCode =
-'$this->loadedFields[$fieldName] = true;
-$this->loadedValues[$fieldName] = null;
-
-$id = $this->getId();
+'$id = $this->getId();
 if (!$id) {
+    $this->loadedFields[$fieldName] = true;
+    $this->loadedValues[$fieldName] = null;
+
     return;
 }
 
@@ -334,6 +334,7 @@ $entry = $query->queryRelation($this->getId(), $fieldName);
 
 $getterMethodName = \'get\' . ucfirst($fieldName);
 $this->$fieldName = $entry->$getterMethodName();
+$this->loadedFields[$fieldName] = true;
 $this->loadedValues[$fieldName] = $entry->loadedValues[$fieldName];';
 
         $loadRelationMethod = $this->generator->createMethod('loadRelation', array($fieldNameArgument), trim($loadRelationCode), Code::SCOPE_PRIVATE);
