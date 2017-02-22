@@ -578,6 +578,11 @@ abstract class AbstractXmlModelIO implements ModelIO {
                 $field = new HasOneField($fieldName, $relationModelName);
                 $field->setDefaultValue($default);
 
+                $linkModelName = $fieldElement->hasAttribute(self::ATTRIBUTE_LINK_MODEL) ?
+                                 $fieldElement->getAttribute(self::ATTRIBUTE_LINK_MODEL) :
+                                 null;
+                $field->setLinkModelName($linkModelName);
+
                 break;
             case self::RELATION_HAS_MANY:
                 $field = new HasManyField($fieldName, $relationModelName);
