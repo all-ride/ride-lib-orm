@@ -1,3 +1,7 @@
+# [1.0.4] - 2017-02-22
+## Updated
+- updated proxy to fix save of localized hasMany on insert
+
 # [1.0.3] - 2017-02-09
 ## Updated
 - removed constructor argument since there is no constructor
