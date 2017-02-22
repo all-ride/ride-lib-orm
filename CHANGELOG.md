@@ -1,3 +1,7 @@
+# [1.0.6] - 2017-02-22
+## Updated
+- updated proxy to really fix save of localized hasMany on insert
+
 # [1.0.5] - 2017-02-22
 ## Updated
 - fixed hasOne relation to self with link model
