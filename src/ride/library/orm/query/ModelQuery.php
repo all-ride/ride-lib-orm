@@ -957,14 +957,13 @@ class ModelQuery {
      */
     private function queryHasOneWithLinkModelToSelf(ModelQuery $query, array $foreignKeys, $id) {
         $data = $query->queryFirst();
-
         if (!$data) {
             return null;
         }
 
         foreach ($foreignKeys as $foreignKey => $null) {
             $foreignData = $this->reflectionHelper->getProperty($data, $foreignKey);
-            if ($foreignData && $foreignData != $id) {
+            if ($foreignData && $foreignData->getId() != $id) {
                 return $foreignData;
             }
         }

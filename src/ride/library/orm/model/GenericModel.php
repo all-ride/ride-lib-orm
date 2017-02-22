@@ -442,12 +442,14 @@ class GenericModel extends AbstractModel {
      * @throws \Exception when the data could not be saved
      */
     protected function saveEntry($entry) {
+        // $log = $this->orm->getLog();
+        // $log->logDebug('save ' . $this->getName() . ' #' . $entry->getId());
+
         $state = $this->willSave($entry);
         if ($state === false) {
             return;
         }
 
-        // $log = $this->orm->getLog();
         // $log->logDebug('validate ' . $this->getName());
 
         $this->validate($entry);
@@ -505,6 +507,9 @@ class GenericModel extends AbstractModel {
         // add the properties to the statement
         $properties = $this->meta->getProperties();
         foreach ($properties as $fieldName => $field) {
+            // insert with predefined primary key
+            // if ($isNew && $fieldName == ModelTable::PRIMARY_KEY && $this->reflectionHelper->getProperty($entry, $fieldName)) {
+            // } else
             if ($fieldName == ModelTable::PRIMARY_KEY || $field->isLocalized() || ($isProxy && !$entry->isFieldSet($fieldName))) {
                 // don't add localized or unloaded proxy properties
                 continue;
@@ -602,7 +607,7 @@ class GenericModel extends AbstractModel {
 
             if ($isProxy && $entry->isValueLoaded($fieldName)) {
                 $loadedValue = $entry->getLoadedValues($fieldName);
-                if ($value->getId() === $loadedValue->getId() && $value->getEntryState() === Entry::STATE_CLEAN) {
+                if (($value === null && $loadedValue === null) || ($value && $loadedValue && $value->getId() === $loadedValue->getId() && $value->getEntryState() === Entry::STATE_CLEAN)) {
                     // don't process values which are the same as the current value
                     continue;
                 }
@@ -807,12 +812,56 @@ class GenericModel extends AbstractModel {
             return;
         }
 
-        $relationModel = $this->getRelationModel($fieldName);
         $relationForeignKey = $this->meta->getRelationForeignKey($fieldName);
 
-        $this->reflectionHelper->setProperty($relationEntry, $relationForeignKey, $this->createProxy($id));
+        $linkModelName = $this->meta->getRelationLinkModelName($fieldName);
+        if ($linkModelName) {
+            // hasOne with a link model
+            $linkModel = $this->getRelationLinkModel($fieldName);
 
-        $relationModel->save($relationEntry);
+            if (is_array($relationForeignKey)) {
+                // relation to self
+
+                // look for existing relation
+                $query = $linkModel->createQuery();
+                $query->setOperator('OR');
+                foreach ($relationForeignKey as $foreignKey) {
+                    $query->addCondition('{' . $foreignKey . '} = %1%', $id);
+                }
+
+                $link = $query->queryFirst();
+                if ($link) {
+                    // existing relation, change it
+                    $foreignKey = each($relationForeignKey);
+                    if ($this->reflectionHelper->getProperty($link, $foreignKey['value'])->getId() == $id) {
+                        $foreignKey = each($relationForeignKey);
+                    }
+
+                    $this->reflectionHelper->setProperty($link, $foreignKey['value'], $this->createProxy($relationEntry->getId()));
+                } else {
+                    // no relation, create one
+                    $link = $linkModel->createEntry();
+
+                    $foreignKey = each($relationForeignKey);
+                    $this->reflectionHelper->setProperty($link, $foreignKey['value'], $this->createProxy($id));
+
+                    $foreignKey = each($relationForeignKey);
+                    $this->reflectionHelper->setProperty($link, $foreignKey['value'], $this->createProxy($relationEntry->getId()));
+                }
+            } else {
+                // relation with other model
+                throw new OrmException('Not implemented');
+            }
+
+            $linkModel->save($link);
+        } else {
+            // hasOne as the other side of a belongsTo
+            $relationModel = $this->getRelationModel($fieldName);
+
+            $this->reflectionHelper->setProperty($relationEntry, $relationForeignKey, $this->createProxy($id));
+
+            $relationModel->save($relationEntry);
+        }
     }
 
     /**
@@ -883,6 +932,7 @@ class GenericModel extends AbstractModel {
 
         $relationModel = $this->getRelationModel($fieldName);
         $linkModel = $this->getRelationLinkModel($fieldName);
+        $oldHasMany = null;
 
         if (!$isNew) {
             if ($foreignKeyToSelf) {

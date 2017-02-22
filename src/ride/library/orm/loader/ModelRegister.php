@@ -570,7 +570,7 @@ class ModelRegister {
      * @throws \ride\library\orm\exception\ModelException when field1 and
      * field2 have the link model set but they are not the same
      */
-    private function getManyToManyLinkModelName(HasManyField $field1, HasManyField $field2, ModelMeta $modelMeta, $fieldName) {
+    private function getManyToManyLinkModelName(HasField $field1, HasField $field2, ModelMeta $modelMeta, $fieldName) {
         $linkModelName1 = $field1->getLinkModelName();
         $linkModelName2 = $field2->getLinkModelName();
 
