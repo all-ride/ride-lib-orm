@@ -1,3 +1,7 @@
+# [1.0.7] - 2017-03-28
+## Updated
+- $owner from setOwner in OwnedEntry can be null
+
 # [1.0.6] - 2017-02-22
 ## Updated
 - updated proxy to really fix save of localized hasMany on insert
