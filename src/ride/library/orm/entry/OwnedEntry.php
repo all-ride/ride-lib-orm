@@ -12,7 +12,7 @@ interface OwnedEntry {
      * @param string $owner
      * @return null
      */
-    public function setOwner($owner);
+    public function setOwner($owner = null);
 
     /**
      * Gets the owner of the entry
