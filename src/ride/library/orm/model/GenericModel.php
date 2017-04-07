@@ -277,6 +277,10 @@ class GenericModel extends AbstractModel {
         $query->setRecursiveDepth($recursiveDepth);
         $query->setFetchUnlocalized($fetchUnlocalized);
 
+        if (isset($options['distinct'])) {
+            $query->setDistinct(true);
+        }
+
         $this->applySearch($query, $options);
         $this->applyOrder($query, $options);
 

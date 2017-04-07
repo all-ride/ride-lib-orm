@@ -1,3 +1,7 @@
+# [1.1.0] - 2017-04-07
+## Added
+- implemented distinct option for find()
+
 # [1.0.7] - 2017-03-28
 ## Updated
 - $owner from setOwner in OwnedEntry can be null
