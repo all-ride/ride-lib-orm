@@ -526,12 +526,20 @@ class GenericModel extends AbstractModel {
                 continue;
             }
 
+            $isSerialized = false;
             if ($field->getType() == 'serialize') {
                 $value = serialize($value);
+
+                $isSerialized = true;
             }
 
             $statement->addValue(new FieldExpression($fieldName), new ScalarExpression($value));
-            $loadedValues[$fieldName] = $value;
+
+            if ($isSerialized) {
+                $loadedValues[$fieldName] = unserialize($value);
+            } else {
+                $loadedValues[$fieldName] = $value;
+            }
         }
 
         // $log->logDebug('belongsTo');
@@ -756,6 +764,7 @@ class GenericModel extends AbstractModel {
 
             if ($isProxy) {
                 $localizedLoadedValues = $entry->getLoadedValues();
+
                 $localizedLoadedValues[LocalizedModel::FIELD_ENTRY] = $properties[LocalizedModel::FIELD_ENTRY];
                 $localizedLoadedValues[LocalizedModel::FIELD_LOCALE] = $properties[LocalizedModel::FIELD_LOCALE];
 
