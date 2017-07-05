@@ -360,11 +360,18 @@ $this->loadedValues[$fieldName] = $entry->loadedValues[$fieldName];';
         if ($name == ModelTable::PRIMARY_KEY) {
             return;
         }
+
         $ucName = ucfirst($name);
 
         if ($field instanceof PropertyField) {
             $isProperty = true;
-            $type = $this->normalizeType($field->getType());
+
+            $type = $field->getOption('code.type');
+            if (!$type) {
+                $type = $field->getType();
+            }
+
+            $type = $this->normalizeType($type);
         } else {
             $isProperty = false;
             $relationModelName = $field->getRelationModelName();
@@ -382,7 +389,7 @@ $this->loadedValues[$fieldName] = $entry->loadedValues[$fieldName];';
         $property->setDescription($description);
         if (isset($relationModelName)) {
             $property->setDefaultValue(null);
-        } elseif ($defaultValue !== null) {
+        } elseif ($defaultValue !== null || $field->getOption('code.nullable')) {
             $property->setDefaultValue($defaultValue);
         }
 

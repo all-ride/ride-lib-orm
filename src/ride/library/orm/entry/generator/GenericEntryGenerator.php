@@ -138,14 +138,19 @@ return $entryState;';
             return;
         }
 
-        $type = $this->normalizeType($field->getType());
+        $type = $field->getOption('code.type');
+        if (!$type) {
+            $type = $field->getType();
+        }
+
+        $type = $this->normalizeType($type);
         $description = $field->getOption('description');
 
         $defaultValue = $field->getDefaultValue();
 
         $property = $this->generator->createProperty($name, $type, Code::SCOPE_PROTECTED);
         $property->setDescription($description);
-        if ($defaultValue !== null) {
+        if ($defaultValue !== null || $field->getOption('code.nullable')) {
             $property->setDefaultValue($defaultValue);
         }
 

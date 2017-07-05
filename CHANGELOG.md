@@ -1,3 +1,7 @@
+# [1.2.0] - 2017-07-05
+## Added
+- added code.type and code.nullable option for model fields, used by the _serialize_ field type
+
 # [1.1.0] - 2017-04-07
 ## Added
 - implemented distinct option for find()
