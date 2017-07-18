@@ -413,9 +413,13 @@ abstract class AbstractModel implements Model, Serializable {
             }
 
             if (!$field instanceof PropertyField) {
-                $relationModel = $this->orm->getModel($field->getRelationModelName());
+                if (is_array($value[$fieldName]) && !$value[$fieldName]) {
+                    // ignore empty arrays
+                } else {
+                    $relationModel = $this->orm->getModel($field->getRelationModelName());
 
-                $value[$fieldName] = $relationModel->getEntryFromValue($value[$fieldName], $locale);
+                    $value[$fieldName] = $relationModel->getEntryFromValue($value[$fieldName], $locale);
+                }
             }
 
             $this->reflectionHelper->setProperty($entry, $fieldName, $value[$fieldName]);
@@ -455,9 +459,9 @@ abstract class AbstractModel implements Model, Serializable {
 
                 foreach ($value as $index => $hasValue) {
                     if ($level == 0) {
-                        $array[$name][$index] = $hasValue->id;
+                        $array[$name][] = $hasValue->id;
                     } else {
-                        $array[$name][$index] = $relationModel->convertEntryToArray($hasValue, array($foreignKey), $level - 1);
+                        $array[$name][] = $relationModel->convertEntryToArray($hasValue, array($foreignKey), $level - 1);
                     }
                 }
             } else {
