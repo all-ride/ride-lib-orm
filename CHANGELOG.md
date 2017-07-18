@@ -1,3 +1,7 @@
+# [1.2.1] - 2017-07-18
+## Updated
+- fixed convertEntryToArray and getEntryFromValue for hasMany fields
+
 # [1.2.0] - 2017-07-05
 ## Added
 - added code.type and code.nullable option for model fields, used by the _serialize_ field type
