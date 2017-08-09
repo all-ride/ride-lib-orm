@@ -833,7 +833,7 @@ class ModelQuery {
             $query->setRecursiveDepth(1);
             $query->setIncludeUnlocalized($this->includeUnlocalized);
             $query->setFetchUnlocalized($this->fetchUnlocalized);
-            $query->setOperator(Condition::OPERATOR_OR);
+            // $query->setOperator(Condition::OPERATOR_OR);
             $query->setFields('{id}, {' . $foreignKey . '}');
             $query->addCondition('{' . $foreignKeyToSelf . '} = %1%', $reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY));
 
@@ -927,13 +927,16 @@ class ModelQuery {
             $query->setRecursiveDepth($recursiveDepth);
             $query->setIncludeUnlocalized($this->includeUnlocalized);
             $query->setFetchUnlocalized($this->fetchUnlocalized);
-            $query->setOperator(Condition::OPERATOR_OR);
+            // $query->setOperator(Condition::OPERATOR_OR);
 
             $id = $this->reflectionHelper->getProperty($data, DefinitionModelTable::PRIMARY_KEY);
 
+            $conditions = array();
             foreach ($foreignKeys as $foreignKey => $null) {
-                $query->addCondition('{' . $foreignKey . '} = %1%', $id);
+                $conditions[] = '{' . $foreignKey . '} = %1%';
             }
+
+            $query->addCondition('(' . implode(' OR ', $conditions) . ')', $id);
 
             if ($isHasOne) {
                 $value = $this->queryHasOneWithLinkModelToSelf($query, $foreignKeysFetch, $id);
