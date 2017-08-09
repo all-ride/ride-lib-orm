@@ -1,3 +1,7 @@
+# [1.2.2] - 2017-08-09
+## Updated
+- removed setOperator in ModelQuery and GenericModel for hasOne relations to get certain custom behaviours working as they should
+
 # [1.2.1] - 2017-07-18
 ## Updated
 - fixed convertEntryToArray and getEntryFromValue for hasMany fields

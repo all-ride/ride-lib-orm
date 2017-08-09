@@ -836,11 +836,13 @@ class GenericModel extends AbstractModel {
                 // relation to self
 
                 // look for existing relation
-                $query = $linkModel->createQuery();
-                $query->setOperator('OR');
+                $conditions = array();
                 foreach ($relationForeignKey as $foreignKey) {
-                    $query->addCondition('{' . $foreignKey . '} = %1%', $id);
+                    $conditions[] = '{' . $foreignKey . '} = %1%';
                 }
+
+                $query = $linkModel->createQuery();
+                $query->addCondition('(' . implode(' OR ', $conditions) . ')', $id);
 
                 $link = $query->queryFirst();
                 if ($link) {
