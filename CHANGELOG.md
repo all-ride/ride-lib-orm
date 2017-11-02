@@ -1,3 +1,7 @@
+# [1.2.3] - 2017-11-02
+## Updated
+- fixed entry state for hasMany changes, fixed entry state comparison for properties
+
 # [1.2.2] - 2017-08-09
 ## Updated
 - removed setOperator in ModelQuery and GenericModel for hasOne relations to get certain custom behaviours working as they should

@@ -419,7 +419,7 @@ if ($oldValue === $' . $name . ')  {
 }';
         } else {
             $setterCode .= '
-if ((!$oldValue && !$' . $name . ') || ($oldValue && $' . $name . ' && $oldValue->getId() === $' . $name . '->getId()))  {
+if ((!$oldValue && !$' . $name . ') || ($oldValue && $' . $name . ' && $oldValue->getId() == $' . $name . '->getId()))  {
     $this->' . $name . ' = $' . $name . ';
 
     return;

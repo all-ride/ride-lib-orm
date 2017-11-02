@@ -155,7 +155,7 @@ return $entryState;';
         }
 
         $setterCode =
-'if ($this->' . $name . ' === $' . $name . ') {
+'if ($this->' . $name . ' == $' . $name . ') {
     return;
 }
 
@@ -262,17 +262,49 @@ if ($this->entryState === self::STATE_CLEAN) {
 }';
 
         $setterCode =
-'foreach ($' . $name . ' as $' . $name . 'Index => $' . $name . 'Value) {
+'$this->get' . ucfirst($name) . '();
+
+foreach ($' . $name . ' as $' . $name . 'Index => $' . $name . 'Value) {
     if (!$' . $name . 'Value instanceof ' . $typeAlias . ') {
         throw new InvalidArgumentException("Could not set ' . $name . ': value on index $' . $name . 'Index is not an instance of ' . str_replace('\\', '\\\\', $type) . '");
     }
+
+    $found = false;
+    foreach ($this->' . $name . ' as $' . $name . 'IndexSelf => $' . $name . 'ValueSelf) {
+        if ($' . $name . 'Value->getId() === $' . $name . 'ValueSelf->getId()) {
+            $found = true;
+
+            if ($this->entryState === self::STATE_CLEAN && $' . $name . 'Value->getEntryState() !== self::STATE_CLEAN) {
+                $this->entryState = self::STATE_DIRTY;
+            }
+
+            break;
+        }
+    }
+
+    if ($this->entryState === self::STATE_CLEAN && !$found) {
+        $this->entryState = self::STATE_DIRTY;
+    }
 }
 
-$this->' . $name . ' = $' . $name . ';
+foreach ($this->' . $name . ' as $' . $name . 'IndexSelf => $' . $name . 'ValueSelf) {
+    $found = false;
+    foreach ($' . $name . ' as $' . $name . 'Index => $' . $name . 'Value) {
+        if ($' . $name . 'Value->getId() === $' . $name . 'ValueSelf->getId()) {
+            $found = true;
 
-if ($this->entryState === self::STATE_CLEAN) {
-    $this->entryState = self::STATE_DIRTY;
-}';
+            break;
+        }
+    }
+
+    if ($this->entryState === self::STATE_CLEAN && !$found) {
+        $this->entryState = self::STATE_DIRTY;
+
+        break;
+    }
+}
+
+$this->' . $name . ' = $' . $name . ';';
 
         $removerCode =
 '$this->get' . ucfirst($name) . '();
