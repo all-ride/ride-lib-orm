@@ -155,7 +155,7 @@ return $entryState;';
         }
 
         $setterCode =
-'if ($this->' . $name . ' == $' . $name . ') {
+'if ((($this->' . $name . ' === null && $' . $name . ' === null) || ($this->' . $name . ' == $' . $name . ')) && !(($this->' . $name . ' === null && $' . $name . ' !== null) || ($this->' . $name . ' !== null && $' . $name . ' === null))) {
     return;
 }
 
