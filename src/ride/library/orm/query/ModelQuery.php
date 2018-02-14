@@ -1029,6 +1029,8 @@ class ModelQuery {
      * @return null
      */
     public function addFieldsWithVariables($expression, array $variables) {
+        $this->setModelFields();
+
         $this->fields[] = new ModelExpression($expression, $variables);
     }
 
