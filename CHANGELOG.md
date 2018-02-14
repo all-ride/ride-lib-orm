@@ -1,8 +1,8 @@
-# [1.2.4] - 2018-02-14
+# [1.2.5] - 2018-02-14
 ## Updated
 - initialize fields when adding fields with variables to query
 
-# [1.2.3] - 2017-11-02
+# [1.2.3, 1.2.4] - 2017-11-02
 ## Updated
 - fixed entry state for hasMany changes, fixed entry state comparison for properties
 
