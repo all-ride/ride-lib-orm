@@ -356,6 +356,16 @@ class OrmManager {
         return new CacheableModelQuery($model, $this->getLocales(), $locale);
     }
 
+    /**
+     * Clears the proxies of all loaded models
+     */
+    public function clearProxies() {
+        $models = $this->getModels();
+        foreach ($models as $model) {
+            $model->clearProxies();
+        }
+    }
+
     public function getValidationFactory() {
         return $this->validationFactory;
     }
