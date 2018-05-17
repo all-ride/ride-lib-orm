@@ -1,3 +1,7 @@
+# [1.3.0] - 2018-05-17
+## Added
+- added method to clear all proxies from all loaded models
+
 # [1.2.5] - 2018-02-14
 ## Updated
 - initialize fields when adding fields with variables to query
