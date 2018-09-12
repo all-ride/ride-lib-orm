@@ -1,3 +1,7 @@
+# [1.3.1] - 2018-09-12
+## Updated
+- fixed indexOn for hasMany relations with a link model
+
 # [1.3.0] - 2018-05-17
 ## Added
 - added method to clear all proxies from all loaded models
