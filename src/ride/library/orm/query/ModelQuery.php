@@ -824,6 +824,10 @@ class ModelQuery {
         $foreignKeyToSelf = $meta->getRelationForeignKeyToSelf($fieldName);
 
         $isHasOne = $field instanceof HasOneField;
+        $indexOn = null;
+        if (!$isHasOne) {
+            $indexOn = $field->getIndexOn();
+        }
 
         $reflectionHelper = $this->model->getReflectionHelper();
 
@@ -840,7 +844,7 @@ class ModelQuery {
             if ($isHasOne) {
                 $value = $this->queryHasOneWithLinkModel($query, $foreignKey);
             } else {
-                $value = $this->queryHasManyWithLinkModel($query, $meta, $fieldName, $foreignKey, $field->isOrdered());
+                $value = $this->queryHasManyWithLinkModel($query, $meta, $fieldName, $foreignKey, $field->isOrdered(), $indexOn);
             }
 
             $reflectionHelper->setProperty($result[$index], $fieldName, $value, true);
@@ -869,12 +873,16 @@ class ModelQuery {
      * @param string $foreignKey Name of the foreign key
      * @return array Model query result for the has many field
      */
-    private function queryHasManyWithLinkModel(ModelQuery $query, ModelMeta $meta, $fieldName, $foreignKey, $isOrdered) {
+    private function queryHasManyWithLinkModel(ModelQuery $query, ModelMeta $meta, $fieldName, $foreignKey, $isOrdered, $indexOn = null) {
         if ($isOrdered || $query->getRecursiveDepth() == 1) {
             $order = $meta->getRelationOrder($fieldName);
             if ($order != null) {
                 $query->addOrderBy($order);
             }
+        }
+
+        if (!$indexOn) {
+            $indexOn = DefinitionModelTable::PRIMARY_KEY;
         }
 
         $result = array();
@@ -886,7 +894,7 @@ class ModelQuery {
                 continue;
             }
 
-            $foreignDataId = $this->reflectionHelper->getProperty($foreignData, DefinitionModelTable::PRIMARY_KEY);
+            $foreignDataId = $this->reflectionHelper->getProperty($foreignData, $indexOn);
             if ($foreignDataId) {
                 $result[$foreignDataId] = $foreignData;
             } else {
