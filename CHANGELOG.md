@@ -1,3 +1,7 @@
+# [1.3.2] - 2018-09-25
+## Updated
+- increased limit of entry list options to 2000 
+
 # [1.3.1] - 2018-09-12
 ## Updated
 - fixed indexOn for hasMany relations with a link model

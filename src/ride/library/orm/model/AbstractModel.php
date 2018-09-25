@@ -323,7 +323,7 @@ abstract class AbstractModel implements Model, Serializable {
         }
 
         $page = 1;
-        $limit = 1000;
+        $limit = 2000;
         $this->list[$locale] = array();
 
         do {
