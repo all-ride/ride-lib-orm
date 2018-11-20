@@ -1,3 +1,7 @@
+# [1.3.3] - 2018-11-20
+## Updated
+- maximum length for a slug is 250
+ 
 # [1.3.2] - 2018-09-25
 ## Updated
 - increased limit of entry list options to 2000 
