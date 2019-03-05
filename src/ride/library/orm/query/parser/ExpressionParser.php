@@ -8,6 +8,7 @@ use ride\library\database\manipulation\condition\SimpleCondition;
 use ride\library\database\manipulation\expression\CaseExpression;
 use ride\library\database\manipulation\expression\FieldExpression;
 use ride\library\database\manipulation\expression\FunctionExpression;
+use ride\library\database\manipulation\expression\MatchExpression;
 use ride\library\database\manipulation\expression\MathematicalExpression;
 use ride\library\database\manipulation\expression\TableExpression;
 use ride\library\database\manipulation\expression\ScalarExpression;
@@ -52,6 +53,18 @@ class ExpressionParser {
      * @var string
      */
     const REGEX_CASE = '/^(\\()?CASE((.)*)END(\\))?( AS ([a-zA-Z0-9_])*)?$/';
+
+    /**
+     * Regular expression to match match-against expressions with optional alias.
+     * @var string
+     */
+    const REGEX_MATCH = '/^MATCH\\(((.)*)\\) AGAINST\\(((.)*)\\)( AS (([a-zA-Z0-9_])*))?$/';
+
+    /**
+     * Regular expression to match match-against expressions with optional alias.
+     * @var string
+     */
+    const REGEX_MATCH_MODIFIER = '/(( IN|WITH )(.*))?$/';
 
     /**
      * NULL value
@@ -200,12 +213,16 @@ class ExpressionParser {
             $expression1 = $this->parseExpression($expression1);
 
             $expression2 = trim(substr($condition, $operatorPosition + strlen($operator)));
+            if ($operator === Condition::OPERATOR_IN && substr($expression2, 0, 1) !== '(') {
+                continue;
+            }
+
             $expression2 = $this->parseExpression($expression2);
 
             return new SimpleCondition($expression1, $expression2, $operator);
         }
 
-        throw new OrmParseException('Provided condition could not be parsed: ' . $condition);
+        return new SimpleCondition($this->parseExpression($condition));
     }
 
     /**
@@ -232,6 +249,11 @@ class ExpressionParser {
         }
 
         $expression = $this->parseMathematical($value);
+        if ($expression !== false) {
+            return $expression;
+        }
+
+        $expression = $this->parseMatch($value);
         if ($expression !== false) {
             return $expression;
         }
@@ -292,6 +314,52 @@ class ExpressionParser {
         $variable = $this->parseVariables($variable);
 
         return new ScalarExpression($variable);
+    }
+
+    /**
+     * Parses the provided match-against into a database expression
+     * @param string $function String of the function expression
+     * @return boolean| \ride\library\database\manipulation\expression\FunctionExpression false if the
+     *         provided function expression could not be parsed, the function expression object otherwise.
+     */
+    private function parseMatch($match) {
+        if (!preg_match(self::REGEX_MATCH, $match, $matches)) {
+            return false;
+        }
+
+        $name = trim($matches[1]);
+        if (!$name) {
+            return false;
+        }
+
+        $fields = $matches[1];
+
+        $expression = $matches[3];
+
+        $alias = null;
+        if (isset($matches[6])) {
+            $alias = $matches[6];
+        }
+
+        if (!preg_match(self::REGEX_MATCH_MODIFIER, $expression, $matches)) {
+            $modifier = null;
+        } else {
+            $modifier = $matches[1];
+            $expression = substr($expression, 0, strlen($modifier) * -1);
+        }
+
+        $match = new MatchExpression($this->parseExpression($expression), $alias);
+        if ($modifier) {
+            $match->setModifier($modifier);
+        }
+
+        $fieldTokens = $this->fieldTokenizer->tokenize($fields);
+        foreach ($fieldTokens as $field) {
+            $field = $this->parseExpression($field);
+            $match->addField($field);
+        }
+
+        return $match;
     }
 
     /**

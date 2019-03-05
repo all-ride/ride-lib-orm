@@ -426,7 +426,7 @@ class GenericModel extends AbstractModel {
      * @return null
      */
     public function applyOrder(ModelQuery $query, array $options = null) {
-        $orderField = isset($options['order']['field']) ? $options['order']['field'] : $this->findOrderField;
+        $orderField = array_key_exists('order', $options) && array_key_exists('field', $options['order']) ? $options['order']['field'] : $this->findOrderField;
         $orderDirection = isset($options['order']['direction']) ? $options['order']['direction'] : $this->findOrderDirection;
 
         if ($orderField) {

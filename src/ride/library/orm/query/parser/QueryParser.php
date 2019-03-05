@@ -865,9 +865,14 @@ class QueryParser {
         $expressionRight = $condition->getRightExpression();
 
         $expressionLeft = $this->processExpression($expressionLeft, true);
-        $expressionRight = $this->processExpression($expressionRight, true);
 
-        return new SimpleCondition($expressionLeft, $expressionRight, $condition->getOperator());
+        if ($expressionRight) {
+            $expressionRight = $this->processExpression($expressionRight, true);
+
+            return new SimpleCondition($expressionLeft, $expressionRight, $condition->getOperator());
+        } else {
+            return new SimpleCondition($expressionLeft);
+        }
     }
 
     /**
