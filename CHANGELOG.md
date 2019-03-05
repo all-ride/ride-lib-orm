@@ -1,3 +1,7 @@
+# [1.4.1] - 2019-03-05
+## Updated
+- catch null when checking of order find options
+
 # [1.4.0] - 2019-03-05
 ## Added
 - added match implementation
