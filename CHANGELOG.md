@@ -1,3 +1,9 @@
+# [1.4.0] - 2019-03-05
+## Added
+- added match implementation
+## Updated
+- fixed checking of order find options
+
 # [1.3.3] - 2018-11-20
 ## Updated
 - maximum length for a slug is 250
