@@ -1,3 +1,7 @@
+# [1.4.2] - 2019-03-08
+## Updated
+- improved handling of IN keyword
+
 # [1.4.1] - 2019-03-05
 ## Updated
 - catch null when checking of order find options
