@@ -213,8 +213,13 @@ class ExpressionParser {
             $expression1 = $this->parseExpression($expression1);
 
             $expression2 = trim(substr($condition, $operatorPosition + strlen($operator)));
-            if ($operator === Condition::OPERATOR_IN && substr($expression2, 0, 1) !== '(') {
-                continue;
+
+            if ($operator === Condition::OPERATOR_IN) {
+                $keyword = strtoupper(substr($expression2, 0, 7));
+                if ($keyword === 'NATURAL' || $keyword === 'BOOLEAN') {
+                    // part of a MATCH statement
+                    continue;
+                }
             }
 
             $expression2 = $this->parseExpression($expression2);
