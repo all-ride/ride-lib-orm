@@ -1,3 +1,7 @@
+# [1.4.3] - 2019-03-08
+## Updated
+- improved handling of IN keyword
+
 # [1.4.2] - 2019-03-08
 ## Updated
 - improved handling of IN keyword

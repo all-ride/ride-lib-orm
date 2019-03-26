@@ -210,18 +210,21 @@ class ExpressionParser {
             }
 
             $expression1 = trim(substr($condition, 0, $operatorPosition));
-            $expression1 = $this->parseExpression($expression1);
-
             $expression2 = trim(substr($condition, $operatorPosition + strlen($operator)));
 
             if ($operator === Condition::OPERATOR_IN) {
                 $keyword = strtoupper(substr($expression2, 0, 7));
-                if ($keyword === 'NATURAL' || $keyword === 'BOOLEAN') {
+                if (
+                    $keyword === 'NATURAL' ||
+                    $keyword === 'BOOLEAN' ||
+                    (substr($expression2, 0, 2) === 'ST' && substr($expression1, -3) === 'AGA')
+                ) {
                     // part of a MATCH statement
                     continue;
                 }
             }
 
+            $expression1 = $this->parseExpression($expression1);
             $expression2 = $this->parseExpression($expression2);
 
             return new SimpleCondition($expression1, $expression2, $operator);
