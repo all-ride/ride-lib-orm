@@ -426,14 +426,23 @@ class GenericModel extends AbstractModel {
      * @return null
      */
     public function applyOrder(ModelQuery $query, array $options = null) {
-        $orderField = $options !== null && array_key_exists('order', $options) && array_key_exists('field', $options['order']) ? $options['order']['field'] : $this->findOrderField;
-        $orderDirection = isset($options['order']['direction']) ? $options['order']['direction'] : $this->findOrderDirection;
+        $order = null;
+        if ($options !== null && array_key_exists('order', $options)) {
+            $order = $options['order'];
+        }
 
-        if ($orderField) {
-            $fieldTokens = explode('.', $orderField);
-            $field = $this->meta->getField($fieldTokens[0]);
+        if ($order && is_string($order)) {
+            $query->addOrderBy($order);
+        } else {
+            $orderField = $order && array_key_exists('field', $order) ? $order['field'] : $this->findOrderField;
+            $orderDirection = isset($order['direction']) ? $order['direction'] : $this->findOrderDirection;
 
-            $query->addOrderBy('{' . $orderField . '} ' . $orderDirection);
+            if ($orderField) {
+                $fieldTokens = explode('.', $orderField);
+                $field = $this->meta->getField($fieldTokens[0]);
+
+                $query->addOrderBy('{' . $orderField . '} ' . $orderDirection);
+            }
         }
 
         return $query;
