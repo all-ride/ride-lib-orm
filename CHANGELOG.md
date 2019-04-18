@@ -1,3 +1,7 @@
+# [1.5.0] - 2019-04-17
+## Added
+- added string implementation for the order find option
+
 # [1.4.3] - 2019-03-08
 ## Updated
 - improved handling of IN keyword
