@@ -10,12 +10,13 @@ use ride\library\orm\definition\definer\ModelDefiner;
 use ride\library\orm\definition\FieldValidator;
 use ride\library\orm\exception\OrmException;
 use ride\library\orm\loader\ModelLoader;
-use ride\library\orm\model\data\format\modifier\CapitalizeDataFormatModifier;
-use ride\library\orm\model\data\format\modifier\DateDataFormatModifier;
-use ride\library\orm\model\data\format\modifier\Nl2brDataFormatModifier;
-use ride\library\orm\model\data\format\modifier\StripTagsDataFormatModifier;
-use ride\library\orm\model\data\format\modifier\TruncateDataFormatModifier;
-use ride\library\orm\model\data\format\DataFormatter;
+use ride\library\orm\model\entry\format\modifier\CapitalizeEntryFormatModifier;
+use ride\library\orm\model\entry\format\modifier\DateEntryFormatModifier;
+use ride\library\orm\model\entry\format\modifier\EscapeEntryFormatModifier;
+use ride\library\orm\model\entry\format\modifier\Nl2brEntryFormatModifier;
+use ride\library\orm\model\entry\format\modifier\StripTagsEntryFormatModifier;
+use ride\library\orm\model\entry\format\modifier\TruncateEntryFormatModifier;
+use ride\library\orm\model\entry\format\GenericEntryFormatter;
 use ride\library\orm\model\Model;
 use ride\library\orm\query\parser\QueryParser;
 use ride\library\orm\query\tokenizer\FieldTokenizer;
@@ -403,6 +404,7 @@ class OrmManager {
             $modifiers = array(
                 'capitalize' => new CapitalizeEntryFormatModifier(),
                 'date' => new DateEntryFormatModifier(),
+                'escape' => new EscapeEntryFormatModifier(),
                 'nl2br' => new Nl2brEntryFormatModifier(),
                 'strip_tags' => new StripTagsEntryFormatModifier(),
                 'truncate' => new TruncateEntryFormatModifier(),
