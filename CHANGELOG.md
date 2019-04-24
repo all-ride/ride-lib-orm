@@ -1,3 +1,8 @@
+
+# [1.6.0] - 2019-04-24
+## Added
+- added escape entry formatter
+
 # [1.5.0] - 2019-04-17
 ## Added
 - added string implementation for the order find option
