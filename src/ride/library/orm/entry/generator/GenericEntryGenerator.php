@@ -269,42 +269,72 @@ foreach ($' . $name . ' as $' . $name . 'Index => $' . $name . 'Value) {
         throw new InvalidArgumentException("Could not set ' . $name . ': value on index $' . $name . 'Index is not an instance of ' . str_replace('\\', '\\\\', $type) . '");
     }
 
-    $found = false;
-    foreach ($this->' . $name . ' as $' . $name . 'IndexSelf => $' . $name . 'ValueSelf) {
-        if ($' . $name . 'Value->getId() === $' . $name . 'ValueSelf->getId()) {
-            $found = true;
+    if ($this->entryState === self::STATE_CLEAN) {
+        $found = false;
 
-            if ($this->entryState === self::STATE_CLEAN && $' . $name . 'Value->getEntryState() !== self::STATE_CLEAN) {
-                $this->entryState = self::STATE_DIRTY;
+        foreach ($this->' . $name . ' as $' . $name . 'IndexSelf => $' . $name . 'ValueSelf) {
+            if ($' . $name . 'Value->getId() === $' . $name . 'ValueSelf->getId()) {
+                $found = true;
+
+                if ($' . $name . 'Value->getEntryState() !== self::STATE_CLEAN) {
+                    $this->entryState = self::STATE_DIRTY;
+                }
+
+                break;
             }
+        }
+
+        if (!$found) {
+            $this->entryState = self::STATE_DIRTY;
+        }
+    }
+}
+
+if ($this->entryState === self::STATE_CLEAN) {
+    foreach ($this->' . $name . ' as $' . $name . 'IndexSelf => $' . $name . 'ValueSelf) {
+        $found = false;
+
+        foreach ($' . $name . ' as $' . $name . 'Index => $' . $name . 'Value) {
+            if ($' . $name . 'Value->getId() === $' . $name . 'ValueSelf->getId()) {
+                $found = true;
+
+                break;
+            }
+        }
+
+        if (!$found) {
+            $this->entryState = self::STATE_DIRTY;
 
             break;
         }
     }
-
-    if ($this->entryState === self::STATE_CLEAN && !$found) {
-        $this->entryState = self::STATE_DIRTY;
-    }
 }
 
-foreach ($this->' . $name . ' as $' . $name . 'IndexSelf => $' . $name . 'ValueSelf) {
-    $found = false;
+';
+
+if ($field->isOrdered()) {
+        $setterCode .= 'if ($this->entryState === self::STATE_CLEAN) {
+    $order = array();
+
     foreach ($' . $name . ' as $' . $name . 'Index => $' . $name . 'Value) {
-        if ($' . $name . 'Value->getId() === $' . $name . 'ValueSelf->getId()) {
-            $found = true;
+        $order[$' . $name . 'Value->getId()] = $' . $name . 'Value->getId();
+    }
+
+    foreach ($this->' . $name . ' as $' . $name . 'Index => $' . $name . 'Value) {
+        $orderId = array_shift($order);
+
+        if ($orderId != $' . $name . 'Value->getId()) {
+            $this->entryState = self::STATE_DIRTY;
 
             break;
         }
     }
-
-    if ($this->entryState === self::STATE_CLEAN && !$found) {
-        $this->entryState = self::STATE_DIRTY;
-
-        break;
-    }
 }
 
-$this->' . $name . ' = $' . $name . ';';
+';
+}
+
+        $setterCode .= '$this->' . $name . ' = $' . $name . ';';
 
         $removerCode =
 '$this->get' . ucfirst($name) . '();

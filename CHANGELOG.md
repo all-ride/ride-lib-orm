@@ -1,3 +1,6 @@
+# [1.6.1] - 2019-09-11
+## Updated
+- fixed dirty detection of ordered has many field
 
 # [1.6.0] - 2019-04-24
 ## Added
