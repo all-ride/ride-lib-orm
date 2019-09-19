@@ -1,3 +1,7 @@
+# [1.6.2] - 2019-09-19
+## Updated
+- fixed boolean handling of related entry in result parser
+
 # [1.6.1] - 2019-09-11
 ## Updated
 - fixed dirty detection of ordered has many field
