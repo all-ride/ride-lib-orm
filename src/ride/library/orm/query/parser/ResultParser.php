@@ -157,10 +157,10 @@ class ResultParser {
                 $relationProperties = $relationMeta->getProperties();
                 foreach ($relationProperties as $relationPropertyName => $relationProperty) {
                     $type = $relationProperty->getType();
-                    if ($type == 'serialize' && isset($value[$relationPropertyName])) {
+                    if ($type === 'serialize' && isset($value[$relationPropertyName])) {
                         $value[$relationPropertyName] = unserialize($value[$relationPropertyName]);
                     }
-                    if ($type == 'boolean' && $value[$relationPropertyName] !== null) {
+                    if ($type === 'boolean' && array_key_exists($relationPropertyName, $value) && $value[$relationPropertyName] !== null) {
                         $value[$relationPropertyName] = (boolean) $value[$relationPropertyName];
                     }
                 }
