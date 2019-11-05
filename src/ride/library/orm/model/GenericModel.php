@@ -856,21 +856,21 @@ class GenericModel extends AbstractModel {
                 $link = $query->queryFirst();
                 if ($link) {
                     // existing relation, change it
-                    $foreignKey = each($relationForeignKey);
-                    if ($this->reflectionHelper->getProperty($link, $foreignKey['value'])->getId() == $id) {
-                        $foreignKey = each($relationForeignKey);
+                    $foreignKey = array_shift($relationForeignKey);
+                    if ($this->reflectionHelper->getProperty($link, $foreignKey)->getId() == $id) {
+                        $foreignKey = array_shift($relationForeignKey);
                     }
 
-                    $this->reflectionHelper->setProperty($link, $foreignKey['value'], $this->createProxy($relationEntry->getId()));
+                    $this->reflectionHelper->setProperty($link, $foreignKey, $this->createProxy($relationEntry->getId()));
                 } else {
                     // no relation, create one
                     $link = $linkModel->createEntry();
 
-                    $foreignKey = each($relationForeignKey);
-                    $this->reflectionHelper->setProperty($link, $foreignKey['value'], $this->createProxy($id));
+                    $foreignKey = array_shift($relationForeignKey);
+                    $this->reflectionHelper->setProperty($link, $foreignKey, $this->createProxy($id));
 
-                    $foreignKey = each($relationForeignKey);
-                    $this->reflectionHelper->setProperty($link, $foreignKey['value'], $this->createProxy($relationEntry->getId()));
+                    $foreignKey = array_shift($relationForeignKey);
+                    $this->reflectionHelper->setProperty($link, $foreignKey, $this->createProxy($relationEntry->getId()));
                 }
             } else {
                 // relation with other model
