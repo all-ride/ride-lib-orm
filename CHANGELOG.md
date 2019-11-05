@@ -1,3 +1,7 @@
+# [1.6.3] - 2019-11-05
+## Updated
+- removed usage of deprecated each function
+
 # [1.6.2] - 2019-09-19
 ## Updated
 - fixed boolean handling of related entry in result parser
