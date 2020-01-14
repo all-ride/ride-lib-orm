@@ -1,3 +1,7 @@
+# [1.6.4] - 2020-01-14
+## Updated
+- fixed query cache for paginated queries
+
 # [1.6.3] - 2019-11-05
 ## Updated
 - removed usage of deprecated each function

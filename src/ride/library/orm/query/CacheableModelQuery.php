@@ -307,7 +307,16 @@ class CacheableModelQuery extends ModelQuery {
             $queryId .= $orderBy->getExpression() . ';';
         }
 
-        $queryId .= 'L:' . $this->limitCount . '-' . $this->limitOffset . ';' . $suffix;
+        if ($this->limitCount !== null) {
+            $queryId .= 'Lc' . $this->limitCount;
+        }
+        if ($this->limitOffset !== null) {
+            $queryId .= 'Lo' . $this->limitOffset;
+        }
+
+        $queryId .= $suffix;
+
+        // $queryId .= 'L:' . $this->limitCount . '-' . $this->limitOffset . ';' . $suffix;
 
         $queryId = $modelName . '-' . md5($queryId);
 
@@ -324,6 +333,13 @@ class CacheableModelQuery extends ModelQuery {
 
         foreach ($this->variables as $key => $value) {
             $variableString .= $key . ': ' . $value .  ';';
+        }
+
+        if ($this->limitCount !== null) {
+            $variableString .= 'Lc:' . $this->limitCount;
+        }
+        if ($this->limitOffset !== null) {
+            $variableString .= 'Lo:' . $this->limitOffset;
         }
 
         return $queryId . '-' . md5($variableString);
@@ -430,6 +446,24 @@ class CacheableModelQuery extends ModelQuery {
         $expression = $this->parseVariables($expression, $variables);
 
         parent::addOrderByWithVariables($expression, array());
+    }
+
+    /**
+     * Sets the limitation of the query
+     * @param integer $count Number of rows to retrieve
+     * @param integer $offset Offset of the result
+     * @return null
+     * @throws \ride\library\orm\exception\OrmException when the provided count
+     * or offset is invalid
+     */
+    public function setLimit($count, $offset = 0) {
+        parent::setLimit($count, $offset);
+
+        $this->limitCount = '%_Lc%';
+        $this->limitOffset = '%_Lo%';
+
+        $this->variables['_Lc'] = $count;
+        $this->variables['_Lo'] = $offset;
     }
 
     /**

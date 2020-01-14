@@ -11,7 +11,7 @@
     "require": {
         "ride/lib-cache": "^1.0.0",
         "ride/lib-common": "^1.0.0",
-        "ride/lib-database": "^1.0.0",
+        "ride/lib-database": "^1.1.2",
         "ride/lib-event": "^1.0.0",
         "ride/lib-generator": "^1.0.0",
         "ride/lib-log": "^1.0.0",
