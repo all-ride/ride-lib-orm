@@ -154,8 +154,13 @@ return $entryState;';
             $property->setDefaultValue($defaultValue);
         }
 
+        $comparator = '==';
+        if ($field->getType() === 'string') {
+            $comparator = '===';
+        }
+
         $setterCode =
-'if ((($this->' . $name . ' === null && $' . $name . ' === null) || ($this->' . $name . ' == $' . $name . ')) && !(($this->' . $name . ' === null && $' . $name . ' !== null) || ($this->' . $name . ' !== null && $' . $name . ' === null))) {
+'if ((($this->' . $name . ' === null && $' . $name . ' === null) || ($this->' . $name . ' ' . $comparator . ' $' . $name . ')) && !(($this->' . $name . ' === null && $' . $name . ' !== null) || ($this->' . $name . ' !== null && $' . $name . ' === null))) {
     return;
 }
 

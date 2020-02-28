@@ -1,3 +1,7 @@
+# [1.6.5] - 2020-02-28
+## Updated
+- fixed entry setters for strings
+
 # [1.6.4] - 2020-01-14
 ## Updated
 - fixed query cache for paginated queries
