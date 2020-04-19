@@ -1,3 +1,7 @@
+# [1.6.6] - 2020-04-19
+## Updated
+- improved search when doing find with 'query' option
+
 # [1.6.5] - 2020-02-28
 ## Updated
 - fixed entry setters for strings
