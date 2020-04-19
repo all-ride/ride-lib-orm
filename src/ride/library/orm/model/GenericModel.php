@@ -389,7 +389,30 @@ class GenericModel extends AbstractModel {
 
         $queryString = isset($options['query']) ? $options['query'] : null;
         if ($queryString) {
-            $conditionArguments[$conditionArgumentIndex++] = '%' . $queryString . '%';
+            $queryString = trim($queryString);
+            if (strpos($queryString, ' ')) {
+                $terms = explode(' ', $queryString);
+                foreach ($terms as $termIndex => $term) {
+                    $term = trim($term);
+                    if (!$term) {
+                        unset($terms[$termIndex]);
+                    }
+                }
+            } else {
+                $terms = array($queryString);
+            }
+
+            $indexedTerms = array();
+            foreach ($terms as $term) {
+                $termIndex = $conditionArgumentIndex++;
+
+                $conditionArguments[$termIndex] = '%' . $term . '%';
+
+                $indexedTerms[$termIndex] = $term;
+            }
+
+            $terms = $indexedTerms;
+            $fieldConditions = array();
 
             $fields = $this->meta->getFields();
             foreach ($fields as $fieldName => $field) {
@@ -398,7 +421,16 @@ class GenericModel extends AbstractModel {
                 }
 
                 if ($field instanceof PropertyField) {
-                    $conditions[] = '{' . $fieldName . '} LIKE  %' . ($conditionArgumentIndex - 1) . '%';
+                    if ($field->isLocalized()) {
+                        $conditionFieldName = '`selfLocalized`.`' . $fieldName . '`';
+                    } else {
+                        $conditionFieldName = '`self`.`' . $fieldName . '`';
+                    }
+
+                    foreach ($terms as $termIndex => $term) {
+                        $conditions[] = '{' . $fieldName . '} LIKE  %' . $termIndex . '%';
+                        $fieldConditions[$termIndex][] = $conditionFieldName . ' LIKE  %' . $termIndex . '%';
+                    }
                 } else {
                     $relationModel = $this->getRelationModel($fieldName);
 
@@ -408,10 +440,22 @@ class GenericModel extends AbstractModel {
                             continue;
                         }
 
-                        $conditions[] = '{' . $fieldName . '.' . $relationFieldName . '} LIKE  %' . ($conditionArgumentIndex - 1) . '%';
+                        foreach ($terms as $termIndex => $term) {
+                            $conditions[] = '{' . $fieldName . '.' . $relationFieldName . '} LIKE  %' . $termIndex . '%';
+                        }
                     }
                 }
             }
+
+            foreach ($fieldConditions as $termIndex => $termConditions) {
+                $fieldConditions[$termIndex] = implode(' OR ', $termConditions);
+            }
+
+            $searchScoreFieldExpression =
+                'IF((' . implode(') AND (', $fieldConditions) . '), 1, ' .
+                    'IF((' . implode(') OR (', $fieldConditions) . '), 2, 3)' .
+                ') AS searchScore';
+            $query->addFieldsWithVariables($searchScoreFieldExpression, $conditionArguments);
         }
 
         if ($conditions) {
@@ -433,6 +477,8 @@ class GenericModel extends AbstractModel {
 
         if ($order && is_string($order)) {
             $query->addOrderBy($order);
+        } elseif (!$order && $options && isset($options['query'])) {
+            $query->addOrderBy('searchScore ASC');
         } else {
             $orderField = $order && array_key_exists('field', $order) ? $order['field'] : $this->findOrderField;
             $orderDirection = isset($order['direction']) ? $order['direction'] : $this->findOrderDirection;
