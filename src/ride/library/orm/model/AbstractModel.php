@@ -400,9 +400,13 @@ abstract class AbstractModel implements Model, Serializable {
         }
 
         // first value not set, assume value struct
+        $entry = null;
+
         if (isset($value[ModelTable::PRIMARY_KEY])) {
             $entry = $this->getById($value[ModelTable::PRIMARY_KEY], $locale);
-        } else {
+        }
+
+        if (!$entry) {
             $entry = $this->createEntry();
         }
 
