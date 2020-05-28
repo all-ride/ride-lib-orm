@@ -1,3 +1,7 @@
+# [1.6.7] - 2020-05-28
+## Updated
+- fixed getEntryFromValue when a related entry does not exist
+
 # [1.6.6] - 2020-04-19
 ## Updated
 - improved search when doing find with 'query' option
