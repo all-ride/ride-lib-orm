@@ -1,3 +1,7 @@
+# [1.6.8] - 2020-11-09
+## Updated
+- replaced curly brackets with square brackets to be compatible with PHP7.4
+
 # [1.6.7] - 2020-05-28
 ## Updated
 - fixed getEntryFromValue when a related entry does not exist
