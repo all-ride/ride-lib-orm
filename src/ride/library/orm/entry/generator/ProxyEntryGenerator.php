@@ -442,7 +442,7 @@ return parent::' . $getterMethodName . '();';
         $getter->setReturnValue($property);
 
         if ($description) {
-            $description{0} = strtolower($description{0});
+            $description[0] = strtolower($description[0]);
             $setter->setDescription('Sets the ' . $description);
             $getter->setDescription('Gets the ' . $description);
         }
@@ -495,7 +495,7 @@ return parent::get' . $ucName . '();';
         $getter->setReturnValue($property);
 
         if ($description) {
-            $description{0} = strtolower($description{0});
+            $description[0] = strtolower($description[0]);
             $setter->setDescription('Sets the ' . $description);
             $getter->setDescription('Gets the ' . $description);
         }

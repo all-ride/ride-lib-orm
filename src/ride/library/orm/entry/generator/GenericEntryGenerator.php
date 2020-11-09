@@ -179,7 +179,7 @@ if ($this->entryState === self::STATE_CLEAN) {
         $getter->setReturnValue($property);
 
         if ($description) {
-            $description{0} = strtolower($description{0});
+            $description[0] = strtolower($description[0]);
             $setter->setDescription('Sets the ' . $description);
             $getter->setDescription('Gets the ' . $description);
         }
@@ -225,7 +225,7 @@ if (!$isClean && $this->entryState === self::STATE_CLEAN) {
         $getter->setReturnValue($property);
 
         if ($description) {
-            $description{0} = strtolower($description{0});
+            $description[0] = strtolower($description[0]);
             $setter->setDescription('Sets the ' . $description);
             $getter->setDescription('Gets the ' . $description);
         }
@@ -373,7 +373,7 @@ return $status;';
         $getter->setReturnValue($property);
 
         if ($description) {
-            $description{0} = strtolower($description{0});
+            $description[0] = strtolower($description[0]);
             $adder->setDescription('Adds an entry to the ' . $description);
             $remover->setDescription('Removes an entry from the ' . $description);
             $setter->setDescription('Sets the ' . $description);
