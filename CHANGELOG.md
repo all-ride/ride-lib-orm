@@ -1,3 +1,7 @@
+# [1.7.0] - 2022-01-26
+## Updated
+- replaced old serialize methods with magic serialize methods to be compatible with parent serialization
+
 # [1.6.8] - 2020-11-09
 ## Updated
 - replaced curly brackets with square brackets to be compatible with PHP7.4
