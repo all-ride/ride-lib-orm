@@ -28,7 +28,7 @@ use \Serializable;
 /**
  * Abstract implementation of a data model
  */
-abstract class AbstractModel implements Model, Serializable {
+abstract class AbstractModel implements Model {
 
     /**
      * Factory for data objects
@@ -79,11 +79,11 @@ abstract class AbstractModel implements Model, Serializable {
      * @param array $behaviours
      * @return null
      */
-    public function __construct(ReflectionHelper $reflectionHelper, ModelMeta $meta, array $behaviours = array()) {
+    public function __construct(ReflectionHelper $reflectionHelper, ModelMeta $meta, array $behaviours = []) {
         $this->reflectionHelper = $reflectionHelper;
         $this->meta = $meta;
-        $this->proxies = array();
-        $this->behaviours = array();
+        $this->proxies = [];
+        $this->behaviours = [];
 
         foreach ($behaviours as $behaviour) {
             $this->addBehaviour($behaviour);
@@ -121,37 +121,35 @@ abstract class AbstractModel implements Model, Serializable {
      * Serializes this model
      * @return string Serialized model
      */
-    public function serialize() {
-        $serialize = array(
+    public function __serialize() {
+        $serialize = [
             'reflectionHelper' => $this->reflectionHelper,
             'meta' => $this->meta,
-        );
+        ];
 
         if ($this->behaviours) {
             $serialize['behaviours'] = $this->behaviours;
         }
 
-        return serialize($serialize);
+        return $serialize;
     }
 
     /**
      * Unserializes the provided string into a model
-     * @param string $serialized Serialized string of a model
+     * @param array $data Serialized string of a model
      * @return null
      */
-    public function unserialize($serialized) {
-        $unserialized = unserialize($serialized);
+    public function __unserialize(array $data) {
+        $this->reflectionHelper = $data['reflectionHelper'];
+        $this->meta = $data['meta'];
 
-        $this->reflectionHelper = $unserialized['reflectionHelper'];
-        $this->meta = $unserialized['meta'];
-
-        if (isset($unserialized['behaviours'])) {
-            $this->behaviours = $unserialized['behaviours'];
+        if (isset($data['behaviours'])) {
+            $this->behaviours = $data['behaviours'];
         } else {
-            $this->behaviours = array();
+            $this->behaviours = [];
         }
 
-        $this->proxies = array();
+        $this->proxies = [];
     }
 
     /**
@@ -212,7 +210,7 @@ abstract class AbstractModel implements Model, Serializable {
      * @param array $properties Propery values to initialize the entry with
      * @return mixed New entry for this model
      */
-    public function createEntry(array $properties = array()) {
+    public function createEntry(array $properties = []) {
         $fields = $this->meta->getFields();
         foreach ($fields as $field) {
             $name = $field->getName();
@@ -222,7 +220,7 @@ abstract class AbstractModel implements Model, Serializable {
             }
 
             if ($field instanceof HasManyField) {
-                $properties[$name] = array();
+                $properties[$name] = [];
 
                 continue;
             }
@@ -254,7 +252,7 @@ abstract class AbstractModel implements Model, Serializable {
      * @param array $properties Known properties of the entry instance
      * @return mixed An entry proxy instance for this model
      */
-    public function createProxy($id, $locale = null, array $properties = array()) {
+    public function createProxy($id, $locale = null, array $properties = []) {
         if (!is_scalar($id)) {
             throw new OrmException('Could not create a proxy for ' . $this->getName() . ': no valid id provided (' . gettype($id) . ')');
         } elseif (!$id && isset($properties[ModelTable::PRIMARY_KEY])) {
@@ -275,11 +273,11 @@ abstract class AbstractModel implements Model, Serializable {
             $properties['locale'] = $locale;
         }
 
-        $properties = array(
+        $properties = [
             'model' => $this,
             'id' => $id,
             'properties' => $properties,
-        );
+        ];
 
         $proxy = $this->reflectionHelper->createData($this->meta->getProxyClassName(), $properties);
 
@@ -295,7 +293,7 @@ abstract class AbstractModel implements Model, Serializable {
      * @return null
      */
     public function clearProxies() {
-        $this->proxies = array();
+        $this->proxies = [];
     }
 
     /**
@@ -324,13 +322,13 @@ abstract class AbstractModel implements Model, Serializable {
 
         $page = 1;
         $limit = 2000;
-        $this->list[$locale] = array();
+        $this->list[$locale] = [];
 
         do {
-            $entries = $this->find(array(
+            $entries = $this->find([
                 'limit' => $limit,
                 'page' => $page,
-            ), $locale, $fetchUnlocalized);
+            ], $locale, $fetchUnlocalized);
 
             $this->list[$locale] += $this->getOptionsFromEntries($entries);
 
@@ -353,7 +351,7 @@ abstract class AbstractModel implements Model, Serializable {
             $format = $this->meta->getFormat(EntryFormatter::FORMAT_TITLE);
         }
 
-        $options = array();
+        $options = [];
         foreach ($entries as $entry) {
             $options[$this->reflectionHelper->getProperty($entry, ModelTable::PRIMARY_KEY)] = $entryFormatter->formatEntry($entry, $format);
         }
@@ -390,7 +388,7 @@ abstract class AbstractModel implements Model, Serializable {
 
         if (isset($value[0])) {
             // 0-index value set, assume array of entries
-            $result = array();
+            $result = [];
 
             foreach ($value as $entry) {
                 $result[] = $this->getEntryFromValue($entry, $locale);
@@ -444,7 +442,7 @@ abstract class AbstractModel implements Model, Serializable {
 
         $this->meta->isValidEntry($data);
 
-        $array = array();
+        $array = [];
 
         $fields = $this->meta->getFields();
         foreach ($fields as $field) {
@@ -465,7 +463,7 @@ abstract class AbstractModel implements Model, Serializable {
                     if ($level == 0) {
                         $array[$name][] = $hasValue->id;
                     } else {
-                        $array[$name][] = $relationModel->convertEntryToArray($hasValue, array($foreignKey), $level - 1);
+                        $array[$name][] = $relationModel->convertEntryToArray($hasValue, [$foreignKey], $level - 1);
                     }
                 }
             } else {
@@ -692,8 +690,8 @@ abstract class AbstractModel implements Model, Serializable {
      * @throws \ride\library\orm\exception\OrmException when the provided locale is invalid
      */
     protected function getLocale($locale) {
-    	if ($locale === null) {
-        	$locale = $this->orm->getLocale();
+        if ($locale === null) {
+            $locale = $this->orm->getLocale();
         } elseif (!is_string($locale) || $locale == '') {
             throw new OrmException('Provided locale is invalid: ' . $locale);
         }

@@ -95,7 +95,7 @@ class GenericModel extends AbstractModel {
      * @return null
      */
     protected function initialize() {
-        $this->saveStack = array();
+        $this->saveStack = [];
         $this->findOrderField = $this->meta->getOption('order.field');
         $this->findOrderDirection = $this->meta->getOption('order.direction', 'ASC');
     }
@@ -104,29 +104,27 @@ class GenericModel extends AbstractModel {
      * Serializes this model
      * @return string Serialized model
      */
-    public function serialize() {
-        $serialize = array(
-            'parent' => parent::serialize(),
+    public function __serialize() {
+        $serialize = [
+            'parent' => parent::__serialize(),
             'orderField' => $this->findOrderField,
             'orderDirection' => $this->findOrderDirection,
-        );
+        ];
 
-        return serialize($serialize);
+        return $serialize;
     }
 
     /**
      * Unserializes the provided string into a model
-     * @param string $serialized Serialized string of a model
+     * @param array $data Serialized string of a model
      * @return null
      */
-    public function unserialize($serialized) {
-        $unserialized = unserialize($serialized);
+    public function __unserialize(array $data) {
+        parent::__unserialize($data['parent']);
 
-        parent::unserialize($unserialized['parent']);
-
-        $this->findOrderField = $unserialized['orderField'];
-        $this->findOrderDirection = $unserialized['orderDirection'];
-        $this->saveStack = array();
+        $this->findOrderField = $data['orderField'];
+        $this->findOrderDirection = $data['orderDirection'];
+        $this->saveStack = [];
     }
 
     /**
@@ -298,7 +296,7 @@ class GenericModel extends AbstractModel {
         if (isset($options['condition'])) {
             $conditions = $options['condition'];
             if (!is_array($conditions)) {
-                $conditions = array($conditions);
+                $conditions = [$conditions];
             }
 
             foreach ($conditions as $condition) {
@@ -310,7 +308,7 @@ class GenericModel extends AbstractModel {
                     $variables = $condition;
                     $condition = array_shift($variables);
                 } else {
-                    $variables = array();
+                    $variables = [];
                 }
 
                 $query->addConditionWithVariables($condition, $variables);
@@ -318,10 +316,10 @@ class GenericModel extends AbstractModel {
         }
 
         // handle filters
-        $filter = isset($options['filter']) ? $options['filter'] : array();
+        $filter = isset($options['filter']) ? $options['filter'] : [];
         foreach ($filter as $fieldName => $filterValue) {
             if (!is_array($filterValue)) {
-                $filterValue = array($filterValue);
+                $filterValue = [$filterValue];
             }
 
             $condition = '';
@@ -357,18 +355,18 @@ class GenericModel extends AbstractModel {
         }
 
         // handle match
-        $conditions = array();
-        $conditionArguments = array();
+        $conditions = [];
+        $conditionArguments = [];
         $conditionArgumentIndex = 1;
 
-        $match = isset($options['match']) ? $options['match'] : array();
+        $match = isset($options['match']) ? $options['match'] : [];
         foreach ($match as $fieldName => $filterValue) {
             $fieldTokens = explode('.', $fieldName);
             $field = $this->meta->getField($fieldTokens[0]);
 
             if (!$field instanceof HasField) {
                 if (!is_array($filterValue)) {
-                    $filterValue = array($filterValue);
+                    $filterValue = [$filterValue];
                 }
 
                 $condition = '';
@@ -399,10 +397,10 @@ class GenericModel extends AbstractModel {
                     }
                 }
             } else {
-                $terms = array($queryString);
+                $terms = [$queryString];
             }
 
-            $indexedTerms = array();
+            $indexedTerms = [];
             foreach ($terms as $term) {
                 $termIndex = $conditionArgumentIndex++;
 
@@ -412,7 +410,7 @@ class GenericModel extends AbstractModel {
             }
 
             $terms = $indexedTerms;
-            $fieldConditions = array();
+            $fieldConditions = [];
 
             $fields = $this->meta->getFields();
             foreach ($fields as $fieldName => $field) {
@@ -453,7 +451,7 @@ class GenericModel extends AbstractModel {
 
             $searchScoreFieldExpression =
                 'IF((' . implode(') AND (', $fieldConditions) . '), 1, ' .
-                    'IF((' . implode(') OR (', $fieldConditions) . '), 2, 3)' .
+                'IF((' . implode(') OR (', $fieldConditions) . '), 2, 3)' .
                 ') AS searchScore';
             $query->addFieldsWithVariables($searchScoreFieldExpression, $conditionArguments);
         }
@@ -461,7 +459,7 @@ class GenericModel extends AbstractModel {
         if ($conditions) {
             $query->addConditionWithVariables(implode(' OR ', $conditions), $conditionArguments);
         }
-   }
+    }
 
     /**
      * Applies the scaffold order to the provided query
@@ -520,7 +518,7 @@ class GenericModel extends AbstractModel {
 
             $isNew = true;
             $isProxy = false;
-            $loadedValues = array();
+            $loadedValues = [];
         } else {
             $id = $entry->getId();
 
@@ -537,7 +535,7 @@ class GenericModel extends AbstractModel {
             if ($isProxy) {
                 $loadedValues = $entry->getLoadedValues();
             } else {
-                $loadedValues = array();
+                $loadedValues = [];
             }
         }
 
@@ -553,9 +551,9 @@ class GenericModel extends AbstractModel {
 
         if ($this->eventManager) {
             if ($isNew) {
-                $this->eventManager->triggerEvent(self::EVENT_INSERT_PRE, array('model' => $this, 'entry' => $entry));
+                $this->eventManager->triggerEvent(self::EVENT_INSERT_PRE, ['model' => $this, 'entry' => $entry]);
             } else {
-                $this->eventManager->triggerEvent(self::EVENT_UPDATE_PRE, array('model' => $this, 'entry' => $entry));
+                $this->eventManager->triggerEvent(self::EVENT_UPDATE_PRE, ['model' => $this, 'entry' => $entry]);
             }
         }
 
@@ -756,9 +754,9 @@ class GenericModel extends AbstractModel {
 
         if ($this->eventManager) {
             if ($isNew) {
-                $this->eventManager->triggerEvent(self::EVENT_INSERT_POST, array('model' => $this, 'entry' => $entry));
+                $this->eventManager->triggerEvent(self::EVENT_INSERT_POST, ['model' => $this, 'entry' => $entry]);
             } else {
-                $this->eventManager->triggerEvent(self::EVENT_UPDATE_POST, array('model' => $this, 'entry' => $entry));
+                $this->eventManager->triggerEvent(self::EVENT_UPDATE_POST, ['model' => $this, 'entry' => $entry]);
             }
         }
     }
@@ -802,10 +800,10 @@ class GenericModel extends AbstractModel {
             $entryLocale = $entry->getLocale();
         }
 
-        $properties = array(
-            LocalizedModel::FIELD_ENTRY => $this->createProxy($entry->getId(), $entryLocale, array(ModelTable::PRIMARY_KEY => $entry->getId())),
+        $properties = [
+            LocalizedModel::FIELD_ENTRY => $this->createProxy($entry->getId(), $entryLocale, [ModelTable::PRIMARY_KEY => $entry->getId()]),
             LocalizedModel::FIELD_LOCALE => $this->getLocale($entryLocale),
-        );
+        ];
 
         $localizedModel = $this->getLocalizedModel();
 
@@ -891,7 +889,7 @@ class GenericModel extends AbstractModel {
                 // relation to self
 
                 // look for existing relation
-                $conditions = array();
+                $conditions = [];
                 foreach ($relationForeignKey as $foreignKey) {
                     $conditions[] = '{' . $foreignKey . '} = %1%';
                 }
@@ -977,7 +975,7 @@ class GenericModel extends AbstractModel {
         if (!is_array($foreignKeys)) {
             // relation to other model
             $foreignKeyToSelf = $this->meta->getRelationForeignKeyToSelf($fieldName);
-            $foreignKeys = array($foreignKeys, $foreignKeyToSelf);
+            $foreignKeys = [$foreignKeys, $foreignKeyToSelf];
             $isRelationToSelf = false;
         } else {
             // relation to self
@@ -1113,7 +1111,7 @@ class GenericModel extends AbstractModel {
 
         $result = $this->executeStatement($statement);
 
-        $oldHasMany = array();
+        $oldHasMany = [];
 
         if ($isRelationWithSelf) {
             foreach ($result as $record) {
@@ -1204,7 +1202,7 @@ class GenericModel extends AbstractModel {
 
         $result = $this->executeStatement($statement);
 
-        $oldHasMany = array();
+        $oldHasMany = [];
         foreach ($result as $record) {
             $oldHasMany[$record[ModelTable::PRIMARY_KEY]] = $record[ModelTable::PRIMARY_KEY];
         }
@@ -1258,10 +1256,10 @@ class GenericModel extends AbstractModel {
             $format = $this->meta->getFormat('title');
             $entryFormatter = $this->orm->getEntryFormatter();
 
-            $validationError = new ValidationError('orm.error.data.used', '%data% is still in use by another record', array('data' => $entryFormatter->formatEntry($entry, $format)));
+            $validationError = new ValidationError('orm.error.data.used', '%data% is still in use by another record', ['data' => $entryFormatter->formatEntry($entry, $format)]);
 
             $validationException = new ValidationException();
-            $validationException->addErrors('id', array($validationError));
+            $validationException->addErrors('id', [$validationError]);
 
             throw $validationException;
         }
@@ -1271,7 +1269,7 @@ class GenericModel extends AbstractModel {
             $behaviour->preDelete($this, $entry);
         }
         if ($this->eventManager) {
-            $this->eventManager->triggerEvent(self::EVENT_DELETE_PRE, array('model' => $this, 'entry' => $entry));
+            $this->eventManager->triggerEvent(self::EVENT_DELETE_PRE, ['model' => $this, 'entry' => $entry]);
         }
 
         if ($this->meta->isLocalized()) {
@@ -1314,7 +1312,7 @@ class GenericModel extends AbstractModel {
             $behaviour->postDelete($this, $entry);
         }
         if ($this->eventManager) {
-            $this->eventManager->triggerEvent(self::EVENT_DELETE_POST, array('model' => $this, 'entry' => $entry));
+            $this->eventManager->triggerEvent(self::EVENT_DELETE_POST, ['model' => $this, 'entry' => $entry]);
         }
 
         // go back
@@ -1483,7 +1481,7 @@ class GenericModel extends AbstractModel {
         $meta = $model->getMeta();
         $belongsTo = $meta->getBelongsTo();
 
-        $fields = array();
+        $fields = [];
         foreach ($belongsTo as $field) {
             if ($field->getRelationModelName() == $this->getName()) {
                 $fields[] = $field->getName();
@@ -1527,7 +1525,7 @@ class GenericModel extends AbstractModel {
         $meta = $model->getMeta();
         $belongsTo = $meta->getBelongsTo();
 
-        $fields = array();
+        $fields = [];
         foreach ($belongsTo as $field) {
             if ($field->getRelationModelName() == $this->getName()) {
                 $fields[] = $field->getName();
