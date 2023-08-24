@@ -122,7 +122,9 @@ class GenericEntryFormat implements EntryFormat {
                 return $variable->getValue($entry, $reflectionHelper);
             }
 
-            $result = str_replace($variableString, $variable->getValue($entry, $reflectionHelper), $result);
+            if ($variable->getValue($entry, $reflectionHelper)) {
+                $result = str_replace($variableString, $variable->getValue($entry, $reflectionHelper), $result);
+            }
         }
 
         return $result;

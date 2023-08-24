@@ -1,3 +1,6 @@
+# [1.7.1] - 2023-08-24
+## Updated
+- Fixed str_replace when empty
 # [1.7.0] - 2022-01-26
 ## Updated
 - replaced old serialize methods with magic serialize methods to be compatible with parent serialization
