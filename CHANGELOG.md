@@ -1,3 +1,6 @@
+# [1.7.2] - 2023-10-10
+## Updated
+- Parsed getVersion to int before adding 1
 # [1.7.1] - 2023-08-24
 ## Updated
 - Fixed str_replace when empty

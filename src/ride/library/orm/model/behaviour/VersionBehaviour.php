@@ -104,7 +104,7 @@ class VersionBehaviour extends AbstractBehaviour {
             return;
         }
 
-        $entry->setVersion($entry->getVersion() + 1);
+        $entry->setVersion((int) $entry->getVersion() + 1);
     }
 
 }
