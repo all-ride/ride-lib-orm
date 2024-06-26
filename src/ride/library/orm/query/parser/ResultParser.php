@@ -21,6 +21,14 @@ class ResultParser {
      */
     protected $model;
 
+    protected $orm;
+
+    private $meta;
+
+    protected $isLocalized;
+
+    protected $belongsTo;
+
     /**
      * Constructs a new result parser
      * @param \ride\library\orm\model\Model $model Model of this result

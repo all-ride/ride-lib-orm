@@ -125,6 +125,8 @@ class OrmManager {
      */
     protected $defaultNamespace;
 
+    protected $dataFormatter;
+
     /**
      * Constructs a new ORM manager
      * @return null

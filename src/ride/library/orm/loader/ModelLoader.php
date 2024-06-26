@@ -44,6 +44,10 @@ class ModelLoader {
      */
     protected $cache;
 
+    protected $reflectionHelper;
+
+    protected $eventManager;
+
     /**
      * Constructs a new model loader
      * @param \ride\library\orm\loader\io\ModelIO $io I/O to read the models

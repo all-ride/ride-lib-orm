@@ -160,6 +160,8 @@ class QueryParser {
      */
     private $conditionJoins;
 
+    private $addIsLocalizedOrder;
+
     /**
      * Constructs a new model query parser
      * @param \ride\library\orm\OrmManager $orm

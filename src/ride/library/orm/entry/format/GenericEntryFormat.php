@@ -38,6 +38,8 @@ class GenericEntryFormat implements EntryFormat {
      */
     private $variables;
 
+    private $modifiers;
+
     /**
      * Constructs a new entry format
      * @param array $modifiers
