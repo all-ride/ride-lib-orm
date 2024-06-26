@@ -46,6 +46,8 @@ class EntryLogModel extends GenericModel {
      */
     const VALUE_SEPARATOR = ', ';
 
+    protected $dataListDepth;
+
     /**
      * Hook to perform extra initialization when constructing the model
      * @return null

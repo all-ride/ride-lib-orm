@@ -9,6 +9,9 @@ use ride\library\system\file\browser\FileBrowser;
  * Entry generate for the general entry class
  */
 abstract class AbstractEntryGenerator implements EntryGenerator {
+    protected $generator;
+    protected $fileBrowser;
+    protected $defaultNamespace;
 
     /**
      * Constructs a new entry generator

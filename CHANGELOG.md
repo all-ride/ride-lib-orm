@@ -1,3 +1,6 @@
+# [1.8.0] - 2024-06-26
+## Updated
+- Updated to be compatible with php 8.3
 # [1.7.2] - 2023-10-10
 ## Updated
 - Parsed getVersion to int before adding 1

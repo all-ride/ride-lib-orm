@@ -72,6 +72,8 @@ abstract class AbstractModel implements Model {
      */
     protected $saveStack;
 
+    protected $proxies;
+
     /**
      * Constructs a new data model
      * @param \ride\library\reflection\ReflectionHelper $reflectionHelper

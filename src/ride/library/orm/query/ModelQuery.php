@@ -137,6 +137,10 @@ class ModelQuery {
      */
     protected $queryParser;
 
+    protected $reflectionHelper;
+
+    protected $locales;
+
     /**
      * Constructs a new model query
      * @param \ride\library\orm\model\Model $model Instance of the model for

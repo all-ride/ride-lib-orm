@@ -2,9 +2,12 @@
 
 namespace ride\library\orm\entry;
 
+use AllowDynamicProperties;
+
 /**
  * Generic data container
  */
+#[AllowDynamicProperties]
 class GenericEntry extends AbstractEntry {
 
     /**

@@ -14,6 +14,10 @@ class FirstLastEntryFormatModifier implements EntryFormatModifier {
      * @var ride\library\reflection\ReflectionHelper $reflectionHelper
      */
     protected $reflectionHelper;
+    /**
+     * @var mixed|true
+     */
+    protected $isFirst;
 
     /**
      * Constructs a new entry format modifier
