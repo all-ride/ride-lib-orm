@@ -1,3 +1,6 @@
+# [1.9.0] - 2025-10-03
+## Updated
+- Added Group by parser instead of piggy backing on the Order by
 # [1.8.0] - 2024-06-26
 ## Updated
 - Updated to be compatible with php 8.3

@@ -10,6 +10,7 @@ use ride\library\database\manipulation\expression\CaseExpression;
 use ride\library\database\manipulation\expression\Expression;
 use ride\library\database\manipulation\expression\FieldExpression;
 use ride\library\database\manipulation\expression\FunctionExpression;
+use ride\library\database\manipulation\expression\GroupExpression;
 use ride\library\database\manipulation\expression\JoinExpression;
 use ride\library\database\manipulation\expression\TableExpression;
 use ride\library\database\manipulation\expression\OrderExpression;
@@ -289,7 +290,7 @@ class QueryParser {
         $joins = $this->parseJoins($modelQuery->getJoins());
         $conditions = $this->parseConditions($modelQuery->getConditions());
         $having = $this->parseConditions($modelQuery->getHaving());
-        $groupBy = $this->parseOrderBy($modelQuery->getGroupBy());
+        $groupBy = $this->parseGroupBy($modelQuery->getGroupBy());
         $orderBy = $this->parseOrderBy($modelQuery->getOrderBy());
 
         $this->addJoins($joins);
@@ -954,6 +955,19 @@ class QueryParser {
         return $parsedOrderBy;
     }
 
+    private function parseGroupBy(array $groupBy) {
+        $parsedGroupBy = array();
+        foreach ($groupBy as $index => $group) {
+            $this->expressionParser->setVariables($group->getVariables());
+            $tokens = $this->fieldTokenizer->tokenize($group->getExpression());
+            foreach ($tokens as $token) {
+                $parsedGroupBy[] = $this->parseGroup($token);
+            }
+        }
+        $this->expressionParser->setVariables(null);
+        return $parsedGroupBy;
+    }
+
     /**
      * Parses and processes a order string into a database order expression
      * @param string $order String of an order expression
@@ -983,6 +997,24 @@ class QueryParser {
         }
 
         return new OrderExpression($expression, $direction);
+    }
+
+    /**
+     * Parses and processes a group string into a database order expression
+     * @param string $group String of an group expression
+     * @return \ride\library\database\manipulation\expression\GroupExpression
+     */
+    private function parseGroup($group) {
+
+        $expression = $this->expressionParser->parseExpression($group);
+
+        $expression = $this->processExpression($expression);
+
+        if ($expression instanceof FieldExpression && !isset($this->fields[$expression->getAlias()])) {
+            $this->statement->addField($expression);
+        }
+
+        return new GroupExpression($expression);
     }
 
     /**
