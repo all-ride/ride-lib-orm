@@ -1,3 +1,6 @@
+# [1.9.1] - 2026-04-09
+## Updated
+- Fixed Count query parser, use groupBy instead of order by
 # [1.9.0] - 2025-10-03
 ## Updated
 - Added Group by parser instead of piggy backing on the Order by
