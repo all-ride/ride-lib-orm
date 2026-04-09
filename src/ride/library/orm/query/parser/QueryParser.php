@@ -240,7 +240,7 @@ class QueryParser {
 
         $joins = $this->parseJoins($modelQuery->getJoins());
         $conditions = $this->parseConditions($modelQuery->getConditions());
-        $groupBy = $this->parseOrderBy($modelQuery->getGroupBy());
+        $groupBy = $this->parseGroupBy($modelQuery->getGroupBy());
 
         $this->addJoins($joins);
         $this->addConditions($conditions, $modelQuery->getOperator());
